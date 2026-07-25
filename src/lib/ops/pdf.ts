@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type PdfBody, AnnotationSchema, AnnotationTypeSchema, RectSchema } from "@/lib/docs/schema";
+import { type PdfBody, AnnotationSchema, AnnotationTypeSchema, NormalizedRectSchema } from "@/lib/docs/schema";
 import { newAnnotationId } from "@/lib/docs/ids";
 import { OpError } from "./errors";
 
@@ -20,7 +20,7 @@ export const PdfOpSchema = z.discriminatedUnion("op", [
       page: z.number().int().min(1),
       type: AnnotationTypeSchema,
       /** Normalised 0..1 page coordinates, origin top-left. */
-      rect: RectSchema,
+      rect: NormalizedRectSchema,
       color: z.string().optional(),
       quote: z.string().optional(),
       note: z.string().optional(),

@@ -119,6 +119,8 @@ export const useThreads = create<ThreadState>((set, get) => ({
     });
 
     const selection = workspace.selection[docId];
+    const targetSelection =
+      targetDocId === docId ? selection : workspace.selection[targetDocId];
     const companionContexts = companions.map((c) => ({
       doc: c,
       selection: workspace.selection[c.id],
@@ -131,7 +133,7 @@ export const useThreads = create<ThreadState>((set, get) => ({
         content: userTurn({
           doc: targetDoc,
           request,
-          selection: targetDocId === docId ? selection : workspace.selection[targetDocId],
+          selection: targetSelection,
           companions: companionContexts,
         }),
       },
@@ -140,7 +142,7 @@ export const useThreads = create<ThreadState>((set, get) => ({
     const mock: MockRequest = {
       doc: targetDoc,
       request,
-      selection,
+      selection: targetSelection,
       companions: companionContexts,
     };
 

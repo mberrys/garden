@@ -125,6 +125,19 @@ describe("mock provider", () => {
     expect(parseOpsFromReply("deck", reply).status).toBe("ok");
   });
 
+  it("honours the target document selection when tightening text", () => {
+    const reply = mockReply({
+      doc: createTextDoc("Target", "One\n\nTwo\n\nThree"),
+      request: "tighten this",
+      selection: { kind: "text", blockIndex: 2, blockCount: 1, text: "Three" },
+    });
+    const outcome = parseOpsFromReply("text", reply);
+    expect(outcome.status).toBe("ok");
+    if (outcome.status === "ok") {
+      expect(outcome.ops[0]).toMatchObject({ op: "replaceMarkdown", index: 2, count: 1 });
+    }
+  });
+
   it("declines rather than inventing ops when a PDF has no pages", () => {
     const outcome = parseOpsFromReply("pdf", mockReply({ doc: createPdfDoc("Empty"), request: "highlight" }));
     expect(outcome.status).toBe("none");

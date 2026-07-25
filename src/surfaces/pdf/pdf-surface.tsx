@@ -179,6 +179,8 @@ export default function PdfSurface({
               next.add(page);
               const top = entry.boundingClientRect.top;
               if (!topMost || top < topMost.top) topMost = { page, top };
+            } else {
+              next.delete(page);
             }
           }
           if (topMost) setCurrentPage(topMost.page);

@@ -145,7 +145,7 @@ export default function TextSurface({
               return;
             }
             const href = window.prompt("Link URL");
-            if (href) editor.chain().focus().setLink({ href }).run();
+            if (href && isSafeHref(href)) editor.chain().focus().setLink({ href }).run();
           }}
         >
           <Link2 size={14} />
@@ -319,4 +319,19 @@ function blockIndexAt(editor: Editor, pos: number): number {
   const resolved = editor.state.doc.resolve(Math.min(pos, editor.state.doc.content.size));
   // depth 1 is the top-level block; index(0) is its position among siblings.
   return resolved.depth === 0 ? Math.max(0, resolved.index(0) - 1) : resolved.index(0);
+}
+
+/** Reject javascript: and other unsafe URL schemes in user-created links. */
+function isSafeHref(href: string): boolean {
+  const trimmed = href.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("./") || trimmed.startsWith("../")) {
+    return true;
+  }
+  try {
+    const { protocol } = new URL(trimmed);
+    return protocol === "http:" || protocol === "https:" || protocol === "mailto:";
+  } catch {
+    return false;
+  }
 }
