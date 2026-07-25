@@ -355,3 +355,95 @@ export function resizeRect(bounds: Rect, handle: HandleId, point: Point, minSize
 export function snap(value: number, grid: number): number {
   return grid > 0 ? Math.round(value / grid) * grid : value;
 }
+
+/* ------------------------------------------------------------------ *
+ * Rounded paths
+ * ------------------------------------------------------------------ */
+
+export interface PathPoint {
+  x: number;
+  y: number;
+}
+
+function filletCorner(
+  ctx: CanvasRenderingContext2D,
+  prev: PathPoint,
+  curr: PathPoint,
+  next: PathPoint,
+  radius: number,
+  moveTo: boolean,
+): void {
+  const v1 = { x: prev.x - curr.x, y: prev.y - curr.y };
+  const v2 = { x: next.x - curr.x, y: next.y - curr.y };
+  const len1 = Math.hypot(v1.x, v1.y);
+  const len2 = Math.hypot(v2.x, v2.y);
+  if (len1 === 0 || len2 === 0) return;
+
+  const u1 = { x: v1.x / len1, y: v1.y / len1 };
+  const u2 = { x: v2.x / len2, y: v2.y / len2 };
+  const r = Math.min(radius, len1 / 2, len2 / 2);
+  const p1 = { x: curr.x + u1.x * r, y: curr.y + u1.y * r };
+  const p2 = { x: curr.x + u2.x * r, y: curr.y + u2.y * r };
+
+  if (moveTo) ctx.moveTo(p1.x, p1.y);
+  else ctx.lineTo(p1.x, p1.y);
+  ctx.quadraticCurveTo(curr.x, curr.y, p2.x, p2.y);
+}
+
+/** Closed polygon with rounded corners (quadratic fillets). */
+export function roundedPolygonPath(
+  ctx: CanvasRenderingContext2D,
+  vertices: PathPoint[],
+  radius: number,
+): void {
+  const n = vertices.length;
+  if (n < 3) return;
+
+  if (radius <= 0) {
+    ctx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < n; i++) ctx.lineTo(vertices[i].x, vertices[i].y);
+    ctx.closePath();
+    return;
+  }
+
+  for (let i = 0; i < n; i++) {
+    filletCorner(
+      ctx,
+      vertices[(i - 1 + n) % n],
+      vertices[i],
+      vertices[(i + 1) % n],
+      radius,
+      i === 0,
+    );
+  }
+  ctx.closePath();
+}
+
+/** Open polyline with rounded interior corners. */
+export function roundedPolylinePath(
+  ctx: CanvasRenderingContext2D,
+  points: PathPoint[],
+  radius: number,
+): void {
+  if (points.length < 2) return;
+
+  if (radius <= 0 || points.length === 2) {
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    return;
+  }
+
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length - 1; i++) {
+    filletCorner(ctx, points[i - 1], points[i], points[i + 1], radius, false);
+  }
+  ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+}
+
+export function pointsFromFlat(flat: number[], stride: number): PathPoint[] {
+  const points: PathPoint[] = [];
+  for (let i = 0; i + 1 < flat.length; i += stride) {
+    points.push({ x: flat[i], y: flat[i + 1] });
+  }
+  return points;
+}

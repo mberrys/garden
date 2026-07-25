@@ -176,7 +176,7 @@ export function PdfPage({
         registerRef(element);
       }}
       data-page={pageNumber}
-      className="relative shrink-0 bg-white shadow-[var(--shadow-sm)]"
+      className="relative shrink-0 bg-[var(--paper)] shadow-[var(--shadow-sm)]"
       style={{ width: size.width || 640, height: size.height || 860 }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

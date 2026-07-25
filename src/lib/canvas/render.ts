@@ -1,6 +1,6 @@
 import getStroke from "perfect-freehand";
 import type { CanvasBody, CanvasNode, Rect } from "@/lib/docs/schema";
-import { connectorPoints, nodeBounds, type Viewport } from "./geometry";
+import { connectorPoints, nodeBounds, pointsFromFlat, roundedPolygonPath, roundedPolylinePath, type Viewport } from "./geometry";
 
 /**
  * Immediate-mode renderer for the canvas scene.
@@ -154,7 +154,6 @@ function drawNode(
 ): void {
   ctx.save();
   ctx.globalAlpha = node.opacity;
-  ctx.lineJoin = "round";
   ctx.lineCap = "round";
 
   switch (node.kind) {
@@ -178,11 +177,24 @@ function drawNode(
         } else {
           const cx = node.x + node.w / 2;
           const cy = node.y + node.h / 2;
-          ctx.moveTo(cx, node.y);
-          ctx.lineTo(node.x + node.w, cy);
-          ctx.lineTo(cx, node.y + node.h);
-          ctx.lineTo(node.x, cy);
-          ctx.closePath();
+          if (node.kind === "diamond" && node.radius > 0) {
+            roundedPolygonPath(
+              ctx,
+              [
+                { x: cx, y: node.y },
+                { x: node.x + node.w, y: cy },
+                { x: cx, y: node.y + node.h },
+                { x: node.x, y: cy },
+              ],
+              node.radius,
+            );
+          } else {
+            ctx.moveTo(cx, node.y);
+            ctx.lineTo(node.x + node.w, cy);
+            ctx.lineTo(cx, node.y + node.h);
+            ctx.lineTo(node.x, cy);
+            ctx.closePath();
+          }
         }
 
         if (node.fill) {
@@ -242,7 +254,7 @@ function drawNode(
       applyStrokeStyle(ctx, node.strokeStyle, node.strokeWidth);
       ctx.lineWidth = node.strokeWidth;
       ctx.strokeStyle = node.stroke;
-      strokePolyline(ctx, node.points, 2);
+      strokePolyline(ctx, node.points, 2, node.cornerRadius);
       ctx.setLineDash([]);
       drawArrows(ctx, node.points, 2, node.arrowStart, node.arrowEnd, node.stroke, node.strokeWidth);
       break;
@@ -258,7 +270,7 @@ function drawNode(
       applyStrokeStyle(ctx, node.strokeStyle, node.strokeWidth);
       ctx.lineWidth = node.strokeWidth;
       ctx.strokeStyle = node.stroke;
-      strokePolyline(ctx, points, 2);
+      strokePolyline(ctx, points, 2, node.cornerRadius);
       ctx.setLineDash([]);
       drawArrows(ctx, points, 2, node.arrowStart, node.arrowEnd, node.stroke, node.strokeWidth);
 
@@ -316,13 +328,16 @@ function roundedRect(
   ctx.roundRect(x, y, w, h, r);
 }
 
-function strokePolyline(ctx: CanvasRenderingContext2D, points: number[], stride: number): void {
+function strokePolyline(
+  ctx: CanvasRenderingContext2D,
+  points: number[],
+  stride: number,
+  cornerRadius = 0,
+): void {
   if (points.length < 4) return;
   ctx.beginPath();
-  ctx.moveTo(points[0], points[1]);
-  for (let i = stride; i + 1 < points.length; i += stride) {
-    ctx.lineTo(points[i], points[i + 1]);
-  }
+  ctx.lineJoin = cornerRadius > 0 ? "round" : "miter";
+  roundedPolylinePath(ctx, pointsFromFlat(points, stride), cornerRadius);
   ctx.stroke();
 }
 
@@ -383,8 +398,8 @@ function drawInk(ctx: CanvasRenderingContext2D, node: Extract<CanvasNode, { kind
   const outline = getStroke(input, {
     size: node.size,
     thinning: node.highlighter ? 0 : 0.55,
-    smoothing: 0.6,
-    streamline: 0.5,
+    smoothing: node.smoothing,
+    streamline: 0.35 + node.smoothing * 0.45,
     simulatePressure: false,
     last: true,
   });

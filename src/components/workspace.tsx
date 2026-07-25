@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { toggleTheme } from "@/lib/theme";
+import { useThemeMode } from "./theme-provider";
 import { Moon, PanelRight, Redo2, Sparkles, Sun, Undo2 } from "lucide-react";
+import { useEffect } from "react";
 import { useWorkspace } from "@/lib/store/workspace";
 import { flushPendingSaves } from "@/lib/store/workspace";
 import { Sidebar } from "./sidebar";
@@ -11,8 +13,10 @@ import { AiPanel } from "./ai/ai-panel";
 import { ProviderBadge } from "./ai/provider-badge";
 import { Divider, IconButton } from "./ui";
 import { DOC_KIND_LABELS } from "@/lib/docs/schema";
+import { WindowChromeStrip } from "./window-chrome";
 
 export default function Workspace() {
+  useThemeMode();
   const ready = useWorkspace((s) => s.ready);
   const init = useWorkspace((s) => s.init);
   const aiPanelOpen = useWorkspace((s) => s.aiPanelOpen);
@@ -45,7 +49,7 @@ export default function Workspace() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden bg-bg text-ink">
       <Sidebar />
       <main className="flex min-w-0 flex-1 flex-col">
         <TopBar />
@@ -70,7 +74,7 @@ function TopBar() {
   const canRedo = (history?.redo.length ?? 0) > 0;
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-raised px-3">
+    <WindowChromeStrip as="header" className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-raised px-3">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {doc ? (
           <>
@@ -116,43 +120,18 @@ function TopBar() {
       >
         {aiPanelOpen ? <PanelRight size={15} /> : <Sparkles size={15} />}
       </IconButton>
-    </header>
+    </WindowChromeStrip>
   );
-}
-
-/**
- * The theme lives on `<html>`, set by the inline bootstrap script before paint.
- * Reading it through `useSyncExternalStore` keeps the button in step with the
- * DOM (including changes made outside React) without a hydration mismatch —
- * the server snapshot is always "light", matching the pre-script markup.
- */
-function subscribeToTheme(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
 }
 
 function ThemeToggle() {
-  const dark = useSyncExternalStore(
-    subscribeToTheme,
-    () => document.documentElement.classList.contains("dark"),
-    () => false,
-  );
+  const dark = useThemeMode() === "dark";
 
   return (
     <IconButton
       label={dark ? "Switch to light theme" : "Switch to dark theme"}
       size="sm"
-      onClick={() => {
-        const next = !dark;
-        document.documentElement.classList.toggle("dark", next);
-        try {
-          localStorage.setItem("rr.theme", next ? "dark" : "light");
-        } catch {
-          // Private browsing with storage disabled — the toggle still works for
-          // this session, it just will not be remembered.
-        }
-      }}
+      onClick={() => toggleTheme()}
     >
       {dark ? <Sun size={15} /> : <Moon size={15} />}
     </IconButton>
@@ -193,7 +172,11 @@ function useGlobalShortcuts() {
       if (e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();
         state.undo(docId);
-      } else if ((e.key.toLowerCase() === "z" && e.shiftKey) || e.key.toLowerCase() === "y") {
+      } else if (
+        (e.key.toLowerCase() === "z" && e.shiftKey) ||
+        e.key.toLowerCase() === "y" ||
+        e.key.toLowerCase() === "x"
+      ) {
         e.preventDefault();
         state.redo(docId);
       }

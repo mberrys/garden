@@ -26,6 +26,7 @@ import {
 } from "@/lib/store/bundle";
 import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
+import { WindowChromeStrip } from "./window-chrome";
 
 const NEW_DOC_OPTIONS: { kind: DocKind; icon: typeof FileText; label: string }[] = [
   { kind: "text", icon: FileText, label: "Document" },
@@ -88,7 +89,7 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-sunken">
-      <div className="flex items-center gap-1 px-2.5 pt-2.5">
+      <WindowChromeStrip className="flex items-center gap-1 px-2.5 pt-2.5">
         <div className="flex-1 select-none text-sm font-semibold tracking-tight text-ink">
           rr
           <span className="ml-1.5 font-normal text-faint">workspace</span>
@@ -112,7 +113,7 @@ export function Sidebar() {
             </MenuItem>
           ))}
         </Menu>
-      </div>
+      </WindowChromeStrip>
 
       <div className="relative px-2.5 py-2">
         <Search size={13} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-faint" />

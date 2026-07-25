@@ -6,6 +6,7 @@
  * <html> and surfaces stay visually consistent with each other.
  */
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-sunken: #f4f5f7;
   --bg-raised: #ffffff;
@@ -31,9 +32,11 @@
   --shadow-sm: 0 1px 2px rgb(16 18 29 / 0.06);
   --shadow-md: 0 4px 14px rgb(16 18 29 / 0.1);
   --shadow-lg: 0 12px 36px rgb(16 18 29 / 0.16);
+  --paper: #ffffff;
 }
 
 .dark {
+  color-scheme: dark;
   --bg: #16181d;
   --bg-sunken: #101216;
   --bg-raised: #1d2027;
@@ -59,6 +62,7 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 14px rgb(0 0 0 / 0.45);
   --shadow-lg: 0 12px 36px rgb(0 0 0 / 0.55);
+  --paper: #ffffff;
 }
 
 @theme inline {
@@ -144,8 +148,110 @@ textarea:focus-visible,
 .rr-markdown:focus {
   outline: none;
 }
+.rr-prose > * + * {
+  margin-top: 0.75em;
+}
+.rr-prose h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1.4em;
+  letter-spacing: -0.02em;
+}
+.rr-prose h2 {
+  font-size: 1.4rem;
+  font-weight: 650;
+  line-height: 1.3;
+  margin-top: 1.3em;
+  letter-spacing: -0.01em;
+}
+.rr-prose h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 1.2em;
+}
+.rr-prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.rr-prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.rr-prose li > ul,
+.rr-prose li > ol {
+  margin-top: 0.25em;
+}
+.rr-prose blockquote {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.rr-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.rr-prose pre {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+.rr-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+.rr-prose hr {
+  border-top: 1px solid var(--border);
+}
+.rr-prose a,
+.rr-prose a.rr-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.rr-prose a:hover,
+.rr-prose a.rr-link:hover {
+  text-decoration-thickness: 2px;
+}
+.rr-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
 
-/* AI suggestion diff decorations (kept for future inline previews). */
+/* Frameless desktop shells (Electron/Tauri) use this region to move the window. */
+.window-chrome {
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+
+.window-chrome button,
+.window-chrome a,
+.window-chrome input,
+.window-chrome textarea,
+.window-chrome select,
+.window-chrome [role="button"],
+.window-chrome [contenteditable="true"],
+.window-chrome .window-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* AI suggestion diff decorations inside the text editor. */
 .rr-diff-insert {
   background: var(--ok-soft);
   color: var(--ok);

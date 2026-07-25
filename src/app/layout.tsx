@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "@/components/theme-provider";
+import { THEME_BOOTSTRAP } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,22 +16,15 @@ export const viewport: Viewport = {
 };
 
 // Applied before paint so the app never flashes the wrong theme on load.
-const THEME_BOOTSTRAP = `
-try {
-  var stored = localStorage.getItem('rr.theme');
-  var dark = stored ? stored === 'dark'
-    : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (dark) document.documentElement.classList.add('dark');
-} catch (e) {}
-`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
-      <body className="h-full overflow-hidden">{children}</body>
+      <body className="h-full overflow-hidden bg-bg text-ink">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

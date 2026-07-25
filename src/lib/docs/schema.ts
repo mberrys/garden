@@ -129,6 +129,7 @@ export const EllipseNodeSchema = z.object({
 export const DiamondNodeSchema = z.object({
   ...shapeCommon,
   kind: z.literal("diamond"),
+  radius: z.number().min(0).max(200).default(0),
 });
 
 export const TextNodeSchema = z.object({
@@ -177,6 +178,8 @@ export const LineNodeSchema = z.object({
   strokeStyle: StrokeStyleSchema.default("solid"),
   arrowStart: z.boolean().default(false),
   arrowEnd: z.boolean().default(false),
+  /** Fillet radius at polyline corners; 0 is sharp. */
+  cornerRadius: z.number().min(0).max(200).default(0),
 });
 
 export const InkNodeSchema = z.object({
@@ -190,6 +193,8 @@ export const InkNodeSchema = z.object({
   size: z.number().min(0.5).max(80).default(4),
   /** Highlighter strokes render multiplied and under everything else. */
   highlighter: z.boolean().default(false),
+  /** 0 = angular, 1 = very smooth freehand curves. */
+  smoothing: z.number().min(0).max(1).default(0.6),
 });
 
 export const ANCHORS = ["top", "right", "bottom", "left", "auto"] as const;
@@ -219,6 +224,7 @@ export const ConnectorNodeSchema = z.object({
   label: z.string().default(""),
   /** `elbow` routes with right angles, `straight` is a direct segment. */
   routing: z.enum(["elbow", "straight"]).default("elbow"),
+  cornerRadius: z.number().min(0).max(200).default(0),
 });
 
 export const CanvasNodeSchema = z.discriminatedUnion("kind", [
