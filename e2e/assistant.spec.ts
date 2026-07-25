@@ -15,25 +15,25 @@ test("the header says plainly that replies are scripted", async ({ page }) => {
 test("a suggestion is previewed, and discarding leaves the document untouched", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".rr-prose");
+  await page.click(".rr-markdown");
   await page.keyboard.type("An original sentence.");
 
   await page.click('button:has-text("Add an outline")');
   await expect(page.getByText("proposed change", { exact: false })).toBeVisible({ timeout: 30_000 });
 
   // Nothing may have changed yet.
-  await expect(page.locator(".rr-prose")).not.toContainText("Outline");
+  await expect(page.locator(".rr-markdown")).not.toHaveValue(/Outline/);
 
   await page.click('button:has-text("Discard")');
   await expect(page.getByText("Discarded")).toBeVisible();
-  await expect(page.locator(".rr-prose")).not.toContainText("Outline");
-  await expect(page.locator(".rr-prose")).toContainText("An original sentence.");
+  await expect(page.locator(".rr-markdown")).not.toHaveValue(/Outline/);
+  await expect(page.locator(".rr-markdown")).toHaveValue(/An original sentence\./);
 });
 
 test("accepting applies the change, and ctrl+Z undoes it", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".rr-prose");
+  await page.click(".rr-markdown");
   await page.keyboard.type("An original sentence.");
 
   await page.click('button:has-text("Add an outline")');
@@ -41,13 +41,13 @@ test("accepting applies the change, and ctrl+Z undoes it", async ({ page }) => {
   await page.click('button:has-text("Apply")');
 
   await expect(page.getByText("Applied 1 change", { exact: true })).toBeVisible();
-  await expect(page.locator(".rr-prose")).toContainText("Outline");
+  await expect(page.locator(".rr-markdown")).toHaveValue(/Outline/);
 
   // An AI edit undoes like any other edit.
-  await page.click(".rr-prose");
+  await page.click(".rr-markdown");
   await page.keyboard.press("Control+z");
-  await expect(page.locator(".rr-prose")).not.toContainText("Outline");
-  await expect(page.locator(".rr-prose")).toContainText("An original sentence.");
+  await expect(page.locator(".rr-markdown")).not.toHaveValue(/Outline/);
+  await expect(page.locator(".rr-markdown")).toHaveValue(/An original sentence\./);
 });
 
 test("a canvas suggestion adds shapes and connectors", async ({ page }) => {

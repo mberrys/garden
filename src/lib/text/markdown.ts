@@ -3,14 +3,16 @@ import type { PmMark, PmNode } from "@/lib/docs/schema";
 /**
  * Markdown <-> ProseMirror conversion.
  *
- * This is the lingua franca between the text surface and everything else:
+ * Markdown is the default editing format for the text surface. This module is
+ * also the lingua franca between that surface and everything else:
  *  - the AI reads documents as markdown and writes edits as markdown
  *    (local models emit sane markdown; they do not emit sane ProseMirror JSON)
  *  - `.md` import/export uses it
  *  - deck and canvas recipes read source documents through it
  *
- * Scope is deliberately the subset TipTap's StarterKit can represent. Anything
- * unrecognised degrades to a paragraph rather than being dropped.
+ * Scope is deliberately the subset the text schema / former StarterKit shape
+ * can represent. Anything unrecognised degrades to a paragraph rather than
+ * being dropped.
  */
 
 /* ------------------------------------------------------------------ *
@@ -315,4 +317,19 @@ export function docToPlainText(doc: PmNode): string {
   };
   walk(doc);
   return parts.join("").replace(/\n{2,}/g, "\n").trim();
+}
+
+/**
+ * Maps a caret offset in markdown source to a top-level block index.
+ *
+ * Parses only the text before the caret so the index matches how
+ * `markdownToBlocks` would split the document at that point — the same
+ * addressing the assistant uses for text ops.
+ */
+export function blockIndexAtMarkdownOffset(md: string, offset: number): number {
+  const clamped = Math.max(0, Math.min(offset, md.length));
+  const before = md.slice(0, clamped);
+  if (!before.trim()) return 0;
+  const blocks = markdownToBlocks(before);
+  return blocks.length === 0 ? 0 : blocks.length - 1;
 }
