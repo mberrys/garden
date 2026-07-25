@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   type DeckBody,
+  ColorSchema,
   type SlideElement,
   SlideElementSchema,
   SlideLayoutSchema,
@@ -86,6 +87,15 @@ export const DeckOpSchema = z.discriminatedUnion("op", [
 ]);
 
 export type DeckOp = z.infer<typeof DeckOpSchema>;
+
+const DeckThemePatchSchema = z
+  .object({
+    background: ColorSchema,
+    text: ColorSchema,
+    accent: ColorSchema,
+    muted: ColorSchema,
+  })
+  .partial();
 
 export function applyDeckOps(
   body: DeckBody,
@@ -244,13 +254,17 @@ export function applyDeckOps(
       }
 
       case "setTheme": {
-        const merged = { ...theme, ...op.patch };
+        const parsed = DeckThemePatchSchema.safeParse(op.patch);
+        if (!parsed.success) {
+          throw new OpError(`setTheme: ${formatIssues(parsed.error)}`);
+        }
+        const merged = { ...theme, ...parsed.data };
         const priorValues: Record<string, unknown> = {};
-        for (const key of Object.keys(op.patch)) {
+        for (const key of Object.keys(parsed.data)) {
           priorValues[key] = (theme as unknown as Record<string, unknown>)[key];
         }
         inverse.push({ op: "setTheme", patch: priorValues });
-        theme = merged as DeckBody["theme"];
+        theme = merged;
         break;
       }
     }

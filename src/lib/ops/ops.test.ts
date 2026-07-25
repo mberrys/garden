@@ -138,6 +138,13 @@ describe("deck ops", () => {
     expectRoundTrip<"deck">(doc, [{ op: "setTheme", patch: { accent: "#ff0000" } }]);
   });
 
+  it("rejects a theme patch with invalid colour values", () => {
+    const doc = createDeckDoc("Deck");
+    expect(() => applyOps<"deck">(doc, [{ op: "setTheme", patch: { accent: 12345 } }])).toThrow(
+      /setTheme/,
+    );
+  });
+
   it("restores a deleted slide verbatim, ids included", () => {
     let doc: DeckDoc = createDeckDoc("Deck");
     doc = applyOps<"deck">(doc, [
@@ -202,6 +209,15 @@ describe("pdf ops", () => {
     doc = applyOps<"pdf">(doc, [{ op: "setPageText", page: 1, text: "hello" }]).doc;
     const again = applyOps<"pdf">(doc, [{ op: "setPageText", page: 1, text: "hello" }]);
     expect(again.inverse).toHaveLength(0);
+  });
+
+  it("rejects annotation rects outside the normalised page bounds", () => {
+    const doc = withSource();
+    expect(() =>
+      applyOps<"pdf">(doc, [
+        { op: "addAnnotation", page: 1, type: "highlight", rect: { x: -1, y: 0, w: 0.5, h: 0.1 } },
+      ]),
+    ).toThrow(/addAnnotation/);
   });
 });
 

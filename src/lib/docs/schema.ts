@@ -34,6 +34,15 @@ export const RectSchema = z.object({
 });
 export type Rect = z.infer<typeof RectSchema>;
 
+/** Page-normalised rectangle (0..1 of page width/height). */
+export const NormalizedRectSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  w: z.number().min(0).max(1),
+  h: z.number().min(0).max(1),
+});
+export type NormalizedRect = z.infer<typeof NormalizedRectSchema>;
+
 /** Hex colour, or one of the named palette slots resolved against the theme. */
 export const ColorSchema = z.string().min(1).max(32);
 
@@ -380,7 +389,7 @@ export const AnnotationSchema = z.object({
    * Normalised page coordinates (0..1 of page width/height, origin top-left) so
    * annotations survive zoom changes and different render scales.
    */
-  rect: RectSchema,
+  rect: NormalizedRectSchema,
   color: ColorSchema.default("#f59e0b"),
   /** The text under the annotation, captured at creation time for AI context. */
   quote: z.string().default(""),
