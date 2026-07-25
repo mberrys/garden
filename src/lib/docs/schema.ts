@@ -58,7 +58,7 @@ export const PALETTE = [
 ] as const;
 
 /* ------------------------------------------------------------------ *
- * Text documents — ProseMirror/TipTap JSON
+ * Text documents — ProseMirror-shaped JSON (edited as markdown)
  * ------------------------------------------------------------------ */
 
 export interface PmMark {

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { docToMarkdown, docToPlainText, markdownToBlocks, markdownToDoc, parseInline } from "./markdown";
+import {
+  blockIndexAtMarkdownOffset,
+  docToMarkdown,
+  docToPlainText,
+  markdownToBlocks,
+  markdownToDoc,
+  parseInline,
+} from "./markdown";
 
 describe("inline parsing", () => {
   it("applies bold, italic, strike and code marks", () => {
@@ -105,5 +112,26 @@ describe("markdown round-trip", () => {
     expect(text).toContain("bold");
     expect(text).not.toContain("**");
     expect(text).not.toContain("#");
+  });
+});
+
+describe("blockIndexAtMarkdownOffset", () => {
+  const src = "# Title\n\nFirst paragraph.\n\n## Second\n\nMore text.";
+
+  it("returns 0 at the start and inside the first block", () => {
+    expect(blockIndexAtMarkdownOffset(src, 0)).toBe(0);
+    expect(blockIndexAtMarkdownOffset(src, 3)).toBe(0);
+  });
+
+  it("advances as the caret moves into later blocks", () => {
+    const secondHeading = src.indexOf("## Second");
+    // Caret on the blank line before the heading still belongs to the previous block.
+    expect(blockIndexAtMarkdownOffset(src, secondHeading)).toBe(1);
+    expect(blockIndexAtMarkdownOffset(src, secondHeading + 3)).toBe(2);
+    expect(blockIndexAtMarkdownOffset(src, src.length)).toBe(3);
+  });
+
+  it("handles an empty document", () => {
+    expect(blockIndexAtMarkdownOffset("", 0)).toBe(0);
   });
 });

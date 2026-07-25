@@ -62,12 +62,13 @@ const HISTORY_LIMIT = 200;
 const SAVE_DEBOUNCE_MS = 450;
 
 /**
- * Surfaces whose editor owns its own undo stack. TipTap's history plugin
- * already tracks every keystroke with proper text-level granularity; running a
- * second stack beside it would make ctrl+Z ambiguous.
+ * Surfaces whose editor owns its own undo stack. When true, `commit` skips the
+ * workspace history for that kind so ctrl+Z is not ambiguous. Text used to opt
+ * in here under TipTap; it now commits through the workspace stack like the
+ * other surfaces.
  */
 const SURFACE_OWNS_HISTORY: Record<DocKind, boolean> = {
-  text: true,
+  text: false,
   canvas: false,
   deck: false,
   pdf: false,

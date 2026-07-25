@@ -84,7 +84,7 @@ function TopBar() {
         )}
       </div>
 
-      {doc && doc.kind !== "text" && (
+      {doc && (
         <>
           <IconButton
             label="Undo"
@@ -161,8 +161,8 @@ function ThemeToggle() {
 
 /**
  * Workspace-level shortcuts. Surface-level ones live with their surface.
- * Undo/redo deliberately skip text documents — TipTap binds its own and owns
- * that stack.
+ * Undo/redo use the workspace history for every document kind, including
+ * markdown text (coalesced typing + AI commits).
  */
 function useGlobalShortcuts() {
   useEffect(() => {
@@ -185,8 +185,10 @@ function useGlobalShortcuts() {
         return;
       }
 
-      if (!docId || !doc || doc.kind === "text") return;
-      if (isTypingTarget(e.target)) return;
+      if (!docId || !doc) return;
+      // Allow undo/redo while the markdown textarea is focused; other surfaces
+      // still ignore shortcuts when a generic input has focus.
+      if (doc.kind !== "text" && isTypingTarget(e.target)) return;
 
       if (e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();

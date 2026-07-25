@@ -11,21 +11,21 @@ test("seeds a starter workspace on first run", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Welcome to rr");
   await expect(sidebar).toContainText("How an edit flows");
-  await expect(page.locator(".rr-prose")).toContainText("four surfaces");
+  await expect(page.locator(".rr-markdown")).toHaveValue(/four surfaces/);
 });
 
 test("text: typing persists across a reload", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".rr-prose");
+  await page.click(".rr-markdown");
   await page.keyboard.type("Persistence check.");
-  await expect(page.locator(".rr-prose")).toContainText("Persistence check.");
+  await expect(page.locator(".rr-markdown")).toHaveValue(/Persistence check\./);
 
   // Give the debounced write-behind time to reach IndexedDB.
   await page.waitForTimeout(1200);
   await page.reload();
-  await page.waitForSelector(".rr-prose");
-  await expect(page.locator(".rr-prose")).toContainText("Persistence check.");
+  await page.waitForSelector(".rr-markdown");
+  await expect(page.locator(".rr-markdown")).toHaveValue(/Persistence check\./);
 });
 
 test("canvas: drawing a shape and a stroke, then undo", async ({ page }) => {
