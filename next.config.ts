@@ -2,16 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // pdfjs-dist ships a canvas-dependent Node build that must never be bundled
-  // into the browser graph; the browser build is loaded explicitly by the PDF
-  // surface instead.
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      canvas: false,
-    };
-    return config;
-  },
+  // Next 16 builds with Turbopack by default. No bundler tweaks are needed for
+  // pdf.js here because the PDF surface is loaded with `ssr: false`, so the
+  // library (and its optional Node `canvas` dependency) is never pulled into
+  // the server graph.
+  turbopack: {},
 };
 
 export default nextConfig;

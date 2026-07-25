@@ -1,22 +1,19 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import next from "eslint-config-next";
+import nextTypescript from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
-
+// eslint-config-next ships flat configs in v16; the TypeScript rules (and the
+// @typescript-eslint plugin they depend on) live in the separate subpath.
 const config = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     ignores: [".next/**", "node_modules/**", "test-results/**", "playwright-report/**"],
   },
+  ...next,
+  ...nextTypescript,
   {
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
       ],
     },
   },

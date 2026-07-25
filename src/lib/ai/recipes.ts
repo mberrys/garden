@@ -1,0 +1,156 @@
+import type { DocKind } from "@/lib/docs/schema";
+
+/**
+ * Cross-surface actions.
+ *
+ * These are what make the suite a combination rather than four editors sharing
+ * a sidebar: the source of the content and the surface it lands on are
+ * different documents, and the model bridges them. A recipe whose `target`
+ * differs from the surface it starts on creates that document if one is not
+ * already open, and puts it in the second pane so the user can watch the
+ * source and the result side by side.
+ */
+export interface Recipe {
+  id: string;
+  label: string;
+  hint: string;
+  /** Surfaces this appears on. */
+  from: DocKind[];
+  /** Surface the operations apply to. */
+  target: DocKind;
+  /** Default title when the target document has to be created. */
+  newTitle?: (sourceTitle: string) => string;
+  prompt: string;
+}
+
+export const RECIPES: Recipe[] = [
+  {
+    id: "pdf-to-deck",
+    label: "Build a deck",
+    hint: "Turn this PDF into a presentation",
+    from: ["pdf"],
+    target: "deck",
+    newTitle: (title) => `${title} — deck`,
+    prompt:
+      "Build a presentation from the source PDF. Open with a title slide, then one slide per " +
+      "major theme using the bullets layout, then a closing slide with the conclusions. Six to " +
+      "eight slides. Draw every point from the source text — do not invent facts. Add speaker " +
+      "notes to each slide.",
+  },
+  {
+    id: "pdf-to-summary",
+    label: "Summarise into a doc",
+    hint: "Write a structured summary of this PDF",
+    from: ["pdf"],
+    target: "text",
+    newTitle: (title) => `${title} — summary`,
+    prompt:
+      "Write a structured summary of the source PDF into this document. Start with a two-sentence " +
+      "abstract, then '## Key points' as a bulleted list, then '## Open questions'. Ground every " +
+      "claim in the source text and quote sparingly.",
+  },
+  {
+    id: "pdf-highlight",
+    label: "Highlight key passages",
+    hint: "Annotate the important parts",
+    from: ["pdf"],
+    target: "pdf",
+    prompt:
+      "Read the extracted page text and highlight the passages that carry the document's main " +
+      "claims — no more than two per page, on the pages that have been read. Add a short note to " +
+      "each explaining why it matters.",
+  },
+  {
+    id: "doc-to-canvas",
+    label: "Diagram this",
+    hint: "Sketch the structure on a canvas",
+    from: ["text"],
+    target: "canvas",
+    newTitle: (title) => `${title} — diagram`,
+    prompt:
+      "Draw a diagram of the structure described in the source document. Use one labelled shape " +
+      "per concept, laid out left to right or top to bottom, and connectors between them showing " +
+      "how they relate. Label the connectors where the relationship is not obvious. Keep it under " +
+      "ten shapes.",
+  },
+  {
+    id: "doc-to-deck",
+    label: "Turn into slides",
+    hint: "Draft a deck from this document",
+    from: ["text"],
+    target: "deck",
+    newTitle: (title) => `${title} — deck`,
+    prompt:
+      "Draft a presentation from the source document. One slide per section, bullets rather than " +
+      "paragraphs, and a title slide at the front. Keep bullets short enough to read from the back " +
+      "of a room.",
+  },
+  {
+    id: "canvas-to-doc",
+    label: "Write it up",
+    hint: "Turn this canvas into prose",
+    from: ["canvas"],
+    target: "text",
+    newTitle: (title) => `${title} — write-up`,
+    prompt:
+      "Write up the diagram on the source canvas as a document. Use the shape labels as section " +
+      "headings in the order the connectors imply, and describe each relationship the connectors " +
+      "show. Prose, not bullets.",
+  },
+  {
+    id: "canvas-tidy",
+    label: "Tidy the layout",
+    hint: "Align and space the shapes",
+    from: ["canvas"],
+    target: "canvas",
+    prompt:
+      "Tidy this canvas: align shapes that are nearly aligned, make spacing between them even, " +
+      "and give shapes in the same row a consistent size. Move things as little as possible — the " +
+      "arrangement the user made should still be recognisable. Do not add or delete anything.",
+  },
+  {
+    id: "deck-notes",
+    label: "Write speaker notes",
+    hint: "Add notes to every slide",
+    from: ["deck"],
+    target: "deck",
+    prompt:
+      "Write speaker notes for every slide in this deck. Two or three sentences each: what to say, " +
+      "not what is already on the slide. Include the transition into the next slide.",
+  },
+  {
+    id: "deck-tighten",
+    label: "Tighten the copy",
+    hint: "Cut the slide text down",
+    from: ["deck"],
+    target: "deck",
+    prompt:
+      "Tighten the text on every slide. Cut bullets to at most twelve words, remove filler, and " +
+      "make titles specific rather than generic. Keep the meaning and the slide order unchanged.",
+  },
+  {
+    id: "text-tighten",
+    label: "Tighten this",
+    hint: "Edit the selection, or the whole document",
+    from: ["text"],
+    target: "text",
+    prompt:
+      "Tighten the prose. Lead with the claim, cut hedging and repetition, and keep the author's " +
+      "voice. If the user has selected specific blocks, edit only those; otherwise edit the whole " +
+      "document. Do not add new claims.",
+  },
+  {
+    id: "text-outline",
+    label: "Add an outline",
+    hint: "Insert a summary at the top",
+    from: ["text"],
+    target: "text",
+    prompt:
+      "Insert a short outline at the very top of this document: a '## Outline' heading followed by " +
+      "one bullet per section already present. Do not change anything else.",
+  },
+];
+
+export function recipesFor(kind: DocKind): Recipe[] {
+  return RECIPES.filter((recipe) => recipe.from.includes(kind));
+}
