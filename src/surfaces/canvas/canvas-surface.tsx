@@ -26,7 +26,7 @@ import {
   type Viewport,
 } from "@/lib/canvas/geometry";
 import { renderScene, type RenderTheme } from "@/lib/canvas/render";
-import { CanvasToolbar } from "./toolbar";
+import { CanvasToolbar, roundingForStyle } from "./toolbar";
 import { CanvasInspector } from "./inspector";
 import { BOX_TOOLS, INK_TOOLS, LINE_TOOLS, TOOL_BY_KEY, cursorFor, type Tool } from "./tools";
 
@@ -96,6 +96,8 @@ export default function CanvasSurface({
     fill: null as string | null,
     strokeWidth: 2,
     fontSize: 16,
+    roundingEnabled: true,
+    rounding: 12,
   });
 
   const nodes = doc.body.nodes;
@@ -309,6 +311,7 @@ export default function CanvasSurface({
             stroke: style.stroke,
             strokeWidth: style.strokeWidth,
             arrowEnd: true,
+            cornerRadius: roundingForStyle(style).cornerRadius,
           }),
         });
         return;
@@ -317,6 +320,7 @@ export default function CanvasSurface({
       if (INK_TOOLS.includes(tool)) {
         const pressure = event.pressure > 0 ? event.pressure : 0.5;
         const points = [scene.x, scene.y, pressure];
+        const { smoothing } = roundingForStyle(style);
         putGesture({
           type: "ink",
           points,
@@ -326,6 +330,7 @@ export default function CanvasSurface({
             stroke: tool === "highlighter" ? "#fbbf24" : style.stroke,
             size: tool === "highlighter" ? 18 : Math.max(2, style.strokeWidth * 1.6),
             highlighter: tool === "highlighter",
+            smoothing,
           }),
         });
         return;
@@ -335,6 +340,7 @@ export default function CanvasSurface({
       const y = maybeSnap(scene.y, event);
 
       if (LINE_TOOLS.includes(tool)) {
+        const { cornerRadius } = roundingForStyle(style);
         putGesture({
           type: "create",
           startScene: { x, y },
@@ -344,12 +350,14 @@ export default function CanvasSurface({
             stroke: style.stroke,
             strokeWidth: style.strokeWidth,
             arrowEnd: tool === "arrow",
+            cornerRadius,
           }),
         });
         return;
       }
 
       if (BOX_TOOLS.includes(tool)) {
+        const { radius } = roundingForStyle(style);
         const boxKind =
           tool === "text"
             ? "text"
@@ -378,6 +386,7 @@ export default function CanvasSurface({
                     stroke: style.stroke,
                     strokeWidth: style.strokeWidth,
                     fontSize: style.fontSize,
+                    ...(tool === "rect" || tool === "diamond" ? { radius } : {}),
                   }),
           }),
         });

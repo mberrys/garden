@@ -6,6 +6,7 @@
  * <html> and surfaces stay visually consistent with each other.
  */
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-sunken: #f4f5f7;
   --bg-raised: #ffffff;
@@ -31,9 +32,11 @@
   --shadow-sm: 0 1px 2px rgb(16 18 29 / 0.06);
   --shadow-md: 0 4px 14px rgb(16 18 29 / 0.1);
   --shadow-lg: 0 12px 36px rgb(16 18 29 / 0.16);
+  --paper: #ffffff;
 }
 
 .dark {
+  color-scheme: dark;
   --bg: #16181d;
   --bg-sunken: #101216;
   --bg-raised: #1d2027;
@@ -59,6 +62,7 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 14px rgb(0 0 0 / 0.45);
   --shadow-lg: 0 12px 36px rgb(0 0 0 / 0.55);
+  --paper: #ffffff;
 }
 
 @theme inline {
@@ -207,10 +211,17 @@ textarea:focus-visible,
 .rr-prose hr {
   border-top: 1px solid var(--border);
 }
-.rr-prose a {
+.rr-prose a,
+.rr-prose a.rr-link {
   color: var(--accent);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  cursor: pointer;
+}
+.rr-prose a:hover,
+.rr-prose a.rr-link:hover {
+  text-decoration-thickness: 2px;
 }
 .rr-prose p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -218,6 +229,25 @@ textarea:focus-visible,
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* Frameless desktop shells (Electron/Tauri) use this region to move the window. */
+.window-chrome {
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+
+.window-chrome button,
+.window-chrome a,
+.window-chrome input,
+.window-chrome textarea,
+.window-chrome select,
+.window-chrome [role="button"],
+.window-chrome [contenteditable="true"],
+.window-chrome .window-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 /* AI suggestion diff decorations inside the text editor. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid3x3, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
+import { Grid3x3, Maximize2, Squircle, ZoomIn, ZoomOut } from "lucide-react";
 import { PALETTE, type CanvasBody } from "@/lib/docs/schema";
 import { ColorPicker, Divider, IconButton, Menu, MenuItem, MenuLabel, ToolbarGroup } from "@/components/ui";
 import { TOOL_SPECS, type Tool } from "./tools";
@@ -10,6 +10,17 @@ export interface CanvasStyle {
   fill: string | null;
   strokeWidth: number;
   fontSize: number;
+  roundingEnabled: boolean;
+  rounding: number;
+}
+
+export function roundingForStyle(style: CanvasStyle) {
+  const amount = style.roundingEnabled ? style.rounding : 0;
+  return {
+    radius: amount,
+    cornerRadius: amount,
+    smoothing: style.roundingEnabled ? 0.25 + (style.rounding / 48) * 0.65 : 0.15,
+  };
 }
 
 export function CanvasToolbar({
@@ -116,6 +127,34 @@ export function CanvasToolbar({
           ))}
         </div>
       </Menu>
+
+      <Divider vertical />
+
+      <div className="flex items-center gap-1.5">
+        <IconButton
+          label="Line rounding"
+          size="sm"
+          active={style.roundingEnabled}
+          onClick={() => onStyleChange({ ...style, roundingEnabled: !style.roundingEnabled })}
+        >
+          <Squircle size={14} />
+        </IconButton>
+        <input
+          type="range"
+          min={0}
+          max={48}
+          step={1}
+          value={style.rounding}
+          disabled={!style.roundingEnabled}
+          onChange={(event) => onStyleChange({ ...style, rounding: Number(event.target.value) })}
+          title="Rounding intensity"
+          aria-label="Rounding intensity"
+          className="h-1 w-20 accent-[var(--accent)] disabled:opacity-40"
+        />
+        <span className="min-w-5 text-[10px] tabular-nums text-muted">
+          {style.roundingEnabled ? style.rounding : "—"}
+        </span>
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <Menu

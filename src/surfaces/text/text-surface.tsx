@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -22,7 +22,10 @@ import {
 import type { PmNode, TextDoc } from "@/lib/docs/schema";
 import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
 import { docToPlainText } from "@/lib/text/markdown";
+import { isSafeHref } from "@/lib/text/safe-href";
 import { Divider, IconButton, ToolbarGroup } from "@/components/ui";
+import { configureTransparentLink } from "./transparent-link";
+import { redoOnModX } from "./redo-on-mod-x";
 
 /**
  * Rich text surface.
@@ -49,6 +52,7 @@ export default function TextSurface({
    */
   const applyingRemote = useRef(false);
   const lastPushed = useRef<string>("");
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -56,8 +60,10 @@ export default function TextSurface({
       () => [
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
-          link: { openOnClick: false, autolink: true },
+          link: false,
         }),
+        configureTransparentLink(),
+        redoOnModX(),
         Placeholder.configure({ placeholder: "Start writing, or ask the assistant for a draft…" }),
       ],
       [],
@@ -111,6 +117,34 @@ export default function TextSurface({
 
   useEffect(() => () => setSelection(doc.id, null), [doc.id, setSelection]);
 
+  useEffect(() => {
+    if (!editor) return;
+    const root = editor.view.dom;
+
+    const onMove = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        setHoveredHref(null);
+        return;
+      }
+      const anchor = target.closest("a[href]");
+      if (anchor instanceof HTMLAnchorElement && root.contains(anchor)) {
+        setHoveredHref(anchor.href);
+        return;
+      }
+      setHoveredHref(null);
+    };
+
+    const onLeave = () => setHoveredHref(null);
+
+    root.addEventListener("mousemove", onMove);
+    root.addEventListener("mouseleave", onLeave);
+    return () => {
+      root.removeEventListener("mousemove", onMove);
+      root.removeEventListener("mouseleave", onLeave);
+    };
+  }, [editor]);
+
   if (!editor) {
     return <div className="flex h-full items-center justify-center text-xs text-faint">Loading…</div>;
   }
@@ -118,12 +152,12 @@ export default function TextSurface({
   return (
     <div className="flex h-full flex-col">
       <FixedToolbar editor={editor} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg">
         <div className="mx-auto w-full max-w-[46rem] px-8 py-10">
           <EditorContent editor={editor} />
         </div>
       </div>
-      <StatusBar editor={editor} doc={doc} />
+      <StatusBar editor={editor} doc={doc} hoveredHref={hoveredHref} />
 
       <BubbleMenu
         editor={editor}
@@ -260,7 +294,15 @@ function MarkButton({
   );
 }
 
-function StatusBar({ editor, doc }: { editor: Editor; doc: TextDoc }) {
+function StatusBar({
+  editor,
+  doc,
+  hoveredHref,
+}: {
+  editor: Editor;
+  doc: TextDoc;
+  hoveredHref: string | null;
+}) {
   const words = useMemo(() => {
     const text = docToPlainText(doc.body);
     return text ? text.split(/\s+/).filter(Boolean).length : 0;
@@ -278,6 +320,11 @@ function StatusBar({ editor, doc }: { editor: Editor; doc: TextDoc }) {
       <span>{words.toLocaleString()} words</span>
       <span>{blocks} blocks</span>
       {selected > 0 && <span className="text-accent">{selected} selected</span>}
+      {hoveredHref && (
+        <span className="ml-auto min-w-0 truncate text-muted" title={hoveredHref}>
+          {hoveredHref}
+        </span>
+      )}
     </div>
   );
 }
@@ -319,19 +366,4 @@ function blockIndexAt(editor: Editor, pos: number): number {
   const resolved = editor.state.doc.resolve(Math.min(pos, editor.state.doc.content.size));
   // depth 1 is the top-level block; index(0) is its position among siblings.
   return resolved.depth === 0 ? Math.max(0, resolved.index(0) - 1) : resolved.index(0);
-}
-
-/** Reject javascript: and other unsafe URL schemes in user-created links. */
-function isSafeHref(href: string): boolean {
-  const trimmed = href.trim();
-  if (!trimmed) return false;
-  if (trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("./") || trimmed.startsWith("../")) {
-    return true;
-  }
-  try {
-    const { protocol } = new URL(trimmed);
-    return protocol === "http:" || protocol === "https:" || protocol === "mailto:";
-  } catch {
-    return false;
-  }
 }
