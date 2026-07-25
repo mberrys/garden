@@ -75,6 +75,13 @@ const SURFACE_OWNS_HISTORY: Record<DocKind, boolean> = {
 
 const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });
 
+declare global {
+  interface Window {
+    /** Set before load to start with an empty workspace (used by the e2e suite). */
+    __RR_NO_SEED__?: boolean;
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Store
  * ------------------------------------------------------------------ */
@@ -110,7 +117,7 @@ interface WorkspaceState {
   reorderDoc: (docId: string, toIndex: number) => void;
   replaceDoc: (doc: Doc) => void;
 
-  openDoc: (docId: string, pane?: PaneIndex) => void;
+  openDoc: (docId: string, pane?: PaneIndex, options?: { focus?: boolean }) => void;
   closeDoc: (docId: string, pane: PaneIndex) => void;
   setActivePane: (pane: PaneIndex) => void;
   setSplitView: (split: boolean) => void;
@@ -145,6 +152,33 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
     const savedPanes = await store.readMeta<[Pane, Pane]>("panes");
     const savedSplit = await store.readMeta<boolean>("splitView");
+
+    // Seed once, and only once: a user who deliberately empties their workspace
+    // should not have the demo documents grow back on the next reload. The
+    // window flag lets the e2e suite start from an empty workspace without
+    // reaching into the database's internals.
+    const seeded = await store.readMeta<boolean>("seeded");
+    const suppressed = typeof window !== "undefined" && window.__RR_NO_SEED__ === true;
+    if (!seeded && !suppressed && docs.length === 0) {
+      const { seedDocuments } = await import("./seed");
+      const seeds = seedDocuments();
+      for (const doc of seeds) {
+        byId[doc.id] = doc;
+        order.push(doc.id);
+        await store.saveDoc(doc);
+      }
+      await store.saveOrder(order);
+      await store.writeMeta("seeded", true);
+
+      const first = seeds[0];
+      const panes: [Pane, Pane] = [
+        { docIds: [first.id], activeDocId: first.id },
+        { docIds: [], activeDocId: null },
+      ];
+      set({ ready: true, docs: byId, order, panes, splitView: false });
+      await store.writeMeta("panes", panes);
+      return;
+    }
 
     const validPane = (pane: Pane | undefined): Pane => {
       const docIds = (pane?.docIds ?? []).filter((id) => byId[id]);
@@ -367,10 +401,11 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     scheduleSave(doc);
   },
 
-  openDoc: (docId, pane) => {
+  openDoc: (docId, pane, options = {}) => {
     const state = get();
     if (!state.docs[docId]) return;
     const target: PaneIndex = pane ?? (state.splitView ? state.activePane : 0);
+    const focus = options.focus !== false;
 
     const panes = state.panes.slice() as [Pane, Pane];
     const current = panes[target];
@@ -379,7 +414,15 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       activeDocId: docId,
     };
 
-    set({ panes, activePane: target, splitView: target === 1 ? true : state.splitView });
+    // `focus: false` shows a document without moving the user to it. A recipe
+    // that generates into the other pane uses this: stealing focus would swap
+    // the assistant panel to the new document's (empty) conversation, hiding
+    // the reply that is still streaming into the one the user asked from.
+    set({
+      panes,
+      activePane: focus ? target : state.activePane,
+      splitView: target === 1 ? true : state.splitView,
+    });
     void store.writeMeta("panes", panes);
   },
 

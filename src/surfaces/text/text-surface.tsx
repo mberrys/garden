@@ -5,6 +5,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import { closeHistory } from "@tiptap/pm/history";
 import {
   Bold,
   Code,
@@ -88,9 +89,22 @@ export default function TextSurface({
     if (incoming === JSON.stringify(editor.getJSON())) return;
 
     applyingRemote.current = true;
+    // `closeHistory` is what makes ctrl+Z behave. ProseMirror groups adjacent
+    // transactions that land within ~500ms into a single undo step, so an AI
+    // edit accepted shortly after the user stopped typing would merge with that
+    // typing — and one ctrl+Z would wipe both. Closing the group first
+    // guarantees the AI edit is exactly one undo step of its own.
+    //
     // `emitUpdate: false` keeps this out of onUpdate; the transaction still
-    // lands on TipTap's history stack, so ctrl+Z reverses the AI edit.
-    editor.commands.setContent(doc.body, { emitUpdate: false });
+    // lands on the history stack, so the edit remains undoable.
+    editor
+      .chain()
+      .command(({ tr }) => {
+        closeHistory(tr);
+        return true;
+      })
+      .setContent(doc.body, { emitUpdate: false })
+      .run();
     lastPushed.current = incoming;
     applyingRemote.current = false;
   }, [doc.body, editor]);

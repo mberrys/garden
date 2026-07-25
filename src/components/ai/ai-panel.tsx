@@ -58,7 +58,7 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
       const title = recipe?.newTitle?.(sourceDoc.title) ?? `${sourceDoc.title} — ${kind}`;
       const created = createDoc(kind, title);
       addDoc(created, { open: false });
-      openDoc(created.id, 1);
+      openDoc(created.id, 1, { focus: false });
       return created.id;
     },
     [panes, docs, addDoc, openDoc],
