@@ -15,9 +15,12 @@ import { markdownToDoc } from "@/lib/text/markdown";
 
 const WELCOME = `# Welcome to rr
 
-This is one workspace with four surfaces — a document editor, a PDF reader, a
-presentation editor and a drawing canvas — and a local AI model that can work
-across all of them.
+This is a **markdown** document in a workspace with four surfaces — a document
+editor, a PDF reader, a presentation editor and a drawing canvas — and a local
+AI model that can work across all of them.
+
+Type markdown directly: headings, \`inline code\`, lists, quotes and fenced
+code blocks. The assistant reads and edits the same markdown.
 
 ## What makes it different
 

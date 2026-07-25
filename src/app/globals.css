@@ -139,12 +139,13 @@ textarea:focus-visible,
   outline-offset: 1px;
 }
 
-/* ---- TipTap / ProseMirror ---- */
-.rr-prose {
+/* ---- Markdown text editor ---- */
+.rr-markdown {
   color: var(--text);
-  line-height: 1.7;
+  font-family: var(--font-mono);
+  tab-size: 2;
 }
-.rr-prose:focus {
+.rr-markdown:focus {
   outline: none;
 }
 .rr-prose > * + * {

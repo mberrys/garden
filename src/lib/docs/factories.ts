@@ -16,6 +16,7 @@ import {
   SLIDE_W,
 } from "./schema";
 import { newDocId, newElementId, newNodeId, newSlideId } from "./ids";
+import { markdownToDoc } from "@/lib/text/markdown";
 
 function envelope(kind: DocKind, title: string) {
   const now = Date.now();
@@ -30,14 +31,7 @@ function envelope(kind: DocKind, title: string) {
 }
 
 export function emptyTextBody(text = "") {
-  return {
-    type: "doc",
-    content: [
-      text
-        ? { type: "paragraph", content: [{ type: "text", text }] }
-        : { type: "paragraph" },
-    ],
-  };
+  return markdownToDoc(text);
 }
 
 export function createTextDoc(title = "Untitled document", text = ""): TextDoc {

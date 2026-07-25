@@ -28,12 +28,12 @@ import { configureTransparentLink } from "./transparent-link";
 import { redoOnModX } from "./redo-on-mod-x";
 
 /**
- * Rich text surface.
+ * Markdown text surface.
  *
- * TipTap owns the undo stack here (see SURFACE_OWNS_HISTORY in the store): its
- * history plugin already tracks edits at character granularity, which a
- * block-level op stack cannot match. AI edits are pushed into the editor as a
- * single transaction so they undo as one step alongside the user's own typing.
+ * The textarea is the editing surface; ProseMirror JSON remains the stored
+ * document body so AI ops and cross-surface recipes keep working. Each edit
+ * commits a coalesced `replaceDoc` so ctrl+Z uses the workspace history stack
+ * (including accepted AI suggestions) instead of a separate editor plugin.
  */
 export default function TextSurface({
   doc,
@@ -42,15 +42,13 @@ export default function TextSurface({
   doc: TextDoc;
   paneIndex: PaneIndex;
 }) {
-  const replaceDoc = useWorkspace((s) => s.replaceDoc);
+  const commit = useWorkspace((s) => s.commit);
   const setSelection = useWorkspace((s) => s.setSelection);
 
   /**
-   * Guards the two-way sync. `applyingRemote` suppresses the change handler
-   * while we push store content in; `lastPushed` lets us tell our own echo from
-   * a genuine external change (an accepted AI suggestion).
+   * Guards the two-way sync. `lastPushed` lets us tell our own echo from a
+   * genuine external change (an accepted AI suggestion or an undo).
    */
-  const applyingRemote = useRef(false);
   const lastPushed = useRef<string>("");
   const [hoveredHref, setHoveredHref] = useState<string | null>(null);
 
@@ -87,33 +85,13 @@ export default function TextSurface({
   });
 
   // Pull in changes that did not originate here — an accepted AI suggestion, or
-  // an undo triggered from another view of the same document.
+  // an undo/redo of a prior commit.
   useEffect(() => {
-    if (!editor) return;
     const incoming = JSON.stringify(doc.body);
     if (incoming === lastPushed.current) return;
-    if (incoming === JSON.stringify(editor.getJSON())) return;
-
-    applyingRemote.current = true;
-    // `closeHistory` is what makes ctrl+Z behave. ProseMirror groups adjacent
-    // transactions that land within ~500ms into a single undo step, so an AI
-    // edit accepted shortly after the user stopped typing would merge with that
-    // typing — and one ctrl+Z would wipe both. Closing the group first
-    // guarantees the AI edit is exactly one undo step of its own.
-    //
-    // `emitUpdate: false` keeps this out of onUpdate; the transaction still
-    // lands on the history stack, so the edit remains undoable.
-    editor
-      .chain()
-      .command(({ tr }) => {
-        closeHistory(tr);
-        return true;
-      })
-      .setContent(doc.body, { emitUpdate: false })
-      .run();
+    setMarkdown(docToMarkdown(doc.body));
     lastPushed.current = incoming;
-    applyingRemote.current = false;
-  }, [doc.body, editor]);
+  }, [doc.body]);
 
   useEffect(() => () => setSelection(doc.id, null), [doc.id, setSelection]);
 
@@ -256,43 +234,12 @@ function FixedToolbar({ editor }: { editor: Editor }) {
       </ToolbarGroup>
     </div>
   );
-}
 
-function MarkButton({
-  editor,
-  mark,
-  label,
-  icon,
-}: {
-  editor: Editor;
-  mark: string;
-  label: string;
-  icon: React.ReactNode;
-}) {
-  const toggle = useCallback(() => {
-    const chain = editor.chain().focus();
-    switch (mark) {
-      case "bold":
-        chain.toggleBold().run();
-        break;
-      case "italic":
-        chain.toggleItalic().run();
-        break;
-      case "strike":
-        chain.toggleStrike().run();
-        break;
-      case "code":
-        chain.toggleCode().run();
-        break;
-    }
-  }, [editor, mark]);
-
-  return (
-    <IconButton label={label} size="sm" active={editor.isActive(mark)} onClick={toggle}>
-      {icon}
-    </IconButton>
-  );
-}
+  const publishSelectionFromTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    publishSelection(el.value, el.selectionStart, el.selectionEnd, doc.id, setSelection);
+  }, [doc.id, setSelection]);
 
 function StatusBar({
   editor,
@@ -309,11 +256,7 @@ function StatusBar({
   }, [doc.body]);
 
   const blocks = doc.body.content?.length ?? 0;
-  const selection = editor.state.selection;
-  const selected = selection.empty
-    ? 0
-    : editor.state.doc.textBetween(selection.from, selection.to, " ").split(/\s+/).filter(Boolean)
-        .length;
+  const lines = markdown.length === 0 ? 0 : markdown.split("\n").length;
 
   return (
     <div className="flex h-6 shrink-0 items-center gap-3 border-t border-line bg-raised px-3 text-[11px] text-faint">
@@ -339,25 +282,25 @@ function StatusBar({
  * act on it directly.
  */
 function publishSelection(
-  editor: Editor,
+  markdown: string,
+  selectionStart: number,
+  selectionEnd: number,
   docId: string,
   setSelection: ReturnType<typeof useWorkspace.getState>["setSelection"],
 ) {
-  const { from, to, empty } = editor.state.selection;
+  const startIndex = blockIndexAtMarkdownOffset(markdown, selectionStart);
+  const endIndex = blockIndexAtMarkdownOffset(markdown, selectionEnd);
 
-  if (empty) {
-    const index = blockIndexAt(editor, from);
-    setSelection(docId, { kind: "text", blockIndex: index, blockCount: 0, text: "" });
+  if (selectionStart === selectionEnd) {
+    setSelection(docId, { kind: "text", blockIndex: startIndex, blockCount: 0, text: "" });
     return;
   }
 
-  const startIndex = blockIndexAt(editor, from);
-  const endIndex = blockIndexAt(editor, to);
   setSelection(docId, {
     kind: "text",
     blockIndex: startIndex,
     blockCount: Math.max(1, endIndex - startIndex + 1),
-    text: editor.state.doc.textBetween(from, to, "\n\n"),
+    text: markdown.slice(selectionStart, selectionEnd),
   });
 }
 

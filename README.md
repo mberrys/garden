@@ -82,9 +82,10 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ## The surfaces
 
-**Document** — TipTap with headings, lists, quotes, code blocks and links; a bubble
-menu on selection. The editor owns undo here, so AI edits land as a single history
-step alongside your typing.
+**Document** — a markdown source editor. Type headings, lists, quotes, code
+fences and links as plain markdown; the stored body is still structured JSON so
+the assistant can address blocks. Typing and AI edits share the workspace undo
+stack, so <kbd>Ctrl</kbd>+<kbd>Z</kbd> reverses either.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
