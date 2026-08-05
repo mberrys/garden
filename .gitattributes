@@ -1,0 +1,2 @@
+# Normalize text files to LF in the repo; pre-commit mixed-line-ending enforces on commit.
+* text=auto eol=lf
