@@ -12,10 +12,12 @@ import {
   Presentation,
   Search,
   Shapes,
+  Sprout,
   Trash2,
   Upload,
 } from "lucide-react";
 import { DOC_KIND_LABELS, type Doc, type DocKind } from "@/lib/docs/schema";
+import { listPackets } from "@/lib/packets";
 import { useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
@@ -47,6 +49,9 @@ export function Sidebar() {
   const duplicateDoc = useWorkspace((s) => s.duplicateDoc);
   const reorderDoc = useWorkspace((s) => s.reorderDoc);
   const toast = useWorkspace((s) => s.toast);
+  const plantPacket = useWorkspace((s) => s.plantPacket);
+  const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
+  const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
 
   const [query, setQuery] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -112,6 +117,16 @@ export function Sidebar() {
               {label}
             </MenuItem>
           ))}
+          <MenuLabel>Seed packets</MenuLabel>
+          {listPackets().map((packet) => (
+            <MenuItem
+              key={packet.id}
+              icon={<Sprout size={14} />}
+              onClick={() => void plantPacket(packet.id)}
+            >
+              {packet.label}
+            </MenuItem>
+          ))}
         </Menu>
       </WindowChromeStrip>
 
@@ -140,7 +155,19 @@ export function Sidebar() {
       >
         {listed.length === 0 ? (
           <div className="px-2 py-6 text-center text-xs leading-relaxed text-faint">
-            {query ? "No matches." : "No documents yet. Create one, or drop a PDF here."}
+            {query ? (
+              "No matches."
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <span>No documents yet. Plant a seed packet, create one, or drop a PDF here.</span>
+                {!seedSuppressed && (
+                  <Button size="sm" variant="ghost" onClick={requestPacketPicker}>
+                    <Sprout size={13} />
+                    Plant a seed packet
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           listed.map((doc, index) => {

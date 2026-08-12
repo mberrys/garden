@@ -1,19 +1,8 @@
-"use client";
+import type { SeedPacket } from "./types";
+import { textFromMarkdown } from "./build";
+import { createCanvasDoc, createDeckDoc, makeCanvasNode, makeSlide } from "@/lib/docs/factories";
 
-import type { Doc } from "@/lib/docs/schema";
-import { createCanvasDoc, createDeckDoc, createTextDoc, makeSlide } from "@/lib/docs/factories";
-import { makeCanvasNode } from "@/lib/docs/factories";
-import { markdownToDoc } from "@/lib/text/markdown";
-
-/**
- * The workspace a first-time visitor lands in.
- *
- * An empty app makes a bad first impression and, worse, gives the assistant
- * nothing to act on — every recipe needs source material. These three documents
- * exist so the cross-surface flow can be tried in the first thirty seconds.
- */
-
-const WELCOME = `# Welcome to rr
+const WELCOME = `# Welcome to garden
 
 This is a **markdown** document in a workspace with four surfaces — a document
 editor, a PDF reader, a presentation editor and a drawing canvas — and a local
@@ -47,12 +36,11 @@ labelled as such in the header. To use a real model, start anything that speaks
 the OpenAI API — \`ollama serve\` is the shortest path — and click the badge in
 the header to re-check.`;
 
-function welcomeDoc(): Doc {
-  const doc = createTextDoc("Welcome to rr");
-  return { ...doc, body: markdownToDoc(WELCOME) };
+function welcomeDoc() {
+  return textFromMarkdown("Welcome to garden", WELCOME);
 }
 
-function diagramDoc(): Doc {
+function diagramDoc() {
   const doc = createCanvasDoc("How an edit flows");
 
   const boxes = [
@@ -129,7 +117,7 @@ function diagramDoc(): Doc {
   };
 }
 
-function deckDoc(): Doc {
+function deckDoc() {
   const doc = createDeckDoc("A four-surface workspace");
   return {
     ...doc,
@@ -166,6 +154,24 @@ function deckDoc(): Doc {
   };
 }
 
-export function seedDocuments(): Doc[] {
-  return [welcomeDoc(), diagramDoc(), deckDoc()];
-}
+export const welcomePacket: SeedPacket = {
+  id: "garden/welcome",
+  label: "Welcome",
+  blurb: "The four-surface tour: a document, a diagram of how edits flow, and a starter deck.",
+  docs: [
+    { localId: "welcome", kind: "text", title: "Welcome to garden", build: welcomeDoc },
+    { localId: "diagram", kind: "canvas", title: "How an edit flows", build: diagramDoc },
+    { localId: "deck", kind: "deck", title: "A four-surface workspace", build: deckDoc },
+  ],
+  open: [
+    { localId: "welcome", pane: 0 },
+    { localId: "diagram", pane: 1 },
+  ],
+  splitView: true,
+  featuredRecipeIds: ["doc-to-deck", "doc-to-canvas"],
+  systemPromptAddenda:
+    "This workspace was planted from the garden welcome packet. The user is learning " +
+    "a four-surface suite (document, canvas, deck, PDF) whose assistant proposes typed " +
+    "operations rather than typing into the document. Prefer recipes that show " +
+    "cross-surface work: a document becoming slides or a diagram.",
+};

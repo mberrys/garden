@@ -34,8 +34,8 @@ const SURFACE_NOTES: Record<DocKind, string> = {
     "with the origin at the top-left of the page.",
 };
 
-export function systemPrompt(kind: DocKind): string {
-  return [
+export function systemPrompt(kind: DocKind, addenda?: string): string {
+  const parts = [
     `You are a collaborator inside "rr", a workspace combining a text editor, a PDF reader, a presentation editor and a drawing canvas.`,
     `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
     "",
@@ -61,7 +61,12 @@ export function systemPrompt(kind: DocKind): string {
     "",
     "## Notes for this surface",
     SURFACE_NOTES[kind],
-  ].join("\n");
+  ];
+  const extra = addenda?.trim();
+  if (extra) {
+    parts.push("", "## Workspace craft", extra);
+  }
+  return parts.join("\n");
 }
 
 export interface UserTurnOptions {

@@ -80,6 +80,29 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ---
 
+## Seed packets
+
+An empty workspace is a picker, not a blank suite. A **seed packet** is a
+profession-shaped starting kit: starter documents, which panes to open, extra
+assistant recipes, and a short system-prompt addendum for that craft. Choosing
+one **sprouts** the worktree.
+
+Packets are data (TypeScript modules), not one-off React trees. The welcome
+experience is packet `garden/welcome` — the same path as the others.
+
+| Packet | Id | Sprouts |
+| --- | --- | --- |
+| Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
+| History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
+| Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
+| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+
+You can also start blank and plant a packet later from the sidebar. Which packet
+sprouted the workspace is stored in local metadata and included when you export
+a `.rrspace` file.
+
+---
+
 ## The surfaces
 
 **Document** — a markdown source editor. Type headings, lists, quotes, code
@@ -142,7 +165,8 @@ anywhere; the only network request the app makes is to the local model server yo
 configure.
 
 Because browser storage can be cleared, **Export** writes the whole workspace to a
-`.rrspace` file (documents plus embedded PDFs and images) that **Import** restores.
+`.rrspace` file (documents plus embedded PDFs and images, and which seed packet
+sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
 `.pdf`, `.md`, `.txt` or `.rrspace` anywhere in the window to import it.
 
@@ -172,6 +196,8 @@ src/
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
+  lib/packets/  seed packet registry and sprout — profession kits that plant a
+                worktree (docs, panes, recipes, prompt addenda)
   lib/store/    zustand workspace state, Dexie persistence, import/export
   surfaces/     text, canvas, deck, pdf
   components/   shell: sidebar, panes, assistant panel, review cards

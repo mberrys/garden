@@ -1,4 +1,5 @@
 import type { DocKind } from "@/lib/docs/schema";
+import { getPacket } from "@/lib/packets/registry";
 
 /**
  * Cross-surface actions.
@@ -151,6 +152,23 @@ export const RECIPES: Recipe[] = [
   },
 ];
 
-export function recipesFor(kind: DocKind): Recipe[] {
-  return RECIPES.filter((recipe) => recipe.from.includes(kind));
+export function recipesFor(kind: DocKind, seedPacketId?: string | null): Recipe[] {
+  const fromGlobal = RECIPES.filter((recipe) => recipe.from.includes(kind));
+  const packet = seedPacketId ? getPacket(seedPacketId) : undefined;
+  const fromPacket = (packet?.recipes ?? []).filter((recipe) => recipe.from.includes(kind));
+  const combined = [...fromGlobal, ...fromPacket];
+  const featured = packet?.featuredRecipeIds ?? [];
+  if (featured.length === 0) return combined;
+
+  const byId = new Map(combined.map((recipe) => [recipe.id, recipe]));
+  const seen = new Set<string>();
+  const head: Recipe[] = [];
+  for (const id of featured) {
+    const recipe = byId.get(id);
+    if (!recipe || seen.has(recipe.id) || !recipe.from.includes(kind)) continue;
+    head.push(recipe);
+    seen.add(recipe.id);
+  }
+  const tail = combined.filter((recipe) => !seen.has(recipe.id));
+  return [...head, ...tail];
 }

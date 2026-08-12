@@ -6,12 +6,23 @@ import { newDocument, openEmptyWorkspace, openSeededWorkspace, samplePdfPath } f
  * scripted mock provider so nothing depends on a local model being installed.
  */
 
-test("seeds a starter workspace on first run", async ({ page }) => {
+test("empty workspace offers a seed packet picker", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Plant a seed packet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Welcome" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant History seminar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Grant shop" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Field notes" })).toBeVisible();
+});
+
+test("seeds a starter workspace from the welcome packet", async ({ page }) => {
   await openSeededWorkspace(page);
   const sidebar = page.locator("aside").first();
-  await expect(sidebar).toContainText("Welcome to rr");
+  await expect(sidebar).toContainText("Welcome to garden");
   await expect(sidebar).toContainText("How an edit flows");
   await expect(page.locator(".rr-markdown")).toHaveValue(/four surfaces/);
+  await expect(page.locator('canvas[aria-label="Drawing canvas"]')).toBeVisible();
 });
 
 test("text: typing persists across a reload", async ({ page }) => {

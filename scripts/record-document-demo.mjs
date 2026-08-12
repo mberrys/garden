@@ -22,16 +22,17 @@ const page = await context.newPage();
 await page.goto(BASE_URL);
 await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
 
-// Let the seeded workspace settle so the sidebar and first document are visible.
-await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Plant Welcome" }).click();
+await page.getByRole("button", { name: "Welcome to garden" }).waitFor({ timeout: 15_000 });
+await page.waitForTimeout(800);
 
 // Open the welcome document from the sidebar.
-await page.getByRole("button", { name: "Welcome to rr" }).first().click();
-await page.waitForSelector(".rr-prose", { timeout: 15_000 });
+await page.getByRole("button", { name: "Welcome to garden" }).first().click();
+await page.waitForSelector(".rr-markdown", { timeout: 15_000 });
 await page.waitForTimeout(800);
 
 // Focus the editor and type a short paragraph.
-await page.click(".rr-prose");
+await page.click(".rr-markdown");
 await page.waitForTimeout(400);
 await page.keyboard.type(
   "This is a live demo of the rr document editor. The assistant can read and edit this text through validated operations.",

@@ -20,6 +20,7 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
   const panes = useWorkspace((s) => s.panes);
   const addDoc = useWorkspace((s) => s.addDoc);
   const openDoc = useWorkspace((s) => s.openDoc);
+  const seedPacketId = useWorkspace((s) => s.seedPacketId);
 
   const status = useProvider((s) => s.status);
   const threads = useThreads((s) => s.threads);
@@ -54,14 +55,14 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
         .find((candidate) => candidate?.kind === kind && candidate.id !== sourceDoc.id);
       if (openElsewhere) return openElsewhere.id;
 
-      const recipe = recipesFor(sourceDoc.kind).find((r) => r.target === kind);
+      const recipe = recipesFor(sourceDoc.kind, seedPacketId).find((r) => r.target === kind);
       const title = recipe?.newTitle?.(sourceDoc.title) ?? `${sourceDoc.title} — ${kind}`;
       const created = createDoc(kind, title);
       addDoc(created, { open: false });
       openDoc(created.id, 1, { focus: false });
       return created.id;
     },
-    [panes, docs, addDoc, openDoc],
+    [panes, docs, addDoc, openDoc, seedPacketId],
   );
 
   const companionsFor = useCallback(
@@ -88,7 +89,10 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
     [doc, status, send, resolveTarget, companionsFor],
   );
 
-  const recipes = useMemo(() => (doc ? recipesFor(doc.kind) : []), [doc]);
+  const recipes = useMemo(
+    () => (doc ? recipesFor(doc.kind, seedPacketId) : []),
+    [doc, seedPacketId],
+  );
 
   return (
     <aside className="flex h-full w-80 shrink-0 flex-col border-l border-line bg-sunken">
