@@ -61,7 +61,7 @@ export async function openEmptyWorkspace(page: Page): Promise<void> {
   // "seeded" marker into IndexedDB directly would mean recreating Dexie's
   // schema by hand, and getting it slightly wrong stops the app booting.
   await page.addInitScript(() => {
-    window.__RR_NO_SEED__ = true;
+    window.__GARDEN_NO_SEED__ = true;
   });
 
   await page.goto("/");

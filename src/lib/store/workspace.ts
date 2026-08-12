@@ -79,7 +79,7 @@ const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });
 declare global {
   interface Window {
     /** Set before load to start with an empty workspace (used by the e2e suite). */
-    __RR_NO_SEED__?: boolean;
+    __GARDEN_NO_SEED__?: boolean;
   }
 }
 
@@ -159,7 +159,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     // window flag lets the e2e suite start from an empty workspace without
     // reaching into the database's internals.
     const seeded = await store.readMeta<boolean>("seeded");
-    const suppressed = typeof window !== "undefined" && window.__RR_NO_SEED__ === true;
+    const suppressed = typeof window !== "undefined" && window.__GARDEN_NO_SEED__ === true;
     if (!seeded && !suppressed && docs.length === 0) {
       const { seedDocuments } = await import("./seed");
       const seeds = seedDocuments();

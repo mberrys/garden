@@ -4,7 +4,7 @@ import { parseOps, type OpOf } from "@/lib/ops";
 /**
  * The wire format for AI-authored edits.
  *
- * Edits arrive as a fenced ```rr-ops block containing a JSON array, not as
+ * Edits arrive as a fenced ```garden-ops block containing a JSON array, not as
  * OpenAI tool calls. That is a deliberate choice for local models: tool-calling
  * support across llama.cpp, Ollama and LM Studio is inconsistent and frequently
  * emits malformed arguments, whereas every instruct-tuned model can reliably
@@ -12,9 +12,9 @@ import { parseOps, type OpOf } from "@/lib/ops";
  * block is still arriving.
  */
 
-export const OPS_FENCE = "rr-ops";
+export const OPS_FENCE = "garden-ops";
 
-const FENCE_RE = /```rr-ops\s*\n([\s\S]*?)(?:```|$)/g;
+const FENCE_RE = /```garden-ops\s*\n([\s\S]*?)(?:```|$)/g;
 
 export interface ExtractedBlock {
   /** The raw JSON text inside the fence. */

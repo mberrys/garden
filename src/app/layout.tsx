@@ -4,7 +4,7 @@ import { THEME_BOOTSTRAP } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "rr — generative workspace",
+  title: "garden — generative document workplace",
   description:
     "A combined text editor, PDF client, presentation editor and drawing canvas with a local AI collaborator.",
 };

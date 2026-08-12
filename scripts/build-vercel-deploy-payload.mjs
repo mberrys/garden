@@ -7,12 +7,12 @@ const authToken = process.env.SENTRY_AUTH_TOKEN ?? "";
 const envContent = `NEXT_PUBLIC_SENTRY_DSN=${dsn}
 SENTRY_DSN=${dsn}
 SENTRY_AUTH_TOKEN=${authToken}
-RR_FORCE_MOCK_AI=1
+GARDEN_FORCE_MOCK_AI=1
 `;
 
 const payload = {
   target: "production",
-  name: "rr",
+  name: "garden",
   teamId: "team_frbtrtpv4KZZ0ORNQ89B2Bqt",
   projectSettings: {
     framework: "nextjs",

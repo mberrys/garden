@@ -13,11 +13,11 @@ import { markdownToDoc } from "@/lib/text/markdown";
  * exist so the cross-surface flow can be tried in the first thirty seconds.
  */
 
-const WELCOME = `# Welcome to rr
+const WELCOME = `# Welcome to garden
 
-This is a **markdown** document in a workspace with four surfaces — a document
-editor, a PDF reader, a presentation editor and a drawing canvas — and a local
-AI model that can work across all of them.
+**garden** grows document worktrees from seed packets — OpenOffice meets an IDE.
+Text, PDFs, presentations and a drawing canvas live in one place, with a local
+AI that can read and edit across all of them under your review.
 
 Type markdown directly: headings, \`inline code\`, lists, quotes and fenced
 code blocks. The assistant reads and edits the same markdown.
@@ -48,7 +48,7 @@ the OpenAI API — \`ollama serve\` is the shortest path — and click the badge
 the header to re-check.`;
 
 function welcomeDoc(): Doc {
-  const doc = createTextDoc("Welcome to rr");
+  const doc = createTextDoc("Welcome to garden");
   return { ...doc, body: markdownToDoc(WELCOME) };
 }
 
@@ -130,16 +130,16 @@ function diagramDoc(): Doc {
 }
 
 function deckDoc(): Doc {
-  const doc = createDeckDoc("A four-surface workspace");
+  const doc = createDeckDoc("A generative document workplace");
   return {
     ...doc,
     body: {
       ...doc.body,
       slides: [
         makeSlide("title", {
-          title: "A four-surface workspace",
-          subtitle: "Documents, PDFs, slides and drawings — one AI collaborator",
-          notes: "Open on why these four belong together rather than in four apps.",
+          title: "garden",
+          subtitle: "Seed packets sprout worktrees — text, PDF, slides and drawings",
+          notes: "Open on why these surfaces belong together rather than in four apps.",
         }),
         makeSlide("bullets", {
           title: "One document model",

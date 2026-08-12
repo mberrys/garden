@@ -1,8 +1,11 @@
-# rr
+# garden
 
-A single workspace combining a **text editor**, a **PDF reader**, a **presentation
-editor**, and an **infinite drawing canvas** — with a local AI model that can read
-and edit all four, and build documents on one surface from material on another.
+A **generative document workplace** — OpenOffice meets an IDE.
+
+Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
+presentations, drawings (and soon sheets, databases, media). One shell, one undo
+stack, and a local AI that edits through reviewable operations — not four apps
+side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
 wherever you point it.
@@ -67,7 +70,7 @@ Configure a different runtime with environment variables:
 | `AI_MODEL` | `qwen2.5:7b-instruct` | Model to request |
 | `AI_API_KEY` | `local` | Sent as a bearer token; most local servers ignore it |
 | `AI_PROBE_TIMEOUT_MS` | `1500` | How long to wait when checking for a server |
-| `RR_FORCE_MOCK_AI` | unset | Set to `1` to force the scripted provider |
+| `GARDEN_FORCE_MOCK_AI` | unset | Set to `1` to force the scripted provider |
 
 For example, LM Studio:
 
@@ -82,10 +85,9 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ## The surfaces
 
-**Document** — a markdown source editor. Type headings, lists, quotes, code
-fences and links as plain markdown; the stored body is still structured JSON so
-the assistant can address blocks. Typing and AI edits share the workspace undo
-stack, so <kbd>Ctrl</kbd>+<kbd>Z</kbd> reverses either.
+**Document** — markdown source editor. The stored body remains ProseMirror JSON so
+AI ops and cross-surface recipes stay typed; typing commits coalesced edits onto
+the shared workspace undo stack (including accepted AI suggestions).
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
@@ -142,9 +144,9 @@ anywhere; the only network request the app makes is to the local model server yo
 configure.
 
 Because browser storage can be cleared, **Export** writes the whole workspace to a
-`.rrspace` file (documents plus embedded PDFs and images) that **Import** restores.
+`.gardenspace` file (documents plus embedded PDFs and images) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
-`.pdf`, `.md`, `.txt` or `.rrspace` anywhere in the window to import it.
+`.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
 
 ---
 

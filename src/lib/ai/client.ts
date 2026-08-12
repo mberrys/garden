@@ -22,7 +22,7 @@ export interface StreamOptions {
  * Yields the assistant's reply incrementally, from whichever provider is live.
  *
  * Both providers produce the same thing — plain text that may contain an
- * `rr-ops` block — so everything downstream (parsing, validation, review,
+ * `garden-ops` block — so everything downstream (parsing, validation, review,
  * accept/reject) has exactly one code path regardless of what is behind it.
  */
 export async function* streamAssistant(options: StreamOptions): AsyncGenerator<string> {

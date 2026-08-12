@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   org: "berry-studios",
-  project: "rr",
+  project: "garden",
   authToken: process.env.SENTRY_AUTH_TOKEN,
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring",

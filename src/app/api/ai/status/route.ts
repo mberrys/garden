@@ -19,7 +19,7 @@ export async function GET() {
       model: "scripted-mock",
       baseUrl: config.baseUrl,
       available: [],
-      reason: "RR_FORCE_MOCK_AI is set",
+      reason: "GARDEN_FORCE_MOCK_AI is set",
     });
   }
 

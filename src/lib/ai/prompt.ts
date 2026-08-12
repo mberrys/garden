@@ -36,7 +36,7 @@ const SURFACE_NOTES: Record<DocKind, string> = {
 
 export function systemPrompt(kind: DocKind): string {
   return [
-    `You are a collaborator inside "rr", a workspace combining a text editor, a PDF reader, a presentation editor and a drawing canvas.`,
+    `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, and a drawing canvas — more like OpenOffice meets an IDE than four separate apps. Seed packets sprout profession worktrees; you edit through reviewable operations.`,
     `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
     "",
     "## How to answer",

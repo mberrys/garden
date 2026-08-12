@@ -1,6 +1,6 @@
 export type ThemeMode = "light" | "dark";
 
-const STORAGE_KEY = "rr.theme";
+const STORAGE_KEY = "garden.theme";
 
 export function readThemePreference(): ThemeMode {
   if (typeof window === "undefined") return "light";
