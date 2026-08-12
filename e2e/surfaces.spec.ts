@@ -9,23 +9,23 @@ import { newDocument, openEmptyWorkspace, openSeededWorkspace, samplePdfPath } f
 test("seeds a starter workspace on first run", async ({ page }) => {
   await openSeededWorkspace(page);
   const sidebar = page.locator("aside").first();
-  await expect(sidebar).toContainText("Welcome to rr");
+  await expect(sidebar).toContainText("Welcome to garden");
   await expect(sidebar).toContainText("How an edit flows");
-  await expect(page.locator(".rr-markdown")).toHaveValue(/four surfaces/);
+  await expect(page.locator(".garden-markdown")).toHaveValue(/seed packets/);
 });
 
 test("text: typing persists across a reload", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".rr-markdown");
+  await page.click(".garden-markdown");
   await page.keyboard.type("Persistence check.");
-  await expect(page.locator(".rr-markdown")).toHaveValue(/Persistence check\./);
+  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
 
   // Give the debounced write-behind time to reach IndexedDB.
   await page.waitForTimeout(1200);
   await page.reload();
-  await page.waitForSelector(".rr-markdown");
-  await expect(page.locator(".rr-markdown")).toHaveValue(/Persistence check\./);
+  await page.waitForSelector(".garden-markdown");
+  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
 });
 
 test("canvas: drawing a shape and a stroke, then undo", async ({ page }) => {

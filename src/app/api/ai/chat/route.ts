@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const config = readConfig();
 
   if (config.forceMock) {
-    return jsonError(503, "Local AI is disabled (RR_FORCE_MOCK_AI is set).");
+    return jsonError(503, "Local AI is disabled (GARDEN_FORCE_MOCK_AI is set).");
   }
 
   let body: ChatRequest;

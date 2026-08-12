@@ -28,7 +28,7 @@ export function readConfig(): AiConfig {
     // require it, and the OpenAI client shape expects the header to exist.
     apiKey: process.env.AI_API_KEY || "local",
     probeTimeoutMs: Number(process.env.AI_PROBE_TIMEOUT_MS || 1500),
-    forceMock: process.env.RR_FORCE_MOCK_AI === "1",
+    forceMock: process.env.GARDEN_FORCE_MOCK_AI === "1",
   };
 }
 

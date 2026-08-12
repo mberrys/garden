@@ -2,7 +2,7 @@ import { mkdirSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
 
-const PORT = Number(process.env.RR_E2E_PORT ?? 3100);
+const PORT = Number(process.env.GARDEN_E2E_PORT ?? 3100);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ARTIFACTS_DIR = "/opt/cursor/artifacts";
 
@@ -26,15 +26,15 @@ await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_00
 await page.waitForTimeout(1200);
 
 // Open the welcome document from the sidebar.
-await page.getByRole("button", { name: "Welcome to rr" }).first().click();
-await page.waitForSelector(".rr-prose", { timeout: 15_000 });
+await page.getByRole("button", { name: "Welcome to garden" }).first().click();
+await page.waitForSelector(".garden-prose", { timeout: 15_000 });
 await page.waitForTimeout(800);
 
 // Focus the editor and type a short paragraph.
-await page.click(".rr-prose");
+await page.click(".garden-prose");
 await page.waitForTimeout(400);
 await page.keyboard.type(
-  "This is a live demo of the rr document editor. The assistant can read and edit this text through validated operations.",
+  "This is a live demo of the garden document editor. The assistant can read and edit this text through validated operations.",
   { delay: 45 },
 );
 await page.waitForTimeout(1500);

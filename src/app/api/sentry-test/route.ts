@@ -10,7 +10,7 @@ export async function GET() {
     return new Response("Not found", { status: 404 });
   }
 
-  const error = new Error("Sentry verification error from rr");
+  const error = new Error("Sentry verification error from garden");
   Sentry.captureException(error);
   throw error;
 }

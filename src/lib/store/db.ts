@@ -30,7 +30,7 @@ class WorkspaceDb extends Dexie {
   meta!: EntityTable<MetaRow, "key">;
 
   constructor() {
-    super("rr-workspace");
+    super("garden-workspace");
     this.version(1).stores({
       docs: "id, kind, updatedAt",
       blobs: "id, createdAt",

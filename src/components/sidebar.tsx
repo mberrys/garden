@@ -80,7 +80,7 @@ export function Sidebar() {
   const handleExport = async () => {
     try {
       const blob = await exportBundle();
-      downloadBlob(blob, timestampedName("rr workspace", BUNDLE_EXTENSION));
+      downloadBlob(blob, timestampedName("garden workspace", BUNDLE_EXTENSION));
       toast("success", "Workspace exported.");
     } catch (err) {
       toast("error", `Export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -91,7 +91,7 @@ export function Sidebar() {
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-sunken">
       <WindowChromeStrip className="flex items-center gap-1 px-2.5 pt-2.5">
         <div className="flex-1 select-none text-sm font-semibold tracking-tight text-ink">
-          rr
+          garden
           <span className="ml-1.5 font-normal text-faint">workspace</span>
         </div>
         <Menu

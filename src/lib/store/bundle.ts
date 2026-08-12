@@ -12,13 +12,13 @@ import { flushPendingSaves, storeBlob, useWorkspace } from "./workspace";
 /**
  * Workspace import/export.
  *
- * The `.rrspace` bundle is a plain JSON file with blobs inlined as base64. It
+ * The `.gardenspace` bundle is a plain JSON file with blobs inlined as base64. It
  * is the escape hatch from browser-local storage: without it, clearing site
  * data would be unrecoverable.
  */
 
 export const BUNDLE_VERSION = 1;
-export const BUNDLE_EXTENSION = ".rrspace";
+export const BUNDLE_EXTENSION = ".gardenspace";
 
 const BundleBlobSchema = z.object({
   id: z.string(),
@@ -29,7 +29,7 @@ const BundleBlobSchema = z.object({
 });
 
 const BundleSchema = z.object({
-  format: z.literal("rrspace"),
+  format: z.literal("gardenspace"),
   version: z.number().int().min(1),
   exportedAt: z.number(),
   order: z.array(z.string()).default([]),
@@ -96,7 +96,7 @@ export async function exportBundle(docIds?: string[]): Promise<Blob> {
   }
 
   const bundle: Bundle = {
-    format: "rrspace",
+    format: "gardenspace",
     version: BUNDLE_VERSION,
     exportedAt: Date.now(),
     order: docs.map((d) => d.id),
