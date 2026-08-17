@@ -156,22 +156,26 @@ function deckDoc() {
 
 export const welcomePacket: SeedPacket = {
   id: "garden/welcome",
+  version: 1,
   label: "Welcome",
   blurb: "The four-surface tour: a document, a diagram of how edits flow, and a starter deck.",
-  docs: [
+  starterArtifacts: [
     { localId: "welcome", kind: "text", title: "Welcome to garden", build: welcomeDoc },
     { localId: "diagram", kind: "canvas", title: "How an edit flows", build: diagramDoc },
     { localId: "deck", kind: "deck", title: "A four-surface workspace", build: deckDoc },
   ],
-  open: [
-    { localId: "welcome", pane: 0 },
-    { localId: "diagram", pane: 1 },
-  ],
-  splitView: true,
+  layout: {
+    open: [
+      { localId: "welcome", pane: 0 },
+      { localId: "diagram", pane: 1 },
+    ],
+    splitView: true,
+  },
   featuredRecipeIds: ["doc-to-deck", "doc-to-canvas"],
-  systemPromptAddenda:
+  assistantPromptAddenda: [
     "This workspace was planted from the garden welcome packet. The user is learning " +
-    "a four-surface suite (document, canvas, deck, PDF) whose assistant proposes typed " +
-    "operations rather than typing into the document. Prefer recipes that show " +
-    "cross-surface work: a document becoming slides or a diagram.",
+      "a four-surface suite (document, canvas, deck, PDF) whose assistant proposes typed " +
+      "operations rather than typing into the document. Prefer recipes that show " +
+      "cross-surface work: a document becoming slides or a diagram.",
+  ],
 };

@@ -37,6 +37,7 @@ const BundleSchema = z.object({
   blobs: z.array(BundleBlobSchema).default([]),
   /** Packet that sprouted the workspace, when the export is a full snapshot. */
   seedPacketId: z.string().nullable().optional(),
+  seedPacketVersion: z.number().int().nullable().optional(),
 });
 
 export type Bundle = z.infer<typeof BundleSchema>;
@@ -104,7 +105,9 @@ export async function exportBundle(docIds?: string[]): Promise<Blob> {
     order: docs.map((d) => d.id),
     docs,
     blobs,
-    ...(docIds === undefined ? { seedPacketId: state.seedPacketId } : {}),
+    ...(docIds === undefined
+      ? { seedPacketId: state.seedPacketId, seedPacketVersion: state.seedPacketVersion }
+      : {}),
   };
 
   return new Blob([JSON.stringify(bundle)], { type: "application/json" });
@@ -171,6 +174,11 @@ export async function importBundle(text: string): Promise<ImportResult> {
     const seedPacketId = parsed.data.seedPacketId;
     await db.writeMeta("seedPacketId", seedPacketId);
     useWorkspace.setState({ seedPacketId });
+  }
+  if (parsed.data.seedPacketVersion !== undefined) {
+    const seedPacketVersion = parsed.data.seedPacketVersion;
+    await db.writeMeta("seedPacketVersion", seedPacketVersion);
+    useWorkspace.setState({ seedPacketVersion });
   }
 
   return { imported, skipped };

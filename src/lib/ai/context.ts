@@ -18,6 +18,7 @@ const BUDGET: Record<DocKind, number> = {
   canvas: 8_000,
   deck: 10_000,
   pdf: 14_000,
+  database: 10_000,
 };
 
 export interface DocContext {
@@ -37,6 +38,8 @@ export function serializeDoc(doc: Doc, selection?: SurfaceSelection): DocContext
       return clamp(serializeDeck(doc), BUDGET.deck);
     case "pdf":
       return clamp(serializePdf(doc, selection), BUDGET.pdf);
+    case "database":
+      return clamp(serializeDatabase(doc, selection), BUDGET.database);
   }
 }
 
@@ -156,6 +159,49 @@ function serializePdf(
   return parts.join("\n");
 }
 
+function serializeDatabase(
+  doc: Extract<Doc, { kind: "database" }>,
+  selection?: SurfaceSelection,
+): string {
+  const { fields, rows, views, activeViewId } = doc.body;
+  const parts = [
+    `Database "${doc.title}" — ${fields.length} field(s), ${rows.length} row(s), ${views.length} view(s).`,
+    `Active view: ${activeViewId ?? "(none)"}`,
+    "\nFields:",
+    ...fields.map((f) => {
+      if (f.type === "relation") return `  ${f.id} ${f.name} relation -> ${f.targetDocId}`;
+      if (f.type === "select" || f.type === "multi_select") {
+        return `  ${f.id} ${f.name} ${f.type} [${f.options.join(", ")}]`;
+      }
+      return `  ${f.id} ${f.name} ${f.type}`;
+    }),
+  ];
+
+  if (rows.length === 0) {
+    parts.push("\n(no rows)");
+    return parts.join("\n");
+  }
+
+  parts.push("\nRows:");
+  for (const row of rows.slice(0, 80)) {
+    const cellParts = fields.map((f) => {
+      const v = row.cells[f.id];
+      if (v === undefined || v === null) return `${f.id}=`;
+      if (Array.isArray(v)) return `${f.id}=[${v.join(",")}]`;
+      if (typeof v === "object") return `${f.id}=${JSON.stringify(v)}`;
+      return `${f.id}=${String(v)}`;
+    });
+    parts.push(`  row ${row.id}: ${cellParts.join(" ")}`);
+  }
+  if (rows.length > 80) parts.push(`  …${rows.length - 80} more rows`);
+
+  if (selection?.kind === "database" && selection.rowId) {
+    parts.push(`\nUser selected row ${selection.rowId}`);
+  }
+
+  return parts.join("\n");
+}
+
 /* ------------------------------------------------------------------ *
  * Selection
  * ------------------------------------------------------------------ */
@@ -183,6 +229,12 @@ export function describeSelection(selection: SurfaceSelection | undefined): stri
       return selection.text
         ? `The user has selected text on page ${selection.page}: "${truncate(selection.text, 400)}"`
         : `The user is looking at page ${selection.page}`;
+    case "database":
+      return selection.rowId
+        ? `The user selected row ${selection.rowId}${
+            selection.fieldId ? `, field ${selection.fieldId}` : ""
+          }`
+        : null;
   }
 }
 

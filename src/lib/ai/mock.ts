@@ -1,4 +1,4 @@
-import type { CanvasDoc, DeckDoc, Doc, PdfDoc, TextDoc } from "@/lib/docs/schema";
+import type { CanvasDoc, DatabaseDoc, DeckDoc, Doc, PdfDoc, TextDoc } from "@/lib/docs/schema";
 import { docToMarkdown } from "@/lib/text/markdown";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import { OPS_FENCE } from "./ops-block";
@@ -34,6 +34,8 @@ export function mockReply({ doc, request, selection, companions }: MockRequest):
       return mockDeck(doc, ask, companions);
     case "pdf":
       return mockPdf(doc, ask);
+    case "database":
+      return mockDatabase(doc as DatabaseDoc, ask);
   }
 }
 
@@ -293,6 +295,36 @@ function mockPdf(doc: PdfDoc, ask: string): string {
       note: i === 0 ? "Scripted highlight from the mock provider." : "",
     })),
   );
+}
+
+function mockDatabase(doc: DatabaseDoc, ask: string): string {
+  const nameField = doc.body.fields.find((f) => f.type === "text");
+  if (/add|row|insert/.test(ask)) {
+    const cells: Record<string, unknown> = {};
+    if (nameField) cells[nameField.id] = "New row (scripted)";
+    return block("Added a row to the database.", [{ op: "addRow", row: { cells } }]);
+  }
+  if (/field|column|schema/.test(ask)) {
+    return block("Added a notes field.", [
+      {
+        op: "addField",
+        field: { type: "text", name: "Notes" },
+      },
+    ]);
+  }
+  const rowId = doc.body.rows[0]?.id;
+  const fieldId = nameField?.id ?? doc.body.fields[0]?.id;
+  if (!rowId || !fieldId) {
+    return block("This database has no rows to update yet.", []);
+  }
+  return block("Updated the first row's primary text field.", [
+    {
+      op: "setCell",
+      rowId,
+      fieldId,
+      value: "Updated by scripted provider",
+    },
+  ]);
 }
 
 function truncate(s: string, n: number): string {

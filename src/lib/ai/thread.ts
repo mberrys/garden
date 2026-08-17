@@ -6,6 +6,7 @@ import { newMessageId, newSuggestionId } from "@/lib/docs/ids";
 import { describeOperation, type AnyOp, type OpOf } from "@/lib/ops";
 import { useWorkspace } from "@/lib/store/workspace";
 import { getPacket } from "@/lib/packets/registry";
+import { packetAssistantAddenda } from "@/lib/packets/types";
 import { streamAssistant, type ChatMessage } from "./client";
 import { parseOpsFromReply, stripOpsBlocks } from "./ops-block";
 import { repairTurn, systemPrompt, userTurn } from "./prompt";
@@ -129,7 +130,7 @@ export const useThreads = create<ThreadState>((set, get) => ({
 
     const packet = workspace.seedPacketId ? getPacket(workspace.seedPacketId) : undefined;
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(targetDoc.kind, packet?.systemPromptAddenda) },
+      { role: "system", content: systemPrompt(targetDoc.kind, packetAssistantAddenda(packet)) },
       {
         role: "user",
         content: userTurn({

@@ -178,18 +178,21 @@ function siteSketchDoc() {
 
 export const fieldNotesPacket: SeedPacket = {
   id: "garden/field-notes",
+  version: 1,
   label: "Field notes",
   blurb: "A visit log that keeps observation apart from interpretation, a site sketch, and a debrief.",
-  docs: [
+  starterArtifacts: [
     { localId: "log", kind: "text", title: "Field log", build: () => textFromMarkdown("Field log", LOG) },
     { localId: "sketch", kind: "canvas", title: "Site sketch", build: siteSketchDoc },
     { localId: "debrief", kind: "text", title: "Debrief", build: () => textFromMarkdown("Debrief", DEBRIEF) },
   ],
-  open: [
-    { localId: "log", pane: 0 },
-    { localId: "sketch", pane: 1 },
-  ],
-  splitView: true,
+  layout: {
+    open: [
+      { localId: "log", pane: 0 },
+      { localId: "sketch", pane: 1 },
+    ],
+    splitView: true,
+  },
   recipes: [
     {
       id: "log-to-debrief",
@@ -219,8 +222,9 @@ export const fieldNotesPacket: SeedPacket = {
     },
   ],
   featuredRecipeIds: ["log-to-debrief", "log-to-site", "canvas-to-doc"],
-  systemPromptAddenda:
+  assistantPromptAddenda: [
     "This workspace is a field-notes kit. Keep observational sentences separate from " +
-    "interpretive ones. Never invent a quotation, a person, or an event. If the user asks " +
-    "for a write-up, do not promote a hunch into a finding.",
+      "interpretive ones. Never invent a quotation, a person, or an event. If the user asks " +
+      "for a write-up, do not promote a hunch into a finding.",
+  ],
 };

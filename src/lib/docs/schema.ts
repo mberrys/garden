@@ -11,7 +11,7 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
-export const DOC_KINDS = ["text", "pdf", "deck", "canvas"] as const;
+export const DOC_KINDS = ["text", "pdf", "deck", "canvas", "database"] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;
 
@@ -20,7 +20,12 @@ export const DOC_KIND_LABELS: Record<DocKind, string> = {
   pdf: "PDF",
   deck: "Deck",
   canvas: "Canvas",
+  database: "Database",
 };
+
+/** Surfaces a packet may require; used for capability gating in the picker. */
+export const PACKET_CAPABILITIES = ["relations", "external_ref", "garden_ref"] as const;
+export type PacketCapability = (typeof PACKET_CAPABILITIES)[number];
 
 /* ------------------------------------------------------------------ *
  * Shared primitives
@@ -415,6 +420,140 @@ export const PdfBodySchema = z.object({
 export type PdfBody = z.infer<typeof PdfBodySchema>;
 
 /* ------------------------------------------------------------------ *
+ * Database — typed fields, rows, grid + kanban views
+ * ------------------------------------------------------------------ */
+
+export const GardenRefSchema = z.object({
+  documentId: z.string(),
+  objectId: z.string().optional(),
+});
+export type GardenRef = z.infer<typeof GardenRefSchema>;
+
+export const ExternalRefSchema = z.object({
+  provider: z.string(),
+  externalId: z.string().optional(),
+  url: z.string().optional(),
+  importedAt: z.string().optional(),
+  sourceUpdatedAt: z.string().optional(),
+  snapshotHash: z.string().optional(),
+});
+export type ExternalRef = z.infer<typeof ExternalRefSchema>;
+
+export const DATABASE_FIELD_TYPES = [
+  "text",
+  "number",
+  "date",
+  "select",
+  "multi_select",
+  "checkbox",
+  "url",
+  "relation",
+  "file",
+  "garden_ref",
+  "external_ref",
+] as const;
+export const DatabaseFieldTypeSchema = z.enum(DATABASE_FIELD_TYPES);
+export type DatabaseFieldType = z.infer<typeof DatabaseFieldTypeSchema>;
+
+const fieldCommon = {
+  id: z.string(),
+  name: z.string(),
+};
+
+export const TextFieldSchema = z.object({ ...fieldCommon, type: z.literal("text") });
+export const NumberFieldSchema = z.object({ ...fieldCommon, type: z.literal("number") });
+export const DateFieldSchema = z.object({ ...fieldCommon, type: z.literal("date") });
+export const SelectFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("select"),
+  options: z.array(z.string()).default([]),
+});
+export const MultiSelectFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("multi_select"),
+  options: z.array(z.string()).default([]),
+});
+export const CheckboxFieldSchema = z.object({ ...fieldCommon, type: z.literal("checkbox") });
+export const UrlFieldSchema = z.object({ ...fieldCommon, type: z.literal("url") });
+export const RelationFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("relation"),
+  targetDocId: z.string(),
+});
+export const FileFieldSchema = z.object({ ...fieldCommon, type: z.literal("file") });
+export const GardenRefFieldSchema = z.object({ ...fieldCommon, type: z.literal("garden_ref") });
+export const ExternalRefFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("external_ref"),
+});
+
+export const DatabaseFieldSchema = z.discriminatedUnion("type", [
+  TextFieldSchema,
+  NumberFieldSchema,
+  DateFieldSchema,
+  SelectFieldSchema,
+  MultiSelectFieldSchema,
+  CheckboxFieldSchema,
+  UrlFieldSchema,
+  RelationFieldSchema,
+  FileFieldSchema,
+  GardenRefFieldSchema,
+  ExternalRefFieldSchema,
+]);
+export type DatabaseField = z.infer<typeof DatabaseFieldSchema>;
+
+export const DATABASE_VIEW_TYPES = ["grid", "kanban"] as const;
+export const DatabaseViewTypeSchema = z.enum(DATABASE_VIEW_TYPES);
+export type DatabaseViewType = z.infer<typeof DatabaseViewTypeSchema>;
+
+const viewCommon = {
+  id: z.string(),
+  name: z.string(),
+};
+
+export const GridViewSchema = z.object({
+  ...viewCommon,
+  type: z.literal("grid"),
+  hiddenFieldIds: z.array(z.string()).default([]),
+  sortFieldId: z.string().nullable().default(null),
+  sortDirection: z.enum(["asc", "desc"]).default("asc"),
+});
+
+export const KanbanViewSchema = z.object({
+  ...viewCommon,
+  type: z.literal("kanban"),
+  groupFieldId: z.string(),
+});
+
+export const DatabaseViewSchema = z.discriminatedUnion("type", [GridViewSchema, KanbanViewSchema]);
+export type DatabaseView = z.infer<typeof DatabaseViewSchema>;
+
+export const CellValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.string()),
+  GardenRefSchema,
+  ExternalRefSchema,
+  z.null(),
+]);
+export type CellValue = z.infer<typeof CellValueSchema>;
+
+export const DatabaseRowSchema = z.object({
+  id: z.string(),
+  cells: z.record(z.string(), CellValueSchema).default({}),
+});
+export type DatabaseRow = z.infer<typeof DatabaseRowSchema>;
+
+export const DatabaseBodySchema = z.object({
+  fields: z.array(DatabaseFieldSchema).default([]),
+  rows: z.array(DatabaseRowSchema).default([]),
+  views: z.array(DatabaseViewSchema).default([]),
+  activeViewId: z.string().nullable().default(null),
+});
+export type DatabaseBody = z.infer<typeof DatabaseBodySchema>;
+
+/* ------------------------------------------------------------------ *
  * Document envelope
  * ------------------------------------------------------------------ */
 
@@ -450,17 +589,25 @@ export const PdfDocSchema = z.object({
   body: PdfBodySchema,
 });
 
+export const DatabaseDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("database"),
+  body: DatabaseBodySchema,
+});
+
 export const DocSchema = z.discriminatedUnion("kind", [
   TextDocSchema,
   CanvasDocSchema,
   DeckDocSchema,
   PdfDocSchema,
+  DatabaseDocSchema,
 ]);
 
 export type TextDoc = z.infer<typeof TextDocSchema>;
 export type CanvasDoc = z.infer<typeof CanvasDocSchema>;
 export type DeckDoc = z.infer<typeof DeckDocSchema>;
 export type PdfDoc = z.infer<typeof PdfDocSchema>;
+export type DatabaseDoc = z.infer<typeof DatabaseDocSchema>;
 export type Doc = z.infer<typeof DocSchema>;
 
 /** `DocOf<'deck'>` -> `DeckDoc`. Used to keep the op layer generic but exact. */

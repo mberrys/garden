@@ -32,6 +32,10 @@ const SURFACE_NOTES: Record<DocKind, string> = {
     "The PDF's pages cannot be edited — you work by adding annotations over them. " +
     "Annotation rects are normalised to the page: x/y/w/h are fractions between 0 and 1 " +
     "with the origin at the top-left of the page.",
+  database:
+    "Rows are addressed by row id. Fields are addressed by field id. Relation cells hold " +
+    "arrays of linked row ids from the target database. Keep observed/imported facts separate " +
+    "from interpretive fields.",
 };
 
 export function systemPrompt(kind: DocKind, addenda?: string): string {

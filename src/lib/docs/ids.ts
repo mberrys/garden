@@ -32,5 +32,8 @@ export const newSlideId = () => nid("sl");
 export const newElementId = () => nid("el");
 export const newAnnotationId = () => nid("an");
 export const newBlobId = () => nid("blob");
+export const newFieldId = () => nid("fld");
+export const newRowId = () => nid("row");
+export const newViewId = () => nid("vw");
 export const newMessageId = () => nid("msg");
 export const newSuggestionId = () => nid("sug");

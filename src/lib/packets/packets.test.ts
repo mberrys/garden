@@ -17,6 +17,7 @@ describe("seed packets", () => {
       "garden/history-seminar",
       "garden/grant-shop",
       "garden/field-notes",
+      "comms/campaign",
     ]);
   });
 
@@ -30,7 +31,9 @@ describe("seed packets", () => {
   it("sprouts schema-valid documents and resolves open localIds", () => {
     for (const packet of PACKETS) {
       const result = sproutPacket(packet);
-      expect(result.docs).toHaveLength(packet.docs.length);
+      expect(result.docs).toHaveLength(
+        packet.starterArtifacts.length + (packet.starterBases?.length ?? 0),
+      );
       expect(result.order).toEqual(result.docs.map((doc) => doc.id));
 
       for (const doc of result.docs) {
@@ -39,13 +42,16 @@ describe("seed packets", () => {
       }
 
       const titles = new Set(result.docs.map((doc) => doc.title));
-      for (const spec of packet.docs) {
+      for (const spec of packet.starterArtifacts) {
         expect(titles.has(spec.title), `${packet.id} missing "${spec.title}"`).toBe(true);
+      }
+      for (const base of packet.starterBases ?? []) {
+        expect(titles.has(base.title), `${packet.id} missing base "${base.title}"`).toBe(true);
       }
 
       expect(result.panes[0].docIds.length).toBeGreaterThan(0);
       expect(result.panes[0].activeDocId).toBe(result.panes[0].docIds[0]);
-      if (packet.splitView) expect(result.splitView).toBe(true);
+      if (packet.layout.splitView) expect(result.splitView).toBe(true);
     }
   });
 
@@ -58,6 +64,31 @@ describe("seed packets", () => {
     ]);
     expect(result.splitView).toBe(true);
     expect(result.panes[1].docIds).toHaveLength(1);
+  });
+
+  it("comms/campaign resolves relation links across bases", () => {
+    const packet = getPacket("comms/campaign");
+    expect(packet).toBeDefined();
+    const result = sproutPacket(packet!);
+    const pitches = result.docs.find((d) => d.title === "Pitch Interactions");
+    expect(pitches?.kind).toBe("database");
+    if (pitches?.kind !== "database") return;
+
+    const pitchRow = pitches.body.rows.find((r) => r.cells.fld_notes?.toString().includes("Nina"));
+    expect(pitchRow).toBeDefined();
+    const storyLinks = pitchRow?.cells.fld_story as string[] | undefined;
+    const contactLinks = pitchRow?.cells.fld_pitch_contact as string[] | undefined;
+    expect(storyLinks?.length).toBeGreaterThan(0);
+    expect(contactLinks?.length).toBeGreaterThan(0);
+  });
+
+  it("requires packet version", () => {
+    expect(() =>
+      parseSeedPacket({
+        ...welcomePacket,
+        version: undefined,
+      }),
+    ).toThrow();
   });
 
   it("keeps packet recipe ids unique against the global list", () => {
@@ -88,7 +119,7 @@ describe("seed packets", () => {
     expect(() =>
       parseSeedPacket({
         ...welcomePacket,
-        open: [{ localId: "missing", pane: 0 }],
+        layout: { open: [{ localId: "missing", pane: 0 }] },
       }),
     ).toThrow(/missing/);
   });
@@ -97,7 +128,7 @@ describe("seed packets", () => {
     expect(() =>
       parseSeedPacket({
         ...welcomePacket,
-        open: [{ localId: "welcome", pane: 1 }],
+        layout: { open: [{ localId: "welcome", pane: 1 }] },
       }),
     ).toThrow(/pane 0/);
   });
@@ -120,7 +151,8 @@ describe("recipesFor with a planted packet", () => {
 describe("systemPrompt addenda", () => {
   it("appends workspace craft notes when a packet supplies them", () => {
     const packet = getPacket("garden/grant-shop");
-    const prompt = systemPrompt("text", packet?.systemPromptAddenda);
+    const addenda = packet?.assistantPromptAddenda?.join("\n");
+    const prompt = systemPrompt("text", addenda);
     expect(prompt).toContain("## Workspace craft");
     expect(prompt).toContain("Never invent a metric");
   });
