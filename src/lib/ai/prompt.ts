@@ -1,38 +1,10 @@
 import type { Doc, DocKind } from "@/lib/docs/schema";
-import { DOC_KIND_LABELS, SLIDE_H, SLIDE_W } from "@/lib/docs/schema";
+import { DOC_KIND_LABELS } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import { describeSelection, serializeDoc } from "./context";
 import { opReference } from "./op-reference";
 import { OPS_FENCE } from "./ops-block";
-
-/**
- * Prompt construction.
- *
- * Written for small local models, which means: short instructions, one
- * unambiguous output format, concrete examples, and no cleverness that depends
- * on strong instruction-following.
- */
-
-const SURFACE_NOTES: Record<DocKind, string> = {
-  text:
-    "Blocks are addressed by the [n] index shown in the document. Indices refer to the " +
-    "document as it is now — when you emit several operations, later ones apply to the " +
-    "document as changed by earlier ones, so work from the bottom up when inserting in " +
-    "multiple places. Content is written as markdown.",
-  canvas:
-    "The canvas is an infinite 2D plane; x grows right and y grows down. A comfortable " +
-    "shape is about 160x96 with 60px of space between shapes. Lay diagrams out on a grid " +
-    "and connect shapes with connectors referencing their node ids rather than drawing " +
-    "lines between coordinates — connectors re-route themselves when shapes move.",
-  deck:
-    `Slides are ${SLIDE_W}x${SLIDE_H}. Prefer addSlide with a layout and text content over ` +
-    "placing elements by hand; the layout does the typography and spacing for you. Keep " +
-    "bullets under about twelve words each, and no more than six per slide.",
-  pdf:
-    "The PDF's pages cannot be edited — you work by adding annotations over them. " +
-    "Annotation rects are normalised to the page: x/y/w/h are fractions between 0 and 1 " +
-    "with the origin at the top-left of the page.",
-};
+import { getSurface } from "@/lib/surfaces/registry";
 
 export function systemPrompt(kind: DocKind): string {
   return [
@@ -60,7 +32,7 @@ export function systemPrompt(kind: DocKind): string {
     opReference(kind),
     "",
     "## Notes for this surface",
-    SURFACE_NOTES[kind],
+    getSurface(kind).promptNotes,
   ].join("\n");
 }
 
