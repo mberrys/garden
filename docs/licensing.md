@@ -1,6 +1,7 @@
 # Licensing
 
-Garden’s own licence is **MIT**. See [LICENSE](../LICENSE).
+Garden’s own licence is **Apache License 2.0**. See [LICENSE](../LICENSE) and
+[NOTICE](../NOTICE).
 
 This file is the in-repo policy for **borrowed editor engines, interchange
 libraries, and canvas/PDF primitives** ([#32](https://github.com/mberrys/garden/issues/32)).
@@ -9,41 +10,33 @@ into AGPL, GPL, or commercial-only terms.
 
 ## Garden’s own licence
 
-MIT is the right default for this project. The questions below are the ones
-that would change that. If you answer them the way Garden’s architecture
-already answers them, you stay on MIT.
+Apache-2.0 is the recorded choice. It is permissive (use, modify, and ship
+without publishing source), it does not impose network copyleft, and it adds
+an express patent grant from contributors.
 
-| Question | If you answer… | Then use |
+| Question | Answer | Consequence |
 | --- | --- | --- |
-| Should a person or company be able to use, modify, and ship Garden (or a fork) **without** publishing their source? | **Yes** — Garden is local-first; the point is that documents and the app live on the user’s machine | **MIT** or **Apache-2.0** |
-| Same question | **No** — modifications to Garden itself must stay open | GPL-3.0 |
-| Must anyone who **hosts** Garden as a network service publish their changes? | **Yes** | AGPL-3.0 |
-| Same question | **No** — Garden is not a SaaS moat; it runs locally | stay permissive (MIT / Apache-2.0) |
-| Do you want an **express patent grant** from contributors, plus NOTICE-file conventions? | **Yes** | **Apache-2.0** |
-| Same question | **No** / prefer the shortest widely understood licence | **MIT** |
-| Might you later sell a source-available commercial edition while keeping a “community” core? | **Yes** | dual-licence or BSL — only by explicit later decision |
-| Same question | **No** for now | stay MIT |
+| Should a person or company be able to use, modify, and ship Garden (or a fork) **without** publishing their source? | **Yes** — Garden is local-first; documents and the app live on the user’s machine | Permissive licence (MIT or Apache-2.0), not GPL |
+| Must anyone who **hosts** Garden as a network service publish their changes? | **No** — Garden is not a SaaS moat | Not AGPL |
+| Do you want an **express patent grant** from contributors, plus NOTICE-file conventions? | **Yes** | **Apache-2.0** rather than MIT |
+| Might you later sell a source-available commercial edition while keeping a “community” core? | **Not now** | No dual-licence or BSL default |
+
+Garden was previously MIT. MIT allows this relicensing. The copyright holder
+chose Apache-2.0 for the patent grant; the dependency policy below does not
+change.
 
 **Why not AGPL/GPL for Garden.** Issue #32 forbids AGPL/GPL as *embedded editor*
-code. Putting AGPL on Garden itself would be a different choice, but it fights
-the product: you are about to *borrow* MIT/Apache engines (ProseMirror, Univer,
-PDF.js, PptxGenJS) and keep Garden’s document model portable. A copyleft
-Garden licence does not unlock those engines, and it would make embedding
-Garden harder for the same people the seed-packet story is aimed at.
+code. Putting AGPL on Garden itself would fight the product: Garden borrows
+MIT/Apache engines (ProseMirror, Univer, PDF.js, PptxGenJS) and keeps its own
+document model portable. Copyleft on Garden does not unlock those engines, and
+it would make embedding Garden harder for the people the seed-packet story is
+aimed at.
 
 **Why not ONLYOFFICE / GPL editor suites as the product licence either.** Those
 projects are AGPL. Using them as Garden’s foundation would impose
 source-availability obligations on network use of *Garden*. Studying their
 behaviour is fine. Copying their implementation in is not, without a separate
-licence analysis and an explicit decision to leave MIT.
-
-**Apache-2.0 is the only plausible alternative to MIT.** It is still
-permissive, it is compatible with every green dependency in the table below,
-and it adds a patent grant. Relicense from MIT to Apache-2.0 only if you want
-that grant; it is not required to adopt Univer or PDF.js (both Apache-2.0)
-under an MIT Garden.
-
-Until that explicit decision, Garden stays MIT.
+licence analysis and an explicit decision to leave Apache-2.0.
 
 ## Dependency policy
 
@@ -59,7 +52,7 @@ get to pick Garden’s licence.
 | BSD-2-Clause / BSD-3-Clause | **Green** — default-ok |
 | ISC | **Green** — default-ok (BSD-family) |
 | Apache-2.0 | **Green** — default-ok |
-| MPL-2.0 | **Yellow** — acceptable dependency; modifications to MPL-covered files remain MPL. Do not copy MPL files into Garden’s own sources as if they were MIT |
+| MPL-2.0 | **Yellow** — acceptable dependency; modifications to MPL-covered files remain MPL. Do not copy MPL files into Garden’s own sources as if they were Apache-2.0 |
 | LGPL | **Yellow/red** — architecture and legal review required before any LGPL library is linked or bundled |
 | GPL (any version) | **Red** for copied or embedded core. Not a default Garden dependency |
 | AGPL (any version) | **Red** for embedded Garden editor code. Not a default Garden dependency |
@@ -68,7 +61,8 @@ get to pick Garden’s licence.
 
 “Green” means: you may add it as a dependency of an adapter without relicensing
 Garden. Attribution notices required by that licence still apply (keep them in
-the dependency’s own files; do not strip licence headers).
+the dependency’s own files; do not strip licence headers). Redistributors of
+Garden must retain this tree’s [NOTICE](../NOTICE) as Apache-2.0 requires.
 
 ## Explicit non-goals
 
