@@ -231,4 +231,10 @@ Two conventions are worth knowing before changing anything:
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+Garden is **Apache License 2.0** — see [LICENSE](./LICENSE) and
+[NOTICE](./NOTICE).
+
+Borrowed editor engines and interchange libraries must stay on licences that
+do not change that. The policy (green / yellow / red, and why AGPL engines
+and Univer Pro are out of the default path) is in
+[docs/licensing.md](./docs/licensing.md).
