@@ -150,6 +150,16 @@ export const RECIPES: Recipe[] = [
       "Insert a short outline at the very top of this document: a '## Outline' heading followed by " +
       "one bullet per section already present. Do not change anything else.",
   },
+  {
+    id: "db-add-rows",
+    label: "Add rows from notes",
+    hint: "Turn bullet points into new rows",
+    from: ["database"],
+    target: "database",
+    prompt:
+      "Read the user's request and add rows to this database. Use addRow with cells filled " +
+      "from the request. Do not invent data that is not implied by the user or visible rows.",
+  },
 ];
 
 export function recipesFor(kind: DocKind, seedPacketId?: string | null): Recipe[] {

@@ -176,19 +176,22 @@ function pitchDoc() {
 
 export const grantShopPacket: SeedPacket = {
   id: "garden/grant-shop",
+  version: 1,
   label: "Grant shop",
   blurb: "An RFP brief, a proposal draft, a twelve-month workplan, and a pitch deck.",
-  docs: [
+  starterArtifacts: [
     { localId: "brief", kind: "text", title: "Opportunity brief", build: () => textFromMarkdown("Opportunity brief", BRIEF) },
     { localId: "proposal", kind: "text", title: "Proposal draft", build: () => textFromMarkdown("Proposal draft", PROPOSAL) },
     { localId: "workplan", kind: "canvas", title: "Workplan", build: workplanDoc },
     { localId: "pitch", kind: "deck", title: "Pitch", build: pitchDoc },
   ],
-  open: [
-    { localId: "proposal", pane: 0 },
-    { localId: "pitch", pane: 1 },
-  ],
-  splitView: true,
+  layout: {
+    open: [
+      { localId: "proposal", pane: 0 },
+      { localId: "pitch", pane: 1 },
+    ],
+    splitView: true,
+  },
   recipes: [
     {
       id: "proposal-to-pitch",
@@ -216,9 +219,10 @@ export const grantShopPacket: SeedPacket = {
     },
   ],
   featuredRecipeIds: ["proposal-to-pitch", "proposal-flag-gaps", "text-tighten"],
-  systemPromptAddenda:
+  assistantPromptAddenda: [
     "This workspace is a grant shop. Never invent a metric, partner, letter of support, " +
-    "budget line, or evaluation result. Prefer '[source needed]' to a plausible number. " +
-    "Write in the funder's register; cut sentences that could appear in a different proposal " +
-    "with the names swapped.",
+      "budget line, or evaluation result. Prefer '[source needed]' to a plausible number. " +
+      "Write in the funder's register; cut sentences that could appear in a different proposal " +
+      "with the names swapped.",
+  ],
 };

@@ -83,12 +83,16 @@ that also makes localhost-bound servers reachable without CORS configuration.
 ## Seed packets
 
 An empty workspace is a picker, not a blank suite. A **seed packet** is a
-profession-shaped starting kit: starter documents, which panes to open, extra
-assistant recipes, and a short system-prompt addendum for that craft. Choosing
-one **sprouts** the worktree.
+profession-shaped starting kit: starter documents, database bases, which panes
+to open, cross-links, layout presets, extra assistant recipes, and prompt
+addenda for that craft. Choosing one **sprouts** the worktree.
 
 Packets are data (TypeScript modules), not one-off React trees. The welcome
 experience is packet `garden/welcome` — the same path as the others.
+
+Each packet carries a `version` persisted in workspace metadata (and in
+`.rrspace` exports) so sprouted topology can evolve without breaking old
+workspaces.
 
 | Packet | Id | Sprouts |
 | --- | --- | --- |
@@ -96,12 +100,14 @@ experience is packet `garden/welcome` — the same path as the others.
 | History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
 | Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
 | Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
 
 You can also start blank and plant a packet later from the sidebar. Which packet
-sprouted the workspace is stored in local metadata and included when you export
-a `.rrspace` file.
+sprouted the workspace (and its version) is stored in local metadata and
+included when you export a `.rrspace` file.
 
----
+Complex packets (multiple bases, links, or many artifacts) show a preview
+listing exact artifacts, bases, views, and links before planting.
 
 ## The surfaces
 
@@ -109,6 +115,13 @@ a `.rrspace` file.
 fences and links as plain markdown; the stored body is still structured JSON so
 the assistant can address blocks. Typing and AI edits share the workspace undo
 stack, so <kbd>Ctrl</kbd>+<kbd>Z</kbd> reverses either.
+
+**Database** — typed fields, rows, grid and kanban views, relation links to
+other bases in the workspace, and `garden_ref` / `external_ref` cells for
+cross-surface provenance. AI row and schema batches go through the same
+review gate as other surfaces. This is the structured-work layer — lighter
+than Airtable or Notion, local-first, and composed by seed packets rather than
+blank grids.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,

@@ -1,10 +1,17 @@
+import { commsCampaignPacket } from "./comms-campaign";
 import { fieldNotesPacket } from "./field-notes";
 import { grantShopPacket } from "./grant-shop";
 import { historySeminarPacket } from "./history-seminar";
 import { parseSeedPacket, type SeedPacket } from "./types";
 import { welcomePacket } from "./welcome";
 
-const RAW_PACKETS = [welcomePacket, historySeminarPacket, grantShopPacket, fieldNotesPacket];
+const RAW_PACKETS = [
+  welcomePacket,
+  historySeminarPacket,
+  grantShopPacket,
+  fieldNotesPacket,
+  commsCampaignPacket,
+];
 
 export const PACKETS: SeedPacket[] = RAW_PACKETS.map(parseSeedPacket);
 

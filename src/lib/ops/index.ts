@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Doc, DocKind, DocOf } from "@/lib/docs/schema";
 import { applyCanvasOps, CanvasOpSchema, type CanvasOp } from "./canvas";
 import { applyDeckOps, DeckOpSchema, type DeckOp } from "./deck";
+import { applyDatabaseOps, DatabaseOpSchema, type DatabaseOp } from "./database";
 import { applyPdfOps, PdfOpSchema, type PdfOp } from "./pdf";
 import { applyTextOps, TextOpSchema, type TextOp } from "./text";
 import { OpError } from "./errors";
@@ -9,6 +10,7 @@ import { OpError } from "./errors";
 export { OpError } from "./errors";
 export { CanvasOpSchema, type CanvasOp } from "./canvas";
 export { DeckOpSchema, type DeckOp } from "./deck";
+export { DatabaseOpSchema, type DatabaseOp } from "./database";
 export { PdfOpSchema, type PdfOp } from "./pdf";
 export { TextOpSchema, type TextOp } from "./text";
 
@@ -18,15 +20,17 @@ export interface OpMap {
   canvas: CanvasOp;
   deck: DeckOp;
   pdf: PdfOp;
+  database: DatabaseOp;
 }
 export type OpOf<K extends DocKind> = OpMap[K];
-export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp;
+export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | DatabaseOp;
 
 export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   text: TextOpSchema,
   canvas: CanvasOpSchema,
   deck: DeckOpSchema,
   pdf: PdfOpSchema,
+  database: DatabaseOpSchema,
 };
 
 /**
@@ -62,6 +66,9 @@ export function applyOps<K extends DocKind>(
       break;
     case "pdf":
       result = applyPdfOps(target.body, ops as PdfOp[]);
+      break;
+    case "database":
+      result = applyDatabaseOps(target.body, ops as DatabaseOp[]);
       break;
     default: {
       const never: never = target;
@@ -179,6 +186,43 @@ export function describeOperation(op: AnyOp): string {
       return `Record extracted text for page ${op.page}`;
     case "setSource":
       return `Attach ${op.fileName || "PDF"} (${op.pageCount} pages)`;
+
+    // database
+    case "addField":
+      return `Add ${op.field.type} field`;
+    case "updateField":
+      return `Update field ${op.id} (${Object.keys(op.patch).join(", ")})`;
+    case "deleteField":
+      return `Delete field ${op.id}`;
+    case "reorderField":
+      return `Move field ${op.id} to position ${op.toIndex}`;
+    case "addRow":
+      return `Add row`;
+    case "updateRow":
+      return `Update row ${op.id}`;
+    case "deleteRow":
+      return `Delete row ${op.id}`;
+    case "reorderRow":
+      return `Move row ${op.id} to position ${op.toIndex}`;
+    case "setCell":
+      return `Set cell on row ${op.rowId}`;
+    case "linkRelation":
+      return `Link ${op.targetRowIds.length} row(s) on ${op.rowId}`;
+    case "unlinkRelation":
+      return `Unlink row(s) on ${op.rowId}`;
+    case "addView":
+      return `Add ${op.view.type} view`;
+    case "updateView":
+      return `Update view ${op.id}`;
+    case "deleteView":
+      return `Delete view ${op.id}`;
+    case "setActiveView":
+      return `Switch to view ${op.id ?? "none"}`;
+
+    default: {
+      const _exhaustive: never = op;
+      return `Unknown operation: ${JSON.stringify(_exhaustive)}`;
+    }
   }
 }
 

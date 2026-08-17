@@ -178,9 +178,10 @@ function lectureDoc() {
 
 export const historySeminarPacket: SeedPacket = {
   id: "garden/history-seminar",
+  version: 1,
   label: "History seminar",
   blurb: "A syllabus, a source-note habit, a timeline, and a lecture deck for the next session.",
-  docs: [
+  starterArtifacts: [
     { localId: "syllabus", kind: "text", title: "Syllabus", build: () => textFromMarkdown("Syllabus", SYLLABUS) },
     {
       localId: "notes",
@@ -191,11 +192,13 @@ export const historySeminarPacket: SeedPacket = {
     { localId: "timeline", kind: "canvas", title: "Course timeline", build: timelineDoc },
     { localId: "lecture", kind: "deck", title: "Week 2 — Revolutionary publics", build: lectureDoc },
   ],
-  open: [
-    { localId: "syllabus", pane: 0 },
-    { localId: "lecture", pane: 1 },
-  ],
-  splitView: true,
+  layout: {
+    open: [
+      { localId: "syllabus", pane: 0 },
+      { localId: "lecture", pane: 1 },
+    ],
+    splitView: true,
+  },
   recipes: [
     {
       id: "notes-to-discussion",
@@ -225,8 +228,9 @@ export const historySeminarPacket: SeedPacket = {
     },
   ],
   featuredRecipeIds: ["notes-to-discussion", "notes-to-lecture", "doc-to-deck"],
-  systemPromptAddenda:
+  assistantPromptAddenda: [
     "This workspace is a history seminar. Distinguish primary from secondary sources. " +
-    "Never invent a citation, date, quotation, or archival reference. If a date is uncertain, " +
-    "say so. Prefer questions that sit on a timeline over grand claims that cannot.",
+      "Never invent a citation, date, quotation, or archival reference. If a date is uncertain, " +
+      "say so. Prefer questions that sit on a timeline over grand claims that cannot.",
+  ],
 };

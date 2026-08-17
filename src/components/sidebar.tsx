@@ -13,6 +13,7 @@ import {
   Search,
   Shapes,
   Sprout,
+  Table2,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { WindowChromeStrip } from "./window-chrome";
 
 const NEW_DOC_OPTIONS: { kind: DocKind; icon: typeof FileText; label: string }[] = [
   { kind: "text", icon: FileText, label: "Document" },
+  { kind: "database", icon: Table2, label: "Database" },
   { kind: "canvas", icon: Shapes, label: "Canvas" },
   { kind: "deck", icon: Presentation, label: "Deck" },
   { kind: "pdf", icon: FileType2, label: "PDF" },

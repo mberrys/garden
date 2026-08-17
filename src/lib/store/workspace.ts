@@ -25,7 +25,8 @@ export type SurfaceSelection =
   | { kind: "text"; blockIndex: number; blockCount: number; text: string }
   | { kind: "canvas"; nodeIds: string[] }
   | { kind: "deck"; slideId: string | null; elementIds: string[] }
-  | { kind: "pdf"; page: number; text: string; annotationId: string | null };
+  | { kind: "pdf"; page: number; text: string; annotationId: string | null }
+  | { kind: "database"; rowId: string | null; fieldId: string | null };
 
 interface HistoryEntry {
   inverse: AnyOp[];
@@ -74,6 +75,7 @@ const SURFACE_OWNS_HISTORY: Record<DocKind, boolean> = {
   canvas: false,
   deck: false,
   pdf: false,
+  database: false,
 };
 
 const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });
@@ -102,6 +104,8 @@ interface WorkspaceState {
   aiPanelOpen: boolean;
   /** Packet that sprouted this workspace, if any. */
   seedPacketId: string | null;
+  /** Version of the packet that sprouted this workspace. */
+  seedPacketVersion: number | null;
   /** User chose "start blank" on an empty workspace. */
   blankWorkspace: boolean;
   /** e2e flag: do not auto-plant and do not show the picker. */
@@ -158,6 +162,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   toasts: [],
   aiPanelOpen: true,
   seedPacketId: null,
+  seedPacketVersion: null,
   blankWorkspace: false,
   seedSuppressed: false,
   packetPickerRequested: false,
@@ -171,6 +176,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     const savedPanes = await store.readMeta<[Pane, Pane]>("panes");
     const savedSplit = await store.readMeta<boolean>("splitView");
     const savedPacketId = await store.readMeta<string | null>("seedPacketId");
+    const savedPacketVersion = await store.readMeta<number | null>("seedPacketVersion");
     const savedBlank = await store.readMeta<boolean>("blankWorkspace");
     const suppressed = typeof window !== "undefined" && window.__RR_NO_SEED__ === true;
 
@@ -190,6 +196,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       panes: [validPane(savedPanes?.[0]), validPane(savedPanes?.[1])],
       splitView: Boolean(savedSplit),
       seedPacketId: savedPacketId ?? null,
+      seedPacketVersion: savedPacketVersion ?? null,
       blankWorkspace: Boolean(savedBlank),
       seedSuppressed: suppressed,
       packetPickerRequested: false,
@@ -223,6 +230,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     }
     await store.saveOrder(order);
     await store.writeMeta("seedPacketId", id);
+    await store.writeMeta("seedPacketVersion", packet.version);
     await store.writeMeta("blankWorkspace", false);
     await store.writeMeta("seeded", true);
     await store.writeMeta("panes", sprouted.panes);
@@ -235,6 +243,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       splitView: sprouted.splitView,
       activePane: 0,
       seedPacketId: id,
+      seedPacketVersion: packet.version,
       blankWorkspace: false,
       packetPickerRequested: false,
     });
@@ -243,9 +252,11 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   startBlankWorkspace: async () => {
     await store.writeMeta("blankWorkspace", true);
     await store.writeMeta("seedPacketId", null);
+    await store.writeMeta("seedPacketVersion", null);
     await store.writeMeta("seeded", true);
     set({
       seedPacketId: null,
+      seedPacketVersion: null,
       blankWorkspace: true,
       packetPickerRequested: false,
     });

@@ -7,6 +7,7 @@ import { RECIPES, recipesFor } from "./recipes";
 import { DOC_KINDS, type Doc, type DocKind } from "@/lib/docs/schema";
 import {
   createCanvasDoc,
+  createDatabaseDoc,
   createDeckDoc,
   createPdfDoc,
   createTextDoc,
@@ -78,6 +79,7 @@ describe("mock provider", () => {
         { op: "setPageText", page: 2, text: "Compute spend fell 34% year on year." },
       ]).doc;
     },
+    database: () => createDatabaseDoc("Tracker"),
   };
 
   /**
