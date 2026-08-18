@@ -77,7 +77,7 @@ export function serializeStubSelection(selection: StubSelection): unknown {
 
 export function applyStubBodyOps(body: StubBody, ops: StubOp[]): { body: StubBody; inverse: StubOp[] } {
   let title = body.title;
-  let items = body.items.slice();
+  const items = body.items.slice();
   const inverse: StubOp[] = [];
 
   for (const op of ops) {
