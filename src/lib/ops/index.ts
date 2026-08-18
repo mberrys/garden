@@ -1,10 +1,11 @@
 import { z } from "zod";
 import type { Doc, DocKind, DocOf } from "@/lib/docs/schema";
-import { applyCanvasOps, CanvasOpSchema, type CanvasOp } from "./canvas";
-import { applyDeckOps, DeckOpSchema, type DeckOp } from "./deck";
-import { applyPdfOps, PdfOpSchema, type PdfOp } from "./pdf";
-import { applyTextOps, TextOpSchema, type TextOp } from "./text";
-import { OpError } from "./errors";
+import { CanvasOpSchema, type CanvasOp } from "./canvas";
+import { DeckOpSchema, type DeckOp } from "./deck";
+import { PdfOpSchema, type PdfOp } from "./pdf";
+import { TextOpSchema, type TextOp } from "./text";
+import "@/lib/surfaces";
+import { getSurface, allSurfaces } from "@/lib/surfaces";
 
 export { OpError } from "./errors";
 export { CanvasOpSchema, type CanvasOp } from "./canvas";
@@ -45,29 +46,9 @@ export function applyOps<K extends DocKind>(
 ): { doc: DocOf<K>; inverse: OpOf<K>[] } {
   if (ops.length === 0) return { doc, inverse: [] };
 
-  // TypeScript cannot narrow a generic `DocOf<K>` through a switch, so widen to
-  // the concrete union first — the discriminant then narrows each branch's body.
   const target = doc as Doc;
-  let result: { body: unknown; inverse: unknown[] };
-
-  switch (target.kind) {
-    case "text":
-      result = applyTextOps(target.body, ops as TextOp[]);
-      break;
-    case "canvas":
-      result = applyCanvasOps(target.body, ops as CanvasOp[]);
-      break;
-    case "deck":
-      result = applyDeckOps(target.body, ops as DeckOp[]);
-      break;
-    case "pdf":
-      result = applyPdfOps(target.body, ops as PdfOp[]);
-      break;
-    default: {
-      const never: never = target;
-      throw new OpError(`unknown document kind: ${JSON.stringify(never)}`);
-    }
-  }
+  const surface = getSurface(target.kind);
+  const result = surface.applyOps(target.body, ops);
 
   return {
     doc: { ...target, body: result.body, updatedAt: Date.now() } as DocOf<K>,
@@ -88,14 +69,14 @@ export function parseOps<K extends DocKind>(
     return { ok: false, errors: ["expected an array of operations"] };
   }
 
-  const schema = OP_SCHEMAS[kind];
+  const schema = getSurface(kind).opSchema;
   const ops: OpOf<K>[] = [];
   const errors: string[] = [];
 
   raw.forEach((item, i) => {
     const parsed = schema.safeParse(item);
     if (parsed.success) {
-      ops.push(parsed.data);
+      ops.push(parsed.data as OpOf<K>);
     } else {
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
@@ -119,91 +100,9 @@ function describeOp(item: unknown): string {
  * card so a user can judge a suggestion without reading JSON.
  */
 export function describeOperation(op: AnyOp): string {
-  switch (op.op) {
-    // text
-    case "spliceBlocks":
-      return op.count === 0
-        ? `Insert ${op.nodes.length} block${plural(op.nodes.length)} at position ${op.index}`
-        : `Replace ${op.count} block${plural(op.count)} at position ${op.index}`;
-    case "insertMarkdown":
-      return `Insert ${preview(op.markdown)} at position ${op.index}`;
-    case "replaceMarkdown":
-      return `Rewrite ${op.count} block${plural(op.count)} from position ${op.index}`;
-    case "deleteBlocks":
-      return `Delete ${op.count} block${plural(op.count)} at position ${op.index}`;
-    case "replaceDoc":
-      return `Replace the whole document (${wordCount(op.markdown)} words)`;
-
-    // canvas
-    case "addNode":
-      return `Add ${op.node.kind}${nodeLabel(op.node)}`;
-    case "updateNode":
-      return `Update ${op.id} (${Object.keys(op.patch).join(", ")})`;
-    case "deleteNode":
-      return `Delete ${op.id}`;
-    case "reorderNode":
-      return `Move ${op.id} to position ${op.toIndex}`;
-    case "setBackground":
-      return `Set canvas background to ${op.background}`;
-
-    // deck
-    case "addSlide":
-      return `Add ${op.layout} slide${op.title ? ` "${truncate(op.title, 40)}"` : ""}`;
-    case "insertSlide":
-      return `Insert slide ${op.slide.id}`;
-    case "deleteSlide":
-      return `Delete slide ${op.id}`;
-    case "moveSlide":
-      return `Move slide to position ${op.toIndex + 1}`;
-    case "setSlide":
-      return `Update slide (${Object.keys(op.patch).join(", ")})`;
-    case "addElement":
-      return `Add ${op.element.type} element to a slide`;
-    case "updateElement":
-      return `Update element (${Object.keys(op.patch).join(", ")})`;
-    case "deleteElement":
-      return `Delete an element`;
-    case "reorderElement":
-      return `Restack an element`;
-    case "setTheme":
-      return `Change deck theme (${Object.keys(op.patch).join(", ")})`;
-
-    // pdf
-    case "addAnnotation":
-      return `${capitalise(op.type)} on page ${op.page}${op.quote ? `: ${preview(op.quote)}` : ""}`;
-    case "updateAnnotation":
-      return `Update annotation (${Object.keys(op.patch).join(", ")})`;
-    case "deleteAnnotation":
-      return `Delete annotation`;
-    case "setPageText":
-      return `Record extracted text for page ${op.page}`;
-    case "setSource":
-      return `Attach ${op.fileName || "PDF"} (${op.pageCount} pages)`;
+  for (const surface of allSurfaces()) {
+    const desc = surface.describeOp(op);
+    if (desc !== undefined) return desc;
   }
-}
-
-function nodeLabel(node: Record<string, unknown>): string {
-  const text = node.text ?? node.name ?? node.label;
-  return typeof text === "string" && text.trim() ? ` "${truncate(text, 40)}"` : "";
-}
-
-function preview(md: string): string {
-  const flat = md.replace(/\s+/g, " ").trim();
-  return `"${truncate(flat, 60)}"`;
-}
-
-function truncate(s: string, n: number): string {
-  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
-}
-
-function wordCount(s: string): number {
-  return s.split(/\s+/).filter(Boolean).length;
-}
-
-function plural(n: number): string {
-  return n === 1 ? "" : "s";
-}
-
-function capitalise(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return `Unknown operation: ${(op as { op: string }).op}`;
 }

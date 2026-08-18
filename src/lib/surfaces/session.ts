@@ -1,5 +1,5 @@
 import type { EditorAdapter } from "./adapter";
-import type { GardenDocEnvelope, SurfaceDefinition } from "./definition";
+import type { GardenDocEnvelope, AdapterSurfaceDefinition } from "./definition";
 
 interface HistoryEntry<Op> {
   inverse: Op[];
@@ -40,7 +40,7 @@ export function createAdapterSession<
   Selection,
   Doc extends GardenDocEnvelope<Kind, Body>,
 >(
-  definition: SurfaceDefinition<Body, Op, Selection, Kind>,
+  definition: AdapterSurfaceDefinition<Body, Op, Selection, Kind>,
   initialDoc: Doc,
 ): AdapterSession<Kind, Body, Op, Selection, Doc> {
   let doc = initialDoc;
@@ -63,13 +63,6 @@ export function createAdapterSession<
     undoStack.push({ inverse, forward: ops });
     redoStack.length = 0;
 
-    updating = true;
-    adapter.update(doc.body);
-    updating = false;
-  };
-
-  const pushUpdate = (next: Doc) => {
-    doc = next;
     updating = true;
     adapter.update(doc.body);
     updating = false;

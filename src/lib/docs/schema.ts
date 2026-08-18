@@ -15,13 +15,6 @@ export const DOC_KINDS = ["text", "pdf", "deck", "canvas"] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;
 
-export const DOC_KIND_LABELS: Record<DocKind, string> = {
-  text: "Document",
-  pdf: "PDF",
-  deck: "Deck",
-  canvas: "Canvas",
-};
-
 /* ------------------------------------------------------------------ *
  * Shared primitives
  * ------------------------------------------------------------------ */

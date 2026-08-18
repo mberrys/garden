@@ -5,17 +5,14 @@ import {
   Columns2,
   Copy,
   Download,
-  FileText,
-  FileType2,
   MoreHorizontal,
   Plus,
-  Presentation,
   Search,
-  Shapes,
   Trash2,
   Upload,
 } from "lucide-react";
-import { DOC_KIND_LABELS, type Doc, type DocKind } from "@/lib/docs/schema";
+import type { Doc, DocKind } from "@/lib/docs/schema";
+import { allSurfaces, getSurface } from "@/lib/surfaces";
 import { useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
@@ -28,12 +25,10 @@ import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from ".
 import { DocIcon } from "./doc-icon";
 import { WindowChromeStrip } from "./window-chrome";
 
-const NEW_DOC_OPTIONS: { kind: DocKind; icon: typeof FileText; label: string }[] = [
-  { kind: "text", icon: FileText, label: "Document" },
-  { kind: "canvas", icon: Shapes, label: "Canvas" },
-  { kind: "deck", icon: Presentation, label: "Deck" },
-  { kind: "pdf", icon: FileType2, label: "PDF" },
-];
+const NEW_DOC_OPTIONS = allSurfaces().map((s) => ({
+  kind: s.kind as DocKind,
+  label: s.label,
+}));
 
 export function Sidebar() {
   const docs = useWorkspace((s) => s.docs);
@@ -222,7 +217,7 @@ export function Sidebar() {
                     </IconButton>
                   )}
                 >
-                  <MenuLabel>{DOC_KIND_LABELS[doc.kind]}</MenuLabel>
+                  <MenuLabel>{getSurface(doc.kind).label}</MenuLabel>
                   <MenuItem onClick={() => setRenaming(doc.id)}>Rename</MenuItem>
                   <MenuItem icon={<Copy size={14} />} onClick={() => duplicateDoc(doc.id)}>
                     Duplicate

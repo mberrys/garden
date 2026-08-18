@@ -2,7 +2,7 @@ import { OpError } from "@/lib/ops/errors";
 import type { StubBody, StubItem, StubOp } from "./schema";
 
 export function applyStubOps(body: StubBody, ops: StubOp[]): { body: StubBody; inverse: StubOp[] } {
-  let items = body.items.slice();
+  const items = body.items.slice();
   const inverse: StubOp[] = [];
 
   for (const op of ops) {

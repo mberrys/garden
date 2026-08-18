@@ -173,21 +173,23 @@ src/
                 truth for types, persistence validation, and the AI's vocabulary
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
-  lib/surfaces/ SurfaceDefinition + EditorAdapter contract, built-in contract
-                notes, and the conformance harness (see conformance.test.ts)
+  lib/surfaces/ SurfaceDefinition registry — built-ins and extensions register the
+                same contract (schemas, ops, AI helpers, React host loader)
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/store/    zustand workspace state, Dexie persistence, import/export
-  surfaces/     text, canvas, deck, pdf
+  surfaces/     text, canvas, deck, pdf React hosts
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
-**Garden state is canonical; engines are replaceable.** A `SurfaceDefinition`
-bundles the Zod schemas, op reducer, and (eventually) a React host for a surface.
-An `EditorAdapter` is the engine boundary: it renders Garden's typed body and
-turns user gestures into schema-valid ops. ProseMirror, Univer, Konva, and pdf.js
-must remain renderers and input devices — never the product's document model.
-The reusable host logic lives in `lib/surfaces/session.ts`; new adapters must
-pass `runAdapterConformance` in `lib/surfaces/conformance.ts`.
+Built-in surfaces register through `registerSurface()` in `lib/surfaces/*.register.ts`.
+Adding a surface means one registration module (schema, ops reducer, AI serialize/mock,
+icon/label, host `loadComponent`) plus typed catalog entries in `DOC_KINDS` and
+`DocSchema`. The shell, ops dispatch, assistant prompts, and blob cleanup read the
+registry — not per-kind switches scattered across the app.
+
+`AdapterSurfaceDefinition` and `runAdapterConformance` in `lib/surfaces/conformance.ts`
+exercise the engine boundary (`EditorAdapter`) for test doubles and future engine
+swaps. Product built-ins still commit through `workspace.commit()` → `applyOps()`.
 
 Two conventions are worth knowing before changing anything:
 

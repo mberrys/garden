@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { EditorAdapter } from "./adapter";
-import type { GardenDocEnvelope, SurfaceDefinition } from "./definition";
+import type { GardenDocEnvelope, AdapterSurfaceDefinition } from "./definition";
 import { createAdapterSession, type AdapterSession } from "./session";
 
 export interface AdapterConformanceHooks<
@@ -11,7 +11,7 @@ export interface AdapterConformanceHooks<
   Doc extends GardenDocEnvelope<Kind, Body>,
   AdapterExtra = unknown,
 > {
-  definition: SurfaceDefinition<Body, Op, Selection, Kind>;
+  definition: AdapterSurfaceDefinition<Body, Op, Selection, Kind>;
   createInitialDoc: () => Doc;
   getAdapter: (
     session: AdapterSession<Kind, Body, Op, Selection, Doc>,

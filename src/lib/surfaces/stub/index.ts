@@ -1,4 +1,4 @@
-import type { SurfaceDefinition } from "../definition";
+import type { AdapterSurfaceDefinition } from "../definition";
 import { createStubAdapter } from "./adapter";
 import { applyStubOps } from "./ops";
 import {
@@ -11,7 +11,7 @@ import {
   type StubSelection,
 } from "./schema";
 
-export const stubSurfaceDefinition: SurfaceDefinition<
+export const stubSurfaceDefinition: AdapterSurfaceDefinition<
   StubBody,
   StubOp,
   StubSelection,

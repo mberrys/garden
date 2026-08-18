@@ -2,12 +2,11 @@ import {
   type CanvasDoc,
   type CanvasNode,
   type DeckDoc,
-  type Doc,
-  type DocKind,
   type PdfDoc,
   type Slide,
   type SlideElement,
   type SlideLayout,
+  type DocKind,
   type TextDoc,
   CanvasNodeSchema,
   SlideElementSchema,
@@ -74,19 +73,6 @@ export function createPdfDoc(title = "Untitled PDF"): PdfDoc {
       pageText: {},
     },
   };
-}
-
-export function createDoc(kind: DocKind, title?: string): Doc {
-  switch (kind) {
-    case "text":
-      return createTextDoc(title);
-    case "canvas":
-      return createCanvasDoc(title);
-    case "deck":
-      return createDeckDoc(title);
-    case "pdf":
-      return createPdfDoc(title);
-  }
 }
 
 /* ------------------------------------------------------------------ *

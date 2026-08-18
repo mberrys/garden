@@ -1,9 +1,9 @@
 import type { Doc, DocKind } from "@/lib/docs/schema";
-import { DOC_KIND_LABELS, SLIDE_H, SLIDE_W } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import { describeSelection, serializeDoc } from "./context";
 import { opReference } from "./op-reference";
 import { OPS_FENCE } from "./ops-block";
+import { getSurface } from "@/lib/surfaces";
 
 /**
  * Prompt construction.
@@ -13,31 +13,11 @@ import { OPS_FENCE } from "./ops-block";
  * on strong instruction-following.
  */
 
-const SURFACE_NOTES: Record<DocKind, string> = {
-  text:
-    "Blocks are addressed by the [n] index shown in the document. Indices refer to the " +
-    "document as it is now — when you emit several operations, later ones apply to the " +
-    "document as changed by earlier ones, so work from the bottom up when inserting in " +
-    "multiple places. Content is written as markdown.",
-  canvas:
-    "The canvas is an infinite 2D plane; x grows right and y grows down. A comfortable " +
-    "shape is about 160x96 with 60px of space between shapes. Lay diagrams out on a grid " +
-    "and connect shapes with connectors referencing their node ids rather than drawing " +
-    "lines between coordinates — connectors re-route themselves when shapes move.",
-  deck:
-    `Slides are ${SLIDE_W}x${SLIDE_H}. Prefer addSlide with a layout and text content over ` +
-    "placing elements by hand; the layout does the typography and spacing for you. Keep " +
-    "bullets under about twelve words each, and no more than six per slide.",
-  pdf:
-    "The PDF's pages cannot be edited — you work by adding annotations over them. " +
-    "Annotation rects are normalised to the page: x/y/w/h are fractions between 0 and 1 " +
-    "with the origin at the top-left of the page.",
-};
-
 export function systemPrompt(kind: DocKind): string {
+  const surface = getSurface(kind);
   return [
     `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, and a drawing canvas — more like OpenOffice meets an IDE than four separate apps. Seed packets sprout profession worktrees; you edit through reviewable operations.`,
-    `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
+    `You are currently working on a ${surface.label.toLowerCase()}.`,
     "",
     "## How to answer",
     "Reply with a brief sentence or two of plain prose explaining what you are doing.",
@@ -60,7 +40,7 @@ export function systemPrompt(kind: DocKind): string {
     opReference(kind),
     "",
     "## Notes for this surface",
-    SURFACE_NOTES[kind],
+    surface.promptNotes,
   ].join("\n");
 }
 
@@ -76,7 +56,7 @@ export function userTurn({ doc, request, selection, companions }: UserTurnOption
   const parts: string[] = [];
 
   const { content, truncated } = serializeDoc(doc, selection);
-  parts.push(`## Current ${DOC_KIND_LABELS[doc.kind].toLowerCase()}: "${doc.title}"`);
+  parts.push(`## Current ${getSurface(doc.kind).label.toLowerCase()}: "${doc.title}"`);
   parts.push(content);
   if (truncated) parts.push("(the document above was truncated to fit)");
 
@@ -86,7 +66,7 @@ export function userTurn({ doc, request, selection, companions }: UserTurnOption
   for (const companion of companions ?? []) {
     const rendered = serializeDoc(companion.doc, companion.selection);
     parts.push(
-      `\n## Source material — ${DOC_KIND_LABELS[companion.doc.kind].toLowerCase()} "${companion.doc.title}"`,
+      `\n## Source material — ${getSurface(companion.doc.kind).label.toLowerCase()} "${companion.doc.title}"`,
     );
     parts.push(rendered.content);
   }
