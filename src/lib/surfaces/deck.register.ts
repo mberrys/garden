@@ -161,6 +161,15 @@ registerSurface({
   describeOp: describeDeckOp,
   referencedBlobIds: deckReferencedBlobIds,
   remapBlobIds: deckRemapBlobIds,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "stage gestures call commit with deck ops",
+    gardenUpdates: "React host re-renders from DeckDoc.body",
+    selection: "active slide + element ids, pushed to the workspace store",
+    notes: "Garden-owned slide stage. Slides suite (#38) keeps this model; export is separate.",
+    relatedIssue: 38,
+  },
   loadComponent: () => import("@/surfaces/deck/deck-surface"),
 });
 

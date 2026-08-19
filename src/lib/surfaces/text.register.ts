@@ -150,6 +150,15 @@ registerSurface({
   describeOp: describeTextOp,
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
+  adapter: {
+    engine: "garden",
+    status: "planned",
+    userEdits: "textarea onChange commits coalesced replaceDoc ops",
+    gardenUpdates: "doc.body sync with a lastPushed echo guard",
+    selection: "block range + selected text, pushed to the workspace store",
+    notes: "Stored body is ProseMirror JSON; the textarea is not the source of truth. Writer (#33) will put ProseMirror behind EditorAdapter.",
+    relatedIssue: 33,
+  },
   loadComponent: () => import("@/surfaces/text/text-surface"),
 });
 

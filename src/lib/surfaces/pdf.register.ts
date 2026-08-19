@@ -151,6 +151,15 @@ registerSurface({
   describeOp: describePdfOp,
   referencedBlobIds: pdfReferencedBlobIds,
   remapBlobIds: pdfRemapBlobIds,
+  adapter: {
+    engine: "borrowed",
+    status: "planned",
+    userEdits: "annotation gestures commit pdf ops; extracted text uses skipHistory",
+    gardenUpdates: "pdf.js renders bytes; annotation overlay reads PdfDoc.body",
+    selection: "page + quote + annotation id, pushed to the workspace store",
+    notes: "pdf.js is a renderer. Annotations, undo, and .gardenspace must stay Garden-owned (#40).",
+    relatedIssue: 40,
+  },
   loadComponent: () => import("@/surfaces/pdf/pdf-surface"),
 });
 

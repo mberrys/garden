@@ -157,7 +157,7 @@ npm run dev        # dev server
 npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
-npm run test       # vitest — document model, op reducers, markdown, AI parsing
+npm run test       # vitest — document model, op reducers, adapter harness, markdown, AI parsing
 npm run test:e2e   # playwright — all four surfaces, against the mock provider
 ```
 
@@ -175,11 +175,13 @@ src/
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/store/    zustand workspace state, Dexie persistence, import/export
+  lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
+                (engine boundary), plus a conformance harness a new adapter can fail
   surfaces/     text, canvas, deck, pdf
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
-Two conventions are worth knowing before changing anything:
+Three conventions are worth knowing before changing anything:
 
 1. **Schemas are the source of truth.** TypeScript types come from `z.infer`, and
    the operation reference in the AI prompt is *generated* from the same schemas —
@@ -189,6 +191,13 @@ Two conventions are worth knowing before changing anything:
 2. **User actions and AI actions share one path.** Both call `commit()`, which
    calls `applyOps()`. There is no second code path for AI edits, which is why
    they are undoable, previewable and rejectable without any special handling.
+
+3. **Engines are replaceable; Garden state is canonical.** `SurfaceDefinition` is
+   the registration contract a surface registers through. `EditorAdapter` is the
+   engine boundary: user input becomes Garden ops, Garden ops update the engine
+   without feedback loops, undo lives on Garden's stack, and `.gardenspace` never
+   persists engine internals. Built-in surfaces are described against this
+   contract before they all implement it.
 
 ---
 
