@@ -1,6 +1,7 @@
 import {
   type CanvasDoc,
   type CanvasNode,
+  type DatabaseDoc,
   type DeckDoc,
   type Doc,
   type DocKind,
@@ -16,7 +17,7 @@ import {
   SLIDE_H,
   SLIDE_W,
 } from "./schema";
-import { newDocId, newElementId, newNodeId, newSlideId } from "./ids";
+import { newDocId, newElementId, newFieldId, newNodeId, newSlideId, newViewId } from "./ids";
 import { markdownToDoc } from "@/lib/text/markdown";
 
 function envelope(kind: DocKind, title: string) {
@@ -85,6 +86,29 @@ export function createSheetDoc(title = "Untitled sheet"): SheetDoc {
   };
 }
 
+export function createDatabaseDoc(title = "Untitled database"): DatabaseDoc {
+  const viewId = newViewId();
+  return {
+    ...envelope("database", title),
+    kind: "database",
+    body: {
+      fields: [{ id: newFieldId(), name: "Name", type: "text" }],
+      rows: [],
+      views: [
+        {
+          id: viewId,
+          name: "Grid",
+          type: "grid",
+          hiddenFieldIds: [],
+          sortFieldId: null,
+          sortDirection: "asc",
+        },
+      ],
+      activeViewId: viewId,
+    },
+  };
+}
+
 export function createDoc(kind: DocKind, title?: string): Doc {
   switch (kind) {
     case "text":
@@ -97,6 +121,12 @@ export function createDoc(kind: DocKind, title?: string): Doc {
       return createPdfDoc(title);
     case "sheet":
       return createSheetDoc(title);
+    case "database":
+      return createDatabaseDoc(title);
+    default: {
+      const _exhaustive: never = kind;
+      throw new Error(`unknown document kind: ${String(_exhaustive)}`);
+    }
   }
 }
 

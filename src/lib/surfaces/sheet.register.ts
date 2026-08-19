@@ -118,6 +118,7 @@ function mockSheet(request: MockRequest): string {
 function describeSheetOp(op: Record<string, unknown>): string | undefined {
   switch (op.op) {
     case "setCell":
+      if (typeof op.ref !== "string") return undefined;
       return (op.value as string).trim() === ""
         ? `Clear cell ${op.ref}`
         : `Set ${op.ref} to ${preview(op.value as string)}`;

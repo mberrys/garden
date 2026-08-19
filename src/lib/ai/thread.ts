@@ -10,6 +10,8 @@ import { parseOpsFromReply, stripOpsBlocks } from "./ops-block";
 import { repairTurn, systemPrompt, userTurn } from "./prompt";
 import type { MockRequest } from "./mock";
 import type { ProviderKind } from "./config";
+import { getPacket } from "@/lib/packets/registry";
+import { packetAssistantAddenda } from "@/lib/packets/types";
 
 /**
  * Conversation state and the suggestion lifecycle.
@@ -126,8 +128,9 @@ export const useThreads = create<ThreadState>((set, get) => ({
       selection: workspace.selection[c.id],
     }));
 
+    const packet = workspace.seedPacketId ? getPacket(workspace.seedPacketId) : undefined;
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(targetDoc.kind) },
+      { role: "system", content: systemPrompt(targetDoc.kind, packetAssistantAddenda(packet)) },
       {
         role: "user",
         content: userTurn({

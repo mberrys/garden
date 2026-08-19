@@ -89,6 +89,9 @@ describe("surface registry", () => {
     expect(getSurface("canvas").adapter.status).toBe("not-required");
     expect(getSurface("deck").adapter.status).toBe("not-required");
     expect(getSurface("sheet").adapter.status).toBe("not-required");
+    expect(getSurface("database").adapter.status).toBe("not-required");
+    expect(getSurface("database").ownsHistory).toBe(false);
+    expect(getSurface("database").createAdapter).toBeUndefined();
     expect((allKinds() as string[]).includes("stub")).toBe(false);
   });
 });

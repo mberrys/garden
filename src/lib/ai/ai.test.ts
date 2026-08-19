@@ -10,6 +10,7 @@ import {
   createDeckDoc,
   createPdfDoc,
   createSheetDoc,
+  createDatabaseDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
 import { applyOps, OP_SCHEMAS } from "@/lib/ops";
@@ -86,6 +87,7 @@ describe("mock provider", () => {
           cells: { A1: "Item", B1: "Cost", A2: "Rent", B2: "1200", A3: "Food", B3: "300" },
         },
       ]).doc,
+    database: () => createDatabaseDoc("Tracker"),
   };
 
   /**
