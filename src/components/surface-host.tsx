@@ -1,31 +1,28 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Component, type ReactNode } from "react";
-import type { CanvasDoc, DeckDoc, Doc, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
+import { Component, type ComponentType, type ReactNode } from "react";
+import type { Doc, DocKind } from "@/lib/docs/schema";
 import type { PaneIndex } from "@/lib/store/workspace";
+import { getSurface } from "@/lib/surfaces/registry";
 import { EmptyState } from "./ui";
 
-/**
- * Surfaces are loaded on demand and never server-rendered: each one reaches for
- * canvas, worker or DOM-measurement APIs during mount, and the PDF surface
- * pulls in pdf.js, which is far too large to sit in the initial bundle.
- */
 const loading = () => (
   <div className="flex h-full items-center justify-center text-xs text-faint">Loading…</div>
 );
 
-const TextSurface = dynamic(() => import("@/surfaces/text/text-surface"), { ssr: false, loading });
-const CanvasSurface = dynamic(() => import("@/surfaces/canvas/canvas-surface"), {
-  ssr: false,
-  loading,
-});
-const DeckSurface = dynamic(() => import("@/surfaces/deck/deck-surface"), { ssr: false, loading });
-const PdfSurface = dynamic(() => import("@/surfaces/pdf/pdf-surface"), { ssr: false, loading });
-const SheetSurface = dynamic(() => import("@/surfaces/sheet/sheet-surface"), {
-  ssr: false,
-  loading,
-});
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dynamicCache = new Map<DocKind, ComponentType<any>>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getDynamicSurface(kind: DocKind): ComponentType<any> {
+  let cached = dynamicCache.get(kind);
+  if (!cached) {
+    cached = dynamic(() => getSurface(kind).loadComponent(), { ssr: false, loading });
+    dynamicCache.set(kind, cached);
+  }
+  return cached;
+}
 
 export function SurfaceHost({ doc, paneIndex }: { doc: Doc; paneIndex: PaneIndex }) {
   return (
@@ -36,24 +33,10 @@ export function SurfaceHost({ doc, paneIndex }: { doc: Doc; paneIndex: PaneIndex
 }
 
 function renderSurface(doc: Doc, paneIndex: PaneIndex): ReactNode {
-  switch (doc.kind) {
-    case "text":
-      return <TextSurface doc={doc as TextDoc} paneIndex={paneIndex} />;
-    case "canvas":
-      return <CanvasSurface doc={doc as CanvasDoc} paneIndex={paneIndex} />;
-    case "deck":
-      return <DeckSurface doc={doc as DeckDoc} paneIndex={paneIndex} />;
-    case "pdf":
-      return <PdfSurface doc={doc as PdfDoc} paneIndex={paneIndex} />;
-    case "sheet":
-      return <SheetSurface doc={doc as SheetDoc} paneIndex={paneIndex} />;
-  }
+  const Surface = getDynamicSurface(doc.kind);
+  return <Surface doc={doc} paneIndex={paneIndex} />;
 }
 
-/**
- * One surface crashing must not take the workspace with it — the other pane may
- * hold unsaved work, and everything is already persisted per document.
- */
 class SurfaceBoundary extends Component<
   { children: ReactNode; title: string },
   { error: Error | null }

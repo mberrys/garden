@@ -5,18 +5,13 @@ import {
   Columns2,
   Copy,
   Download,
-  FileText,
-  FileType2,
   MoreHorizontal,
   Plus,
-  Presentation,
   Search,
-  Shapes,
-  Table,
   Trash2,
   Upload,
 } from "lucide-react";
-import { DOC_KIND_LABELS, type Doc, type DocKind } from "@/lib/docs/schema";
+import { DOC_KIND_LABELS, type Doc } from "@/lib/docs/schema";
 import { useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
@@ -25,17 +20,15 @@ import {
   importFile,
   timestampedName,
 } from "@/lib/store/bundle";
+import { allSurfaces } from "@/lib/surfaces/registry";
 import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { WindowChromeStrip } from "./window-chrome";
 
-const NEW_DOC_OPTIONS: { kind: DocKind; icon: typeof FileText; label: string }[] = [
-  { kind: "text", icon: FileText, label: "Document" },
-  { kind: "canvas", icon: Shapes, label: "Canvas" },
-  { kind: "deck", icon: Presentation, label: "Deck" },
-  { kind: "sheet", icon: Table, label: "Sheet" },
-  { kind: "pdf", icon: FileType2, label: "PDF" },
-];
+const NEW_DOC_OPTIONS = allSurfaces().map((s) => ({
+  kind: s.kind,
+  label: s.label,
+}));
 
 export function Sidebar() {
   const docs = useWorkspace((s) => s.docs);
