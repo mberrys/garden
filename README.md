@@ -3,16 +3,16 @@
 A **generative document workplace** — OpenOffice meets an IDE.
 
 Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
-presentations, drawings (and soon sheets, databases, media). One shell, one undo
-stack, and a local AI that edits through reviewable operations — not four apps
-side by side.
+presentations, drawings, spreadsheets (and soon databases, media). One shell,
+one undo stack, and a local AI that edits through reviewable operations — not
+five apps side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
 wherever you point it.
 
 ---
 
-## What makes it different from four editors in a row
+## What makes it different from five editors in a row
 
 The assistant does not type into your document.
 
@@ -105,6 +105,12 @@ stored in normalised page coordinates so it survives zooming, per-page text
 extraction that feeds the assistant, and export that flattens annotations into a
 copy of the original file.
 
+**Sheet** — a grid of cells addressed by A1 references, with a formula bar and a
+small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
+`ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
+never stored, so every cell edit stays exactly invertible. Bold/italic/align/
+number-format styling, and grid resizing.
+
 ### Cross-surface recipes
 
 Offered in the assistant panel, per surface:
@@ -116,10 +122,13 @@ Offered in the assistant panel, per surface:
 | PDF | Highlight key passages | annotations on the pages you have read |
 | Document | Diagram this | a canvas of the structure it describes |
 | Document | Turn into slides | a deck |
+| Document | Extract a table | a sheet built from the document |
 | Document | Tighten this / Add an outline | edits in place |
 | Canvas | Write it up | a document from the diagram |
 | Canvas | Tidy the layout | alignment and spacing fixes |
 | Deck | Write speaker notes / Tighten the copy | edits in place |
+| Sheet | Summarise the data | a document written up from the sheet |
+| Sheet | Add totals | totals row, in place |
 
 ---
 
@@ -157,8 +166,8 @@ npm run dev        # dev server
 npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
-npm run test       # vitest — document model, op reducers, markdown, AI parsing
-npm run test:e2e   # playwright — all four surfaces, against the mock provider
+npm run test       # vitest — document model, op reducers, adapter harness, markdown, AI parsing
+npm run test:e2e   # playwright — all five surfaces, against the mock provider
 ```
 
 Run `npm run build` before `npm run test:e2e`; the suite starts the production
@@ -169,17 +178,19 @@ installed.
 
 ```
 src/
-  lib/docs/     Zod schemas for all four document kinds — the single source of
+  lib/docs/     Zod schemas for every document kind — the single source of
                 truth for types, persistence validation, and the AI's vocabulary
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/store/    zustand workspace state, Dexie persistence, import/export
-  surfaces/     text, canvas, deck, pdf
+  lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
+                (engine boundary), plus a conformance harness a new adapter can fail
+  surfaces/     text, canvas, deck, pdf, sheet
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
-Two conventions are worth knowing before changing anything:
+Three conventions are worth knowing before changing anything:
 
 1. **Schemas are the source of truth.** TypeScript types come from `z.infer`, and
    the operation reference in the AI prompt is *generated* from the same schemas —
@@ -189,6 +200,13 @@ Two conventions are worth knowing before changing anything:
 2. **User actions and AI actions share one path.** Both call `commit()`, which
    calls `applyOps()`. There is no second code path for AI edits, which is why
    they are undoable, previewable and rejectable without any special handling.
+
+3. **Engines are replaceable; Garden state is canonical.** `SurfaceDefinition` is
+   the registration contract a surface will register through. `EditorAdapter` is
+   the engine boundary: user input becomes Garden ops, Garden ops update the
+   engine without feedback loops, undo lives on Garden's stack, and `.gardenspace`
+   never persists engine internals. Built-in surfaces are described against this
+   contract before they all implement it.
 
 ---
 
