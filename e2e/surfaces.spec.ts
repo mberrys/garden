@@ -6,7 +6,18 @@ import { newDocument, openEmptyWorkspace, openSeededWorkspace, samplePdfPath } f
  * scripted mock provider so nothing depends on a local model being installed.
  */
 
-test("seeds a starter workspace on first run", async ({ page }) => {
+test("empty workspace offers a seed packet picker", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Plant a seed packet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Welcome" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant History seminar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Grant shop" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Field notes" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Campaign" })).toBeVisible();
+});
+
+test("seeds a starter workspace from the welcome packet", async ({ page }) => {
   await openSeededWorkspace(page);
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Welcome to garden");
@@ -101,6 +112,32 @@ test("sheet: entering a value and a formula, then undo", async ({ page }) => {
   await page.click('button[aria-label="Undo"]');
   await expect(page.locator('[aria-label="B1"]')).toContainText("");
   await expect(page.locator('[aria-label="A1"]')).toContainText("10");
+});
+
+test("database: adding a row, then undo", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Database");
+
+  await expect(page.getByText("Grid")).toBeVisible();
+  await expect(page.getByText("0 rows")).toBeVisible();
+  await page.click('button:has-text("Add row")');
+  await expect(page.getByText("1 rows")).toBeVisible();
+
+  await page.click('button[aria-label="Undo"]');
+  await expect(page.getByText("0 rows")).toBeVisible();
+});
+
+test("campaign packet sprouts databases and a brief", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('button[aria-label="Plant Campaign"]', { timeout: 30_000 });
+  await page.getByRole("button", { name: "Plant Campaign" }).click();
+  await page.getByRole("button", { name: "Plant packet" }).click();
+
+  const sidebar = page.locator("aside").first();
+  await expect(sidebar).toContainText("Campaign Brief");
+  await expect(sidebar).toContainText("Story Angles");
+  await expect(page.locator(".garden-markdown")).toHaveValue(/Campaign brief/);
+  await expect(page.getByText("Local-first workplace")).toBeVisible();
 });
 
 test("pdf: rendering, annotating, and capturing the quoted text", async ({ page }) => {

@@ -86,6 +86,17 @@ export const BUILTIN_SURFACES = {
     selection: "selected cell + range, pushed to the workspace store",
     notes: "Garden-owned grid, formulas evaluated in lib/sheet rather than stored. No borrowed engine planned.",
   },
+  database: {
+    kind: "database",
+    label: DOC_KIND_LABELS.database,
+    engine: "garden",
+    adapterStatus: "not-required",
+    userEdits: "grid and kanban commit addRow/setCell/addField ops from the host",
+    gardenUpdates: "React table re-renders from DatabaseBody fields, rows, and views",
+    undo: "garden",
+    selection: "selected row + field, pushed to the workspace store",
+    notes: "Garden-owned typed table. Filters, TanStack, and calendar views are later (#43 / E06).",
+  },
 } as const satisfies Record<DocKind, BuiltinSurfaceDescription>;
 
 export type BuiltinKind = keyof typeof BUILTIN_SURFACES;

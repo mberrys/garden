@@ -3,16 +3,16 @@
 A **generative document workplace** — OpenOffice meets an IDE.
 
 Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
-presentations, drawings, spreadsheets (and soon databases, media). One shell,
-one undo stack, and a local AI that edits through reviewable operations — not
-five apps side by side.
+presentations, drawings, spreadsheets, and databases. One shell, one undo
+stack, and a local AI that edits through reviewable operations — not six apps
+side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
 wherever you point it.
 
 ---
 
-## What makes it different from five editors in a row
+## What makes it different from six editors in a row
 
 The assistant does not type into your document.
 
@@ -111,6 +111,11 @@ small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
 number-format styling, and grid resizing.
 
+**Database** — a Garden-owned table of typed fields and rows, with grid and
+kanban views. Relation cells link rows across databases; garden_ref cells point
+at other documents in the workspace. Seed packets can plant a topology of
+linked bases in one click.
+
 ### Cross-surface recipes
 
 Offered in the assistant panel, per surface:
@@ -129,6 +134,7 @@ Offered in the assistant panel, per surface:
 | Deck | Write speaker notes / Tighten the copy | edits in place |
 | Sheet | Summarise the data | a document written up from the sheet |
 | Sheet | Add totals | totals row, in place |
+| Database | Add rows from notes | new rows, in place |
 
 ---
 
@@ -167,7 +173,7 @@ npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
 npm run test       # vitest — document model, op reducers, adapter harness, markdown, AI parsing
-npm run test:e2e   # playwright — all five surfaces, against the mock provider
+npm run test:e2e   # playwright — all six surfaces, against the mock provider
 ```
 
 Run `npm run build` before `npm run test:e2e`; the suite starts the production
@@ -183,10 +189,11 @@ src/
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
+  lib/packets/  Seed Packet v0.1 — profession kits that sprout documents and layout
   lib/store/    zustand workspace state, Dexie persistence, import/export
   lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
                 (engine boundary), plus a conformance harness a new adapter can fail
-  surfaces/     text, canvas, deck, pdf, sheet
+  surfaces/     text, canvas, deck, pdf, sheet, database
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
@@ -212,4 +219,5 @@ Three conventions are worth knowing before changing anything:
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE). Borrowed-engine
+policy is in [docs/licensing.md](./docs/licensing.md).

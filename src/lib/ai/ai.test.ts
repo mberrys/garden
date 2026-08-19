@@ -7,6 +7,7 @@ import { RECIPES, recipesFor } from "./recipes";
 import { DOC_KINDS, type Doc, type DocKind } from "@/lib/docs/schema";
 import {
   createCanvasDoc,
+  createDatabaseDoc,
   createDeckDoc,
   createPdfDoc,
   createSheetDoc,
@@ -86,6 +87,7 @@ describe("mock provider", () => {
           cells: { A1: "Item", B1: "Cost", A2: "Rent", B2: "1200", A3: "Food", B3: "300" },
         },
       ]).doc,
+    database: () => createDatabaseDoc("Contacts"),
   };
 
   /**

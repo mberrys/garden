@@ -26,5 +26,8 @@ describe("built-in surface catalog", () => {
     expect(BUILTIN_SURFACES.text.adapterStatus).toBe("planned");
     expect(BUILTIN_SURFACES.canvas.adapterStatus).toBe("not-required");
     expect(BUILTIN_SURFACES.deck.adapterStatus).toBe("not-required");
+    expect(BUILTIN_SURFACES.sheet.adapterStatus).toBe("not-required");
+    expect(BUILTIN_SURFACES.database.adapterStatus).toBe("not-required");
+    expect(BUILTIN_SURFACES.database.engine).toBe("garden");
   });
 });

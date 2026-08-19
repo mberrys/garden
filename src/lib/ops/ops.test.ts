@@ -2,12 +2,22 @@ import { describe, expect, it } from "vitest";
 import { applyOps, parseOps, describeOperation, OpError, type AnyOp } from ".";
 import {
   createCanvasDoc,
+  createDatabaseDoc,
   createDeckDoc,
   createPdfDoc,
   createSheetDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
-import type { CanvasDoc, DeckDoc, Doc, DocKind, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
+import type {
+  CanvasDoc,
+  DatabaseDoc,
+  DeckDoc,
+  Doc,
+  DocKind,
+  PdfDoc,
+  SheetDoc,
+  TextDoc,
+} from "@/lib/docs/schema";
 import type { OpOf } from ".";
 
 /**
@@ -317,6 +327,53 @@ describe("sheet ops", () => {
   });
 });
 
+describe("database ops", () => {
+  it("round-trips row and cell edits", () => {
+    const doc = createDatabaseDoc("Test");
+    const fieldId = doc.body.fields[0].id;
+    const forward = expectRoundTrip<"database">(doc, [
+      { op: "addRow", row: { cells: { [fieldId]: "Alpha" } } },
+    ]);
+    const rowId = forward.doc.body.rows[0].id;
+    expectRoundTrip<"database">(forward.doc, [
+      { op: "setCell", rowId, fieldId, value: "Beta" },
+    ]);
+  });
+
+  it("round-trips relation link and unlink", () => {
+    const target = createDatabaseDoc("Target");
+    let doc: DatabaseDoc = createDatabaseDoc("Source");
+    doc = applyOps<"database">(doc, [
+      {
+        op: "addField",
+        field: { type: "relation", name: "Link", targetDocId: target.id },
+      },
+    ]).doc;
+    const relationField = doc.body.fields.find((f) => f.type === "relation");
+    expect(relationField).toBeDefined();
+
+    target.body.rows.push({ id: "row_tgt", cells: {} });
+    doc = applyOps<"database">(doc, [{ op: "addRow", row: { id: "row_src", cells: {} } }]).doc;
+
+    expectRoundTrip<"database">(doc, [
+      {
+        op: "linkRelation",
+        rowId: "row_src",
+        fieldId: relationField!.id,
+        targetRowIds: ["row_tgt"],
+      },
+    ]);
+    expectRoundTrip<"database">(doc, [
+      {
+        op: "unlinkRelation",
+        rowId: "row_src",
+        fieldId: relationField!.id,
+        targetRowIds: ["row_tgt"],
+      },
+    ]);
+  });
+});
+
 describe("parseOps", () => {
   it("accepts a well-formed model batch", () => {
     const result = parseOps("canvas", [
@@ -361,6 +418,9 @@ describe("describeOperation", () => {
       { op: "moveSlide", id: "sl_a", toIndex: 2 },
       { op: "addAnnotation", page: 2, type: "highlight", rect: { x: 0, y: 0, w: 1, h: 1 } },
       { op: "setSource", blobId: null, fileName: "a.pdf", pageCount: 3 },
+      { op: "addRow", row: { cells: { fld_a: "x" } } },
+      { op: "setCell", rowId: "row_a", fieldId: "fld_a", value: "y" },
+      { op: "setActiveView", id: "vw_a" },
     ];
     for (const op of samples) {
       const text = describeOperation(op);

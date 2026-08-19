@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Columns2, X } from "lucide-react";
-import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
+import { useWorkspace, workspaceShowsPacketPicker, type PaneIndex } from "@/lib/store/workspace";
 import { importFile } from "@/lib/store/bundle";
-import { EmptyState, IconButton, cx } from "./ui";
+import { Button, EmptyState, IconButton, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { SurfaceHost } from "./surface-host";
+import { SeedPacketPicker } from "./seed-packet-picker";
 
 const MIN_PANE_FRACTION = 0.2;
 
@@ -70,6 +71,10 @@ function Pane({ index, style }: { index: PaneIndex; style?: React.CSSProperties 
   const setActivePane = useWorkspace((s) => s.setActivePane);
   const setSplitView = useWorkspace((s) => s.setSplitView);
   const toast = useWorkspace((s) => s.toast);
+  const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
+  const showPicker = useWorkspace((s) => index === 0 && workspaceShowsPacketPicker(s));
+  const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
+  const emptyWorkspace = useWorkspace((s) => s.order.length === 0);
   const [dropping, setDropping] = useState(false);
 
   const activeDoc = pane.activeDocId ? docs[pane.activeDocId] : null;
@@ -158,6 +163,8 @@ function Pane({ index, style }: { index: PaneIndex; style?: React.CSSProperties 
       <div className="relative min-h-0 flex-1">
         {activeDoc ? (
           <SurfaceHost doc={activeDoc} paneIndex={index} />
+        ) : showPicker ? (
+          <SeedPacketPicker />
         ) : (
           <EmptyState
             title={index === 0 ? "Nothing open" : "Split pane"}
@@ -165,6 +172,13 @@ function Pane({ index, style }: { index: PaneIndex; style?: React.CSSProperties 
               index === 0
                 ? "Pick a document from the sidebar, create a new one, or drop a PDF anywhere in this pane."
                 : "Open a second document here to work across two surfaces at once — a PDF beside a deck, say."
+            }
+            action={
+              index === 0 && emptyWorkspace && !seedSuppressed ? (
+                <Button size="sm" onClick={requestPacketPicker}>
+                  Plant a seed packet
+                </Button>
+              ) : undefined
             }
           />
         )}

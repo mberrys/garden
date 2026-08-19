@@ -8,6 +8,7 @@ import { useWorkspace } from "@/lib/store/workspace";
 import { streamAssistant, type ChatMessage } from "./client";
 import { parseOpsFromReply, stripOpsBlocks } from "./ops-block";
 import { repairTurn, systemPrompt, userTurn } from "./prompt";
+import { getPacket, packetAssistantAddenda } from "@/lib/packets";
 import type { MockRequest } from "./mock";
 import type { ProviderKind } from "./config";
 
@@ -126,8 +127,9 @@ export const useThreads = create<ThreadState>((set, get) => ({
       selection: workspace.selection[c.id],
     }));
 
+    const packet = workspace.seedPacketId ? getPacket(workspace.seedPacketId) : undefined;
     const messages: ChatMessage[] = [
-      { role: "system", content: systemPrompt(targetDoc.kind) },
+      { role: "system", content: systemPrompt(targetDoc.kind, packetAssistantAddenda(packet)) },
       {
         role: "user",
         content: userTurn({

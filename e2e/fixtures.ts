@@ -68,13 +68,18 @@ export async function openEmptyWorkspace(page: Page): Promise<void> {
   await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
 }
 
-/** Opens the app and lets the first-run seed documents load. */
+/** Opens the app and plants the welcome packet. */
 export async function openSeededWorkspace(page: Page): Promise<void> {
   await page.goto("/");
   await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
+  await page.getByRole("button", { name: "Plant Welcome" }).click();
+  await page.locator(".garden-markdown").waitFor({ timeout: 30_000 });
 }
 
-export async function newDocument(page: Page, kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet") {
+export async function newDocument(
+  page: Page,
+  kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet" | "Database",
+) {
   await page.click('button[aria-label="New document"]');
   await page.click(`[role="menuitem"]:has-text("${kind}")`);
 }
