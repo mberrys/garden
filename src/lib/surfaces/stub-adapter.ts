@@ -1,26 +1,11 @@
 import { z } from "zod";
-import type { EditorAdapter } from "./definition";
+import type { EditorAdapter } from "./adapter";
 import type { AdapterDriver } from "./conformance";
 
 /**
  * Toy notes list used only to prove the adapter contract. Not a product
- * `DocKind` — it never enters the workspace or `.gardenspace`, so it does not
- * register through `registerSurface`/`SurfaceDefinition` (that contract is
- * keyed to the real `DocKind` union). `StubSurfaceDescription` below is a
- * standalone shape scoped to exactly what this file needs.
+ * `DocKind` — it never enters the workspace, the registry, or `.gardenspace`.
  */
-
-/** Minimal description of a registrable surface, for the stub's own use only. */
-export interface StubSurfaceDescription<Body, Op> {
-  kind: "stub";
-  label: string;
-  bodySchema: z.ZodType<Body>;
-  opSchema: z.ZodType<Op>;
-  applyOps: (body: Body, ops: Op[]) => { body: Body; inverse: Op[] };
-  /** Sample text for what a real registration's generated op reference would say. */
-  opReference: string;
-  createAdapter: () => EditorAdapter<StubDoc, Op, StubSelection>;
-}
 
 export const StubBodySchema = z.object({
   title: z.string(),
@@ -90,7 +75,10 @@ export function serializeStubSelection(selection: StubSelection): unknown {
   return JSON.parse(JSON.stringify(selection)) as unknown;
 }
 
-export function applyStubBodyOps(body: StubBody, ops: StubOp[]): { body: StubBody; inverse: StubOp[] } {
+export function applyStubBodyOps(
+  body: StubBody,
+  ops: StubOp[],
+): { body: StubBody; inverse: StubOp[] } {
   let title = body.title;
   const items = body.items.slice();
   const inverse: StubOp[] = [];
@@ -241,17 +229,3 @@ class StubNotesAdapter implements StubAdapter {
 export function createStubAdapter(): StubAdapter {
   return new StubNotesAdapter();
 }
-
-export const STUB_SURFACE: StubSurfaceDescription<StubBody, StubOp> = {
-  kind: "stub",
-  label: "Stub notes",
-  bodySchema: StubBodySchema,
-  opSchema: StubOpSchema,
-  applyOps: applyStubBodyOps,
-  opReference: [
-    '- {"op": "setTitle", title: string} — rename the notes document',
-    '- {"op": "insertItem", index: number, text: string} — insert a note',
-    '- {"op": "removeItem", index: number} — delete a note',
-  ].join("\n"),
-  createAdapter: createStubAdapter,
-};

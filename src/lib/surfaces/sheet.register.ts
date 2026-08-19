@@ -161,6 +161,14 @@ registerSurface({
   describeOp: describeSheetOp,
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "cell edits commit setCell/setCells ops from the grid's own input handling",
+    gardenUpdates: "React grid re-renders from SheetBody.cells; formulas recompute at render time",
+    selection: "selected cell + range, pushed to the workspace store",
+    notes: "Garden-owned grid, formulas evaluated in lib/sheet rather than stored. No borrowed engine planned.",
+  },
   loadComponent: () => import("@/surfaces/sheet/sheet-surface"),
 });
 

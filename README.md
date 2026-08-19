@@ -202,10 +202,10 @@ Three conventions are worth knowing before changing anything:
    they are undoable, previewable and rejectable without any special handling.
 
 3. **Engines are replaceable; Garden state is canonical.** `SurfaceDefinition` is
-   the registration contract a surface will register through. `EditorAdapter` is
-   the engine boundary: user input becomes Garden ops, Garden ops update the
-   engine without feedback loops, undo lives on Garden's stack, and `.gardenspace`
-   never persists engine internals. Built-in surfaces are described against this
+   the registration contract a surface registers through. `EditorAdapter` is the
+   engine boundary: user input becomes Garden ops, Garden ops update the engine
+   without feedback loops, undo lives on Garden's stack, and `.gardenspace` never
+   persists engine internals. Built-in surfaces are described against this
    contract before they all implement it.
 
 ---

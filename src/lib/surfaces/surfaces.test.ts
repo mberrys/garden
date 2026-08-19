@@ -4,7 +4,7 @@ import { DOC_KINDS, DocSchema, type DocKind } from "@/lib/docs/schema";
 import { opReference } from "@/lib/ai/op-reference";
 
 describe("surface registry", () => {
-  it("discovers all four built-in surfaces", () => {
+  it("discovers all built-in surfaces", () => {
     const kinds = new Set(allKinds());
     for (const k of DOC_KINDS) {
       expect(kinds.has(k)).toBe(true);
@@ -68,5 +68,27 @@ describe("surface registry", () => {
       expect(typeof def.remapBlobIds).toBe("function");
       expect(typeof def.loadComponent).toBe("function");
     }
+  });
+
+  it("describes every built-in against the adapter contract", () => {
+    const kinds = new Set(allKinds());
+    expect([...kinds].sort()).toEqual([...DOC_KINDS].sort());
+    for (const def of allSurfaces()) {
+      expect(def.ownsHistory).toBe(false);
+      expect(def.adapter.engine === "garden" || def.adapter.engine === "borrowed").toBe(true);
+      expect(def.adapter.status === "planned" || def.adapter.status === "not-required").toBe(true);
+      expect(def.adapter.userEdits.length).toBeGreaterThan(0);
+      expect(def.adapter.gardenUpdates.length).toBeGreaterThan(0);
+      expect(def.adapter.selection.length).toBeGreaterThan(0);
+      expect(def.adapter.notes.length).toBeGreaterThan(0);
+      expect(def.createAdapter).toBeUndefined();
+    }
+    expect(getSurface("text").adapter.status).toBe("planned");
+    expect(getSurface("pdf").adapter.engine).toBe("borrowed");
+    expect(getSurface("pdf").adapter.status).toBe("planned");
+    expect(getSurface("canvas").adapter.status).toBe("not-required");
+    expect(getSurface("deck").adapter.status).toBe("not-required");
+    expect(getSurface("sheet").adapter.status).toBe("not-required");
+    expect((allKinds() as string[]).includes("stub")).toBe(false);
   });
 });
