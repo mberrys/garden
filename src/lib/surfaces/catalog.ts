@@ -75,6 +75,17 @@ export const BUILTIN_SURFACES = {
     notes: "pdf.js is a renderer. Annotations, undo, and .gardenspace must stay Garden-owned (#40).",
     relatedIssue: 40,
   },
+  sheet: {
+    kind: "sheet",
+    label: DOC_KIND_LABELS.sheet,
+    engine: "garden",
+    adapterStatus: "not-required",
+    userEdits: "cell edits commit setCell/setCells ops from the grid's own input handling",
+    gardenUpdates: "React grid re-renders from SheetBody.cells; formulas recompute at render time",
+    undo: "garden",
+    selection: "selected cell + range, pushed to the workspace store",
+    notes: "Garden-owned grid, formulas evaluated in lib/sheet rather than stored. No borrowed engine planned.",
+  },
 } as const satisfies Record<DocKind, BuiltinSurfaceDescription>;
 
 export type BuiltinKind = keyof typeof BUILTIN_SURFACES;

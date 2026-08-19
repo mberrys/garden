@@ -149,6 +149,41 @@ export const RECIPES: Recipe[] = [
       "Insert a short outline at the very top of this document: a '## Outline' heading followed by " +
       "one bullet per section already present. Do not change anything else.",
   },
+  {
+    id: "doc-to-sheet",
+    label: "Extract a table",
+    hint: "Pull the figures into a sheet",
+    from: ["text", "pdf"],
+    target: "sheet",
+    newTitle: (title) => `${title} — table`,
+    prompt:
+      "Extract the structured data from the source into this sheet. Put a header row in row 1, " +
+      "then one row per record beneath it, one field per column. Use setCells with A1-style refs. " +
+      "Only include figures and labels that appear in the source — do not invent data.",
+  },
+  {
+    id: "sheet-to-doc",
+    label: "Summarise the data",
+    hint: "Write up what the numbers show",
+    from: ["sheet"],
+    target: "text",
+    newTitle: (title) => `${title} — summary`,
+    prompt:
+      "Write a short summary of the data in the source sheet. Open with a one-sentence takeaway, " +
+      "then '## Highlights' as a bulleted list of the notable figures and any totals. Ground every " +
+      "claim in the cells you were given.",
+  },
+  {
+    id: "sheet-totals",
+    label: "Add totals",
+    hint: "Sum the numeric columns",
+    from: ["sheet"],
+    target: "sheet",
+    prompt:
+      "Add a totals row beneath the data. For each column that holds numbers, put a SUM formula " +
+      "over that column's data range in the first empty row under it, and label the row 'Total' in " +
+      "the first column. Grow the grid with resize first if there is no empty row to write into.",
+  },
 ];
 
 export function recipesFor(kind: DocKind): Recipe[] {

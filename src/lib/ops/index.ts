@@ -3,6 +3,7 @@ import type { Doc, DocKind, DocOf } from "@/lib/docs/schema";
 import { CanvasOpSchema, type CanvasOp } from "./canvas";
 import { DeckOpSchema, type DeckOp } from "./deck";
 import { PdfOpSchema, type PdfOp } from "./pdf";
+import { SheetOpSchema, type SheetOp } from "./sheet";
 import { TextOpSchema, type TextOp } from "./text";
 import "@/lib/surfaces";
 import { getSurface, allSurfaces } from "@/lib/surfaces/registry";
@@ -11,6 +12,7 @@ export { OpError } from "./errors";
 export { CanvasOpSchema, type CanvasOp } from "./canvas";
 export { DeckOpSchema, type DeckOp } from "./deck";
 export { PdfOpSchema, type PdfOp } from "./pdf";
+export { SheetOpSchema, type SheetOp } from "./sheet";
 export { TextOpSchema, type TextOp } from "./text";
 
 /** Maps a document kind to its operation type. */
@@ -19,15 +21,17 @@ export interface OpMap {
   canvas: CanvasOp;
   deck: DeckOp;
   pdf: PdfOp;
+  sheet: SheetOp;
 }
 export type OpOf<K extends DocKind> = OpMap[K];
-export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp;
+export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp;
 
 export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   text: TextOpSchema,
   canvas: CanvasOpSchema,
   deck: DeckOpSchema,
   pdf: PdfOpSchema,
+  sheet: SheetOpSchema,
 };
 
 /**

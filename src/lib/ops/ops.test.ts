@@ -4,9 +4,10 @@ import {
   createCanvasDoc,
   createDeckDoc,
   createPdfDoc,
+  createSheetDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
-import type { CanvasDoc, DeckDoc, Doc, DocKind, PdfDoc, TextDoc } from "@/lib/docs/schema";
+import type { CanvasDoc, DeckDoc, Doc, DocKind, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
 import type { OpOf } from ".";
 
 /**
@@ -258,6 +259,60 @@ describe("text ops", () => {
     const doc = createTextDoc("Doc");
     expect(() => applyOps<"text">(doc, [{ op: "deleteBlocks", index: 5, count: 1 }])).toThrow(
       /past the end|exceeds the document/,
+    );
+  });
+});
+
+describe("sheet ops", () => {
+  it("sets a cell and inverts to restore the prior value", () => {
+    const doc = createSheetDoc("Budget");
+    const forward = expectRoundTrip<"sheet">(doc, [{ op: "setCell", ref: "A1", value: "42" }]);
+    expect(forward.doc.body.cells.A1.value).toBe("42");
+    // Clearing a cell keeps the map sparse.
+    const cleared = applyOps<"sheet">(forward.doc, [{ op: "setCell", ref: "A1", value: "" }]);
+    expect(cleared.doc.body.cells.A1).toBeUndefined();
+  });
+
+  it("round-trips a bulk setCells, a formula included", () => {
+    const doc = createSheetDoc("Budget");
+    expectRoundTrip<"sheet">(doc, [
+      { op: "setCells", cells: { A1: "10", A2: "20", A3: "=SUM(A1:A2)" } },
+    ]);
+  });
+
+  it("round-trips style edits and keeps blank styled cells out of the map", () => {
+    let doc: SheetDoc = applyOps<"sheet">(createSheetDoc(), [
+      { op: "setCell", ref: "B2", value: "hi" },
+    ]).doc;
+    const forward = expectRoundTrip<"sheet">(doc, [
+      { op: "setStyle", refs: ["B2"], patch: { bold: true, align: "center" } },
+    ]);
+    expect(forward.doc.body.cells.B2.bold).toBe(true);
+    // Styling an empty cell then removing the style leaves nothing behind.
+    doc = applyOps<"sheet">(createSheetDoc(), [
+      { op: "setStyle", refs: ["C3"], patch: { bold: true } },
+    ]).doc;
+    expect(doc.body.cells.C3.bold).toBe(true);
+    const undone = applyOps<"sheet">(doc, [{ op: "setStyle", refs: ["C3"], patch: { bold: false } }]);
+    expect(undone.doc.body.cells.C3).toBeUndefined();
+  });
+
+  it("grows the grid and shrinks it, restoring dropped cells on undo", () => {
+    let doc: SheetDoc = createSheetDoc();
+    doc = applyOps<"sheet">(doc, [{ op: "setCells", cells: { A1: "keep", H20: "edge" } }]).doc;
+    expectRoundTrip<"sheet">(doc, [{ op: "resize", rows: 30, cols: 12 }]);
+    // Shrinking below H20 drops it; the inverse must bring it back.
+    const forward = expectRoundTrip<"sheet">(doc, [{ op: "resize", rows: 10, cols: 4 }]);
+    expect(forward.doc.body.rows).toBe(10);
+    expect(forward.doc.body.cells.H20).toBeUndefined();
+    expect(forward.doc.body.cells.A1.value).toBe("keep");
+  });
+
+  it("rejects a malformed ref and a cell outside the grid", () => {
+    const doc = createSheetDoc();
+    expect(() => applyOps<"sheet">(doc, [{ op: "setCell", ref: "nope", value: "x" }])).toThrow(OpError);
+    expect(() => applyOps<"sheet">(doc, [{ op: "setCell", ref: "Z99", value: "x" }])).toThrow(
+      /outside the/,
     );
   });
 });
