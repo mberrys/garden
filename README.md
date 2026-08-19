@@ -212,4 +212,5 @@ Three conventions are worth knowing before changing anything:
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE), [NOTICE](./NOTICE), and the borrowed-engine
+policy in [docs/licensing.md](./docs/licensing.md).
