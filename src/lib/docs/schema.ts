@@ -20,7 +20,7 @@ export const SCHEMA_VERSION = 1;
  * 2. `factories.createDoc`
  * 3. `OpMap` / `OP_SCHEMAS` / `AnyOp`
  * 4. `SurfaceSelection`
- * 5. `catalog.BUILTIN_SURFACES`
+ * 5. `SurfaceDefinition.adapter` on the `*.register.ts` module
  * 6. `surfaces/index.ts` side-effect import
  * 7. `ai.test.ts` fixture
  * 8. e2e `newDocument` labels

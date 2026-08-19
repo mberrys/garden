@@ -89,7 +89,7 @@ These are the libraries named by the editor-platform issues. Status is
 
 | Library | Licence | Policy | Notes |
 | --- | --- | --- | --- |
-| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Neither is a current `package.json` dependency; text is a markdown textarea today |
+| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Not yet a runtime dependency; the text surface still edits markdown over ProseMirror-shaped Garden state |
 | Univer Sheets (OSS) | Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)). Engine only; not the document model |
 | Univer Pro / Univer import-export | commercial | **Red by default** | Native Office interchange is Pro/server, not OSS |
 | IronCalc | MIT / Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)) |
@@ -109,9 +109,9 @@ These are the libraries named by the editor-platform issues. Status is
 | ONLYOFFICE (DocumentServer / JS SDK) | AGPL-3.0 | **Red** | Not Garden’s editor foundation |
 
 Current direct runtime dependencies that already match this policy include
-Zod, Zustand, Dexie (Apache-2.0), Lucide (ISC), Next.js, React, pdf-lib, and
-PDF.js. Adding a new editor or interchange library is a policy review, not
-just a `package.json` edit.
+Zod, Zustand, Dexie (Apache-2.0), Lucide (ISC), Next.js, React,
+pdf-lib, and PDF.js. Adding a new editor or interchange library is a policy
+review, not just a `package.json` edit.
 
 ## Review checklist
 
@@ -122,7 +122,7 @@ Before merging a dependency for an editor adapter or interchange path:
 2. Confirm it is **green**, or that a yellow/red exception is written in this
    file with a reason.
 3. Confirm Garden state remains the source of truth — no engine-native objects
-   persisted in `.rrspace` / IndexedDB / a worktree.
+   persisted in `.gardenspace` / IndexedDB / a worktree.
 4. Confirm interchange does not depend on a Pro/commercial add-on.
 5. Keep the dependency’s licence notices intact.
 

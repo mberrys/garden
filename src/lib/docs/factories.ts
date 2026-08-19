@@ -1,11 +1,11 @@
 import {
   type CanvasDoc,
   type CanvasNode,
+  type DatabaseDoc,
   type DeckDoc,
   type Doc,
   type DocKind,
   type PdfDoc,
-  type DatabaseDoc,
   type SheetDoc,
   type Slide,
   type SlideElement,
@@ -125,7 +125,7 @@ export function createDoc(kind: DocKind, title?: string): Doc {
       return createDatabaseDoc(title);
     default: {
       const _exhaustive: never = kind;
-      throw new Error(`unhandled document kind: ${String(_exhaustive)}`);
+      throw new Error(`unknown document kind: ${String(_exhaustive)}`);
     }
   }
 }

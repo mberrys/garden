@@ -83,6 +83,35 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ---
 
+## Seed packets
+
+An empty workspace is a picker, not a blank suite. A **seed packet** is a
+profession-shaped starting kit: starter documents, database bases, which panes
+to open, cross-links, layout presets, extra assistant recipes, and prompt
+addenda for that craft. Choosing one **sprouts** the worktree.
+
+Packets are data (TypeScript modules), not one-off React trees. The welcome
+experience is packet `garden/welcome` — the same path as the others.
+
+Each packet carries a `version` persisted in workspace metadata (and in
+`.gardenspace` exports) so sprouted topology can evolve without breaking old
+workspaces.
+
+| Packet | Id | Sprouts |
+| --- | --- | --- |
+| Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
+| History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
+| Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
+| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
+
+You can also start blank and plant a packet later from the sidebar. Which packet
+sprouted the workspace (and its version) is stored in local metadata and
+included when you export a `.gardenspace` file.
+
+Complex packets (multiple bases, links, or many artifacts) show a preview
+listing exact artifacts, bases, views, and links before planting.
+
 ## The surfaces
 
 **Document** — markdown source editor. The stored body remains ProseMirror JSON so
@@ -111,10 +140,12 @@ small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
 number-format styling, and grid resizing.
 
-**Database** — a Garden-owned table of typed fields and rows, with grid and
-kanban views. Relation cells link rows across databases; garden_ref cells point
-at other documents in the workspace. Seed packets can plant a topology of
-linked bases in one click.
+**Database** — typed fields, rows, grid and kanban views, relation links to
+other bases in the workspace, and `garden_ref` / `external_ref` cells for
+cross-surface provenance. AI row and schema batches go through the same
+review gate as other surfaces. This is the structured-work layer — lighter
+than Airtable or Notion, local-first, and composed by seed packets rather than
+blank grids. Sheets stay as the formula grid; they are not replaced.
 
 ### Cross-surface recipes
 
@@ -159,7 +190,8 @@ anywhere; the only network request the app makes is to the local model server yo
 configure.
 
 Because browser storage can be cleared, **Export** writes the whole workspace to a
-`.gardenspace` file (documents plus embedded PDFs and images) that **Import** restores.
+`.gardenspace` file (documents plus embedded PDFs and images, and which seed packet
+sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
 `.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
 
@@ -191,6 +223,8 @@ src/
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/packets/  Seed Packet v0.1 — profession kits that sprout documents and layout
   lib/store/    zustand workspace state, Dexie persistence, import/export
+  lib/packets/  seed packet registry and sprout — profession kits that plant a
+                worktree of documents and bases
   lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
                 (engine boundary), plus a conformance harness a new adapter can fail
   surfaces/     text, canvas, deck, pdf, sheet, database
@@ -209,15 +243,15 @@ Three conventions are worth knowing before changing anything:
    they are undoable, previewable and rejectable without any special handling.
 
 3. **Engines are replaceable; Garden state is canonical.** `SurfaceDefinition` is
-   the registration contract a surface will register through. `EditorAdapter` is
-   the engine boundary: user input becomes Garden ops, Garden ops update the
-   engine without feedback loops, undo lives on Garden's stack, and `.gardenspace`
-   never persists engine internals. Built-in surfaces are described against this
+   the registration contract a surface registers through. `EditorAdapter` is the
+   engine boundary: user input becomes Garden ops, Garden ops update the engine
+   without feedback loops, undo lives on Garden's stack, and `.gardenspace` never
+   persists engine internals. Built-in surfaces are described against this
    contract before they all implement it.
 
 ---
 
 ## Licence
 
-Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE). Borrowed-engine
-policy is in [docs/licensing.md](./docs/licensing.md).
+Apache-2.0 — see [LICENSE](./LICENSE), [NOTICE](./NOTICE), and the borrowed-engine
+policy in [docs/licensing.md](./docs/licensing.md).

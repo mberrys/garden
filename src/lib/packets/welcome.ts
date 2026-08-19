@@ -2,11 +2,6 @@ import type { SeedPacket } from "./types";
 import { textFromMarkdown } from "./build";
 import { createCanvasDoc, createDeckDoc, makeCanvasNode, makeSlide } from "@/lib/docs/factories";
 
-/**
- * First-run welcome packet. Content is the three documents main previously
- * auto-planted on first run, reshaped as starter artifacts.
- */
-
 const WELCOME = `# Welcome to garden
 
 **garden** grows document worktrees from seed packets — OpenOffice meets an IDE.
@@ -179,8 +174,8 @@ export const welcomePacket: SeedPacket = {
   featuredRecipeIds: ["doc-to-deck", "doc-to-canvas"],
   assistantPromptAddenda: [
     "This workspace was planted from the garden welcome packet. The user is learning " +
-      "the suite whose assistant proposes typed operations rather than typing into the " +
-      "document. Prefer recipes that show cross-surface work: a document becoming slides " +
-      "or a diagram.",
+      "a generative document workplace whose assistant proposes typed operations rather " +
+      "than typing into the document. Prefer recipes that show cross-surface work: a " +
+      "document becoming slides or a diagram.",
   ],
 };

@@ -38,15 +38,15 @@ export function Sidebar() {
   const panes = useWorkspace((s) => s.panes);
   const activePane = useWorkspace((s) => s.activePane);
   const newDoc = useWorkspace((s) => s.newDoc);
+  const plantPacket = useWorkspace((s) => s.plantPacket);
+  const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
+  const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
   const openDoc = useWorkspace((s) => s.openDoc);
   const removeDoc = useWorkspace((s) => s.removeDoc);
   const renameDoc = useWorkspace((s) => s.renameDoc);
   const duplicateDoc = useWorkspace((s) => s.duplicateDoc);
   const reorderDoc = useWorkspace((s) => s.reorderDoc);
   const toast = useWorkspace((s) => s.toast);
-  const plantPacket = useWorkspace((s) => s.plantPacket);
-  const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
-  const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
 
   const [query, setQuery] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -154,7 +154,7 @@ export function Sidebar() {
               "No matches."
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <div>No documents yet. Create one, or drop a PDF here.</div>
+                <span>No documents yet. Plant a seed packet, create one, or drop a PDF here.</span>
                 {!seedSuppressed && (
                   <Button size="sm" variant="ghost" onClick={requestPacketPicker}>
                     <Sprout size={13} />

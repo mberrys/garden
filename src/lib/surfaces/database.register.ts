@@ -18,20 +18,21 @@ function serializeDatabase(doc: DatabaseDoc, selection?: SurfaceSelection): stri
 
   if (rows.length === 0) {
     parts.push("\n(no rows)");
-  } else {
-    parts.push("\nRows:");
-    for (const row of rows.slice(0, 80)) {
-      const cellParts = fields.map((f) => {
-        const v = row.cells[f.id];
-        if (v === undefined || v === null) return `${f.id}=`;
-        if (Array.isArray(v)) return `${f.id}=[${v.join(",")}]`;
-        if (typeof v === "object") return `${f.id}=${JSON.stringify(v)}`;
-        return `${f.id}=${String(v)}`;
-      });
-      parts.push(`  row ${row.id}: ${cellParts.join(" ")}`);
-    }
-    if (rows.length > 80) parts.push(`  …${rows.length - 80} more rows`);
+    return parts.join("\n");
   }
+
+  parts.push("\nRows:");
+  for (const row of rows.slice(0, 80)) {
+    const cellParts = fields.map((f) => {
+      const v = row.cells[f.id];
+      if (v === undefined || v === null) return `${f.id}=`;
+      if (Array.isArray(v)) return `${f.id}=[${v.join(",")}]`;
+      if (typeof v === "object") return `${f.id}=${JSON.stringify(v)}`;
+      return `${f.id}=${String(v)}`;
+    });
+    parts.push(`  row ${row.id}: ${cellParts.join(" ")}`);
+  }
+  if (rows.length > 80) parts.push(`  …${rows.length - 80} more rows`);
 
   if (selection?.kind === "database" && selection.rowId) {
     parts.push(`\nUser selected row ${selection.rowId}`);
@@ -156,6 +157,14 @@ registerSurface({
   // File cells can hold blob ids; collecting/remapping them is F01 provenance work.
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "grid and inspector commit addRow/setCell/linkRelation ops from Garden-owned controls",
+    gardenUpdates: "React grid/kanban/inspector re-render from DatabaseBody",
+    selection: "selected row + field, pushed to the workspace store",
+    notes: "Garden-owned structured base. No borrowed engine planned. garden_ref/external_ref stay Bases-local until F01.",
+  },
   loadComponent: () => import("@/surfaces/database/database-surface"),
 });
 

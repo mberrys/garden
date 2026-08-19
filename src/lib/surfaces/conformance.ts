@@ -1,4 +1,4 @@
-import type { EditorAdapter } from "./definition";
+import type { EditorAdapter } from "./adapter";
 import { createAdapterHost, FeedbackLoopError } from "./host";
 
 /**

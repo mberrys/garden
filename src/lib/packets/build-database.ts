@@ -112,13 +112,16 @@ export function applyLinkSeeds(
         .map((lid) => rowLocalToId.get(lid))
         .filter((id): id is string => Boolean(id));
       row.cells[link.fieldId] = targetIds;
-    } else {
+    } else if (link.kind === "garden_ref") {
       const documentId = localToId.get(link.targetLocalId);
       if (!documentId) continue;
       row.cells[link.fieldId] = {
         documentId,
         objectId: link.objectId,
       };
+    } else {
+      const _exhaustive: never = link;
+      throw new Error(`Unknown link kind: ${JSON.stringify(_exhaustive)}`);
     }
   }
 

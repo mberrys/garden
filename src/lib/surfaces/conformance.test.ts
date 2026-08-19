@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { allKinds } from ".";
 import {
   evaluateAdapterConformance,
   runAdapterConformance,
   type ConformanceSpec,
 } from "./conformance";
 import {
-  STUB_SURFACE,
+  applyStubBodyOps,
   applyStubDocOps,
   createStubAdapter,
   createStubDoc,
@@ -35,22 +36,19 @@ function stubSpec(): ConformanceSpec<StubDoc, StubOp, StubSelection, StubIntent>
 describe("stub adapter", () => {
   runAdapterConformance(stubSpec(), it);
 
-  it("round-trips ops through SurfaceDefinition.applyOps", () => {
+  it("round-trips ops through the stub reducer", () => {
     const body = { title: "A", items: ["x"] };
-    const { body: next, inverse } = STUB_SURFACE.applyOps(body, [
+    const { body: next, inverse } = applyStubBodyOps(body, [
       { op: "insertItem", index: 1, text: "y" },
     ]);
     expect(next).toEqual({ title: "A", items: ["x", "y"] });
-    const back = STUB_SURFACE.applyOps(next, inverse);
+    const back = applyStubBodyOps(next, inverse);
     expect(back.body).toEqual(body);
   });
 
-  it("exposes createAdapter on the stub SurfaceDefinition", () => {
-    expect(STUB_SURFACE.kind).toBe("stub");
-    expect(STUB_SURFACE.createAdapter).toBeTypeOf("function");
-    const adapter = STUB_SURFACE.createAdapter?.();
-    expect(adapter).toBeDefined();
-    adapter?.dispose();
+  it("is not a registered DocKind", () => {
+    expect(createStubDoc().kind).toBe("stub");
+    expect((allKinds() as string[]).includes("stub")).toBe(false);
   });
 });
 

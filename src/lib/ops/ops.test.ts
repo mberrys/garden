@@ -8,16 +8,7 @@ import {
   createSheetDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
-import type {
-  CanvasDoc,
-  DatabaseDoc,
-  DeckDoc,
-  Doc,
-  DocKind,
-  PdfDoc,
-  SheetDoc,
-  TextDoc,
-} from "@/lib/docs/schema";
+import type { CanvasDoc, DatabaseDoc, DeckDoc, Doc, DocKind, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
 import type { OpOf } from ".";
 
 /**
@@ -418,6 +409,7 @@ describe("describeOperation", () => {
       { op: "moveSlide", id: "sl_a", toIndex: 2 },
       { op: "addAnnotation", page: 2, type: "highlight", rect: { x: 0, y: 0, w: 1, h: 1 } },
       { op: "setSource", blobId: null, fileName: "a.pdf", pageCount: 3 },
+      { op: "setCell", ref: "A1", value: "42" },
       { op: "addRow", row: { cells: { fld_a: "x" } } },
       { op: "setCell", rowId: "row_a", fieldId: "fld_a", value: "y" },
       { op: "setActiveView", id: "vw_a" },

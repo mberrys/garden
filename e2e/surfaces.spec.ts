@@ -23,6 +23,7 @@ test("seeds a starter workspace from the welcome packet", async ({ page }) => {
   await expect(sidebar).toContainText("Welcome to garden");
   await expect(sidebar).toContainText("How an edit flows");
   await expect(page.locator(".garden-markdown")).toHaveValue(/seed packets/);
+  await expect(page.locator('canvas[aria-label="Drawing canvas"]')).toBeVisible();
 });
 
 test("text: typing persists across a reload", async ({ page }) => {
@@ -120,7 +121,7 @@ test("database: adding a row, then undo", async ({ page }) => {
 
   await expect(page.getByText("Grid")).toBeVisible();
   await expect(page.getByText("0 rows")).toBeVisible();
-  await page.click('button:has-text("Add row")');
+  await page.getByRole("button", { name: "Add row", exact: true }).click();
   await expect(page.getByText("1 rows")).toBeVisible();
 
   await page.click('button[aria-label="Undo"]');

@@ -142,6 +142,15 @@ registerSurface({
   describeOp: describeCanvasOp,
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "gestures preview locally, then commit on release",
+    gardenUpdates: "React host re-renders from CanvasDoc.body",
+    selection: "node id list, pushed to the workspace store",
+    notes: "Garden-owned scene graph. Optional Konva later (#41) must mount as an adapter, not as the document model.",
+    relatedIssue: 41,
+  },
   loadComponent: () => import("@/surfaces/canvas/canvas-surface"),
 });
 

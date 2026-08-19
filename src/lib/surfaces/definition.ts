@@ -4,25 +4,28 @@ import type { LucideIcon } from "lucide-react";
 import type { Doc, DocKind } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import type { MockRequest } from "@/lib/ai/mock";
+import type { EditorAdapter } from "./adapter";
 
 /**
- * Translate an external editor engine into Garden semantics (issue #31).
- *
- * The engine may keep ephemeral UI state (caret pixel, scroll, drag preview).
- * Canonical document state, selection that AI/undo care about, and history
- * live on the Garden side of this boundary — never the engine's.
+ * How a surface sits against {@link EditorAdapter} today — including built-ins
+ * that have not wrapped their React host yet. Status is `planned` when a later
+ * suite issue will put a borrowed engine behind the contract.
  */
-export interface EditorAdapter<Doc, Op, Selection> {
-  /** Bind the engine to a Garden document. Must not emit user edits. */
-  mount(doc: Doc): void;
-  /** Push canonical Garden state into the engine. Must not emit user edits. */
-  update(doc: Doc): void;
-  /** Translate editor-native input back into Garden operations. */
-  onUserEdit(callback: (ops: Op[]) => void): void;
-  readSelection(): Selection | null;
-  focusSelection(selection: Selection): void;
-  /** Drop engine state. A remount must start from Garden, not leftovers. */
-  dispose(): void;
+export type AdapterStatus = "not-required" | "planned";
+
+export type EngineOwnership = "garden" | "borrowed";
+
+export interface AdapterPosture {
+  engine: EngineOwnership;
+  status: AdapterStatus;
+  /** `EditorAdapter.onUserEdit` — how gestures become ops today. */
+  userEdits: string;
+  /** `EditorAdapter.update` — how Garden state reaches the UI. */
+  gardenUpdates: string;
+  /** `readSelection` / `focusSelection` — what the surface publishes today. */
+  selection: string;
+  notes: string;
+  relatedIssue?: number;
 }
 
 /**
@@ -60,15 +63,15 @@ export interface SurfaceDefinition<K extends DocKind = any> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   remapBlobIds: (doc: any, map: Map<string, string>) => any;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  loadComponent: () => Promise<{ default: ComponentType<any> }>;
-
+  adapter: AdapterPosture;
   /**
-   * Present when the surface borrows an external editor engine instead of a
-   * Garden-owned React host (issue #31). Garden-owned UIs — the common case —
-   * omit this entirely; canonical state, undo and the AI review gate stay on
-   * the Garden side regardless of whether an adapter is present.
+   * Present when the surface borrows an editor engine. Garden-owned UIs omit it
+   * until a later suite issue wraps them. The stub notes adapter is not a
+   * `DocKind` and does not register here.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createAdapter?: () => EditorAdapter<any, any, any>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  loadComponent: () => Promise<{ default: ComponentType<any> }>;
 }

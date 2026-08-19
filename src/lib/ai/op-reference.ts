@@ -1,5 +1,6 @@
+import type { ZodType } from "zod";
 import type { DocKind } from "@/lib/docs/schema";
-import { OP_SCHEMAS } from "@/lib/ops";
+import { getSurface } from "@/lib/surfaces";
 
 /**
  * Renders a surface's operation vocabulary as prompt text, generated from the
@@ -69,9 +70,9 @@ function describeType(schema: ZodInternal): { text: string; optional: boolean } 
 }
 
 /** One line per operation: `op "name" — description; args`. */
-export function opReference(kind: DocKind): string {
-  const schema = OP_SCHEMAS[kind] as unknown as ZodInternal;
-  const options = (schema.def.options ?? []) as unknown as ZodInternal[];
+export function opReferenceFromSchema(schema: ZodType): string {
+  const internal = schema as unknown as ZodInternal;
+  const options = (internal.def.options ?? []) as unknown as ZodInternal[];
 
   return options
     .map((option) => {
@@ -88,6 +89,10 @@ export function opReference(kind: DocKind): string {
       return `- {"op": ${JSON.stringify(opName)}${args.length ? `, ${args.join(", ")}` : ""}}${description}`;
     })
     .join("\n");
+}
+
+export function opReference(kind: DocKind): string {
+  return opReferenceFromSchema(getSurface(kind).opSchema);
 }
 
 export type { ZodInternal };

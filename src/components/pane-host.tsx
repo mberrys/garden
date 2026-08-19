@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Columns2, X } from "lucide-react";
 import { useWorkspace, workspaceShowsPacketPicker, type PaneIndex } from "@/lib/store/workspace";
 import { importFile } from "@/lib/store/bundle";
-import { Button, EmptyState, IconButton, cx } from "./ui";
+import { EmptyState, IconButton, Button, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { SurfaceHost } from "./surface-host";
 import { SeedPacketPicker } from "./seed-packet-picker";

@@ -6,13 +6,13 @@ import "./sheet.register";
 import "./database.register";
 
 export { registerSurface, getSurface, allSurfaces, allKinds } from "./registry";
-export type { SurfaceDefinition, EditorAdapter } from "./definition";
-export {
-  BUILTIN_SURFACES,
-  type AdapterStatus,
-  type BuiltinSurfaceDescription,
-  type EngineOwnership,
-} from "./catalog";
+export type {
+  AdapterPosture,
+  AdapterStatus,
+  EngineOwnership,
+  SurfaceDefinition,
+} from "./definition";
+export type { EditorAdapter } from "./adapter";
 export {
   CONFORMANCE_CASES,
   CONFORMANCE_LABELS,
@@ -28,7 +28,6 @@ export {
 } from "./conformance";
 export { createAdapterHost, FeedbackLoopError, type AdapterHost } from "./host";
 export {
-  STUB_SURFACE,
   applyStubBodyOps,
   applyStubDocOps,
   createStubAdapter,

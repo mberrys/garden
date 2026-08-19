@@ -34,8 +34,9 @@ export function systemPrompt(kind: DocKind, addenda?: string): string {
     "## Notes for this surface",
     getSurface(kind).promptNotes,
   ];
-  if (addenda?.trim()) {
-    parts.push("", "## Workspace craft", addenda.trim());
+  const extra = addenda?.trim();
+  if (extra) {
+    parts.push("", "## Workspace craft", extra);
   }
   return parts.join("\n");
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AlertCircle, Check, ChevronDown, ChevronRight, X } from "lucide-react";
 import { useThreads, type Suggestion } from "@/lib/ai/thread";
 import { useWorkspace } from "@/lib/store/workspace";
-import { DOC_KIND_LABELS } from "@/lib/docs/schema";
+import { getSurface } from "@/lib/surfaces";
 import { Button, cx } from "../ui";
 import { DocIcon } from "../doc-icon";
 
@@ -103,7 +103,7 @@ export function SuggestionCard({ suggestionId }: { suggestionId: string }) {
             Discard
           </Button>
           <span className="ml-auto text-[11px] text-faint">
-            {DOC_KIND_LABELS[suggestion.kind]}
+            {getSurface(suggestion.kind).label}
           </span>
         </div>
       )}

@@ -91,10 +91,15 @@ interface WorkspaceState {
   selection: Record<string, SurfaceSelection>;
   toasts: Toast[];
   aiPanelOpen: boolean;
+  /** Packet that sprouted this workspace, if any. */
   seedPacketId: string | null;
+  /** Version of the packet that sprouted this workspace. */
   seedPacketVersion: number | null;
+  /** User chose "start blank" on an empty workspace. */
   blankWorkspace: boolean;
+  /** e2e flag: do not auto-plant and do not show the picker. */
   seedSuppressed: boolean;
+  /** User asked to see the picker (empty blank workspace, or New menu). */
   packetPickerRequested: boolean;
 
   init: () => Promise<void>;
@@ -602,6 +607,7 @@ function summarise(ops: AnyOp[]): string {
   return `${ops.length} changes`;
 }
 
+/** Empty workspace shows the packet picker unless the user chose blank or e2e suppressed it. */
 export function workspaceShowsPacketPicker(state: {
   seedSuppressed: boolean;
   order: string[];

@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RotateCcw, Send, Sparkles, Square, X } from "lucide-react";
-import { createDoc } from "@/lib/docs/factories";
+import { createDoc } from "@/lib/docs/create-doc";
 import type { Doc, DocKind } from "@/lib/docs/schema";
-import { DOC_KIND_LABELS } from "@/lib/docs/schema";
+import { getSurface } from "@/lib/surfaces";
 import { useWorkspace } from "@/lib/store/workspace";
 import { useThreads } from "@/lib/ai/thread";
 import { recipesFor, type Recipe } from "@/lib/ai/recipes";
@@ -121,7 +121,7 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
             <span className="min-w-0 flex-1 truncate" title={doc.title}>
               {doc.title}
             </span>
-            <span className="shrink-0 text-faint">{DOC_KIND_LABELS[doc.kind]}</span>
+            <span className="shrink-0 text-faint">{getSurface(doc.kind).label}</span>
           </div>
 
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
@@ -226,7 +226,7 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
                 rows={1}
                 value={draft}
                 disabled={busy}
-                placeholder={`Ask about this ${DOC_KIND_LABELS[doc.kind].toLowerCase()}…`}
+                placeholder={`Ask about this ${getSurface(doc.kind).label.toLowerCase()}…`}
                 onChange={(e) => {
                   setDraft(e.target.value);
                   e.target.style.height = "auto";
