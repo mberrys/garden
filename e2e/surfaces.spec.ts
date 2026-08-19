@@ -115,6 +115,32 @@ test("sheet: entering a value and a formula, then undo", async ({ page }) => {
   await expect(page.locator('[aria-label="A1"]')).toContainText("10");
 });
 
+test("database: adding a row, then undo", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Database");
+
+  await expect(page.getByText("Grid")).toBeVisible();
+  await expect(page.getByText("0 rows")).toBeVisible();
+  await page.getByRole("button", { name: "Add row", exact: true }).click();
+  await expect(page.getByText("1 rows")).toBeVisible();
+
+  await page.click('button[aria-label="Undo"]');
+  await expect(page.getByText("0 rows")).toBeVisible();
+});
+
+test("campaign packet sprouts databases and a brief", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('button[aria-label="Plant Campaign"]', { timeout: 30_000 });
+  await page.getByRole("button", { name: "Plant Campaign" }).click();
+  await page.getByRole("button", { name: "Plant packet" }).click();
+
+  const sidebar = page.locator("aside").first();
+  await expect(sidebar).toContainText("Campaign Brief");
+  await expect(sidebar).toContainText("Story Angles");
+  await expect(page.locator(".garden-markdown")).toHaveValue(/Campaign brief/);
+  await expect(page.getByText("Local-first workplace")).toBeVisible();
+});
+
 test("pdf: rendering, annotating, and capturing the quoted text", async ({ page }) => {
   await openEmptyWorkspace(page);
   await page.setInputFiles('input[type="file"]', await samplePdfPath());
@@ -144,29 +170,4 @@ test("pdf: rendering, annotating, and capturing the quoted text", async ({ page 
   await expect(
     page.getByRole("button", { name: /p1 · highlight/i }),
   ).toContainText("The migration completed");
-});
-
-test("database: adding a row, then undo", async ({ page }) => {
-  await openEmptyWorkspace(page);
-  await newDocument(page, "Database");
-
-  await expect(page.getByText("0 rows")).toBeVisible();
-  await page.getByRole("button", { name: "Add row", exact: true }).click();
-  await expect(page.getByText("1 rows")).toBeVisible();
-
-  await page.click('button[aria-label="Undo"]');
-  await expect(page.getByText("0 rows")).toBeVisible();
-});
-
-test("plants comms/campaign and shows brief plus story pipeline", async ({ page }) => {
-  await page.goto("/");
-  await page.waitForSelector('button[aria-label="Plant Campaign"]', { timeout: 30_000 });
-  await page.getByRole("button", { name: "Plant Campaign" }).click();
-  await page.getByRole("button", { name: "Plant packet" }).click();
-
-  const sidebar = page.locator("aside").first();
-  await expect(sidebar).toContainText("Campaign Brief");
-  await expect(sidebar).toContainText("Story Angles");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Campaign brief/);
-  await expect(page.getByText("Local-first workplace")).toBeVisible();
 });

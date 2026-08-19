@@ -1,13 +1,13 @@
 import { z } from "zod";
 import {
   CellValueSchema,
-  DOC_KINDS,
   DocKindSchema,
   PACKET_CAPABILITIES,
   type Doc,
   type DocKind,
 } from "@/lib/docs/schema";
 import type { Recipe } from "@/lib/ai/recipes";
+import { allKinds } from "@/lib/surfaces/registry";
 
 /**
  * A profession-shaped starting kit. Packets are data (TS modules + builders),
@@ -212,9 +212,10 @@ export interface PacketAvailability {
 }
 
 export function packetAvailability(packet: SeedPacket): PacketAvailability {
+  const registered = new Set(allKinds());
   const requiredSurfaces = packet.requires?.surfaces ?? [];
   for (const surface of requiredSurfaces) {
-    if (!DOC_KINDS.includes(surface)) {
+    if (!registered.has(surface)) {
       return {
         available: false,
         reason: `Requires unsupported surface "${surface}"`,

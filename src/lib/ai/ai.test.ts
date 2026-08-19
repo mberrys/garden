@@ -7,10 +7,10 @@ import { RECIPES, recipesFor } from "./recipes";
 import { DOC_KINDS, type Doc, type DocKind } from "@/lib/docs/schema";
 import {
   createCanvasDoc,
+  createDatabaseDoc,
   createDeckDoc,
   createPdfDoc,
   createSheetDoc,
-  createDatabaseDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
 import { applyOps, OP_SCHEMAS } from "@/lib/ops";

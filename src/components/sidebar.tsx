@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { DOC_KIND_LABELS, type Doc } from "@/lib/docs/schema";
+import { listPackets } from "@/lib/packets";
 import { useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
@@ -22,7 +23,6 @@ import {
   timestampedName,
 } from "@/lib/store/bundle";
 import { allSurfaces } from "@/lib/surfaces/registry";
-import { listPackets } from "@/lib/packets";
 import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { WindowChromeStrip } from "./window-chrome";

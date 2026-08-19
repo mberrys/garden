@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import "@/lib/surfaces";
 import { RECIPES, recipesFor } from "@/lib/ai/recipes";
 import { systemPrompt } from "@/lib/ai/prompt";
 import { DocSchema } from "@/lib/docs/schema";
 import { workspaceShowsPacketPicker } from "@/lib/store/workspace";
 import { getPacket, listPackets, PACKETS } from "./registry";
 import { sproutPacket } from "./sprout";
-import { parseSeedPacket } from "./types";
+import { packetAvailability, parseSeedPacket } from "./types";
 import { welcomePacket } from "./welcome";
 
 describe("seed packets", () => {
@@ -131,6 +132,12 @@ describe("seed packets", () => {
         layout: { open: [{ localId: "welcome", pane: 1 }] },
       }),
     ).toThrow(/pane 0/);
+  });
+
+  it("marks the campaign packet available once database is registered", () => {
+    const packet = getPacket("comms/campaign");
+    expect(packet).toBeDefined();
+    expect(packetAvailability(packet!)).toEqual({ available: true });
   });
 });
 

@@ -11,6 +11,20 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
+/**
+ * Closed-union checklist when adding a kind. Registration alone is not enough:
+ * `workspace.newDoc` calls `factories.createDoc`, and `parseOps` validates
+ * against `OP_SCHEMAS`, not the surface registry.
+ *
+ * 1. `DOC_KINDS` / `DocSchema` / `DOC_KIND_LABELS`
+ * 2. `factories.createDoc`
+ * 3. `OpMap` / `OP_SCHEMAS` / `AnyOp`
+ * 4. `SurfaceSelection`
+ * 5. `SurfaceDefinition.adapter` on the `*.register.ts` module
+ * 6. `surfaces/index.ts` side-effect import
+ * 7. `ai.test.ts` fixture
+ * 8. e2e `newDocument` labels
+ */
 export const DOC_KINDS = ["text", "pdf", "deck", "canvas", "sheet", "database"] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;

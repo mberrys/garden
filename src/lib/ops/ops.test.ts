@@ -410,7 +410,9 @@ describe("describeOperation", () => {
       { op: "addAnnotation", page: 2, type: "highlight", rect: { x: 0, y: 0, w: 1, h: 1 } },
       { op: "setSource", blobId: null, fileName: "a.pdf", pageCount: 3 },
       { op: "setCell", ref: "A1", value: "42" },
-      { op: "addRow", row: { cells: {} } },
+      { op: "addRow", row: { cells: { fld_a: "x" } } },
+      { op: "setCell", rowId: "row_a", fieldId: "fld_a", value: "y" },
+      { op: "setActiveView", id: "vw_a" },
     ];
     for (const op of samples) {
       const text = describeOperation(op);

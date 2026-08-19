@@ -8,10 +8,9 @@ import { useWorkspace } from "@/lib/store/workspace";
 import { streamAssistant, type ChatMessage } from "./client";
 import { parseOpsFromReply, stripOpsBlocks } from "./ops-block";
 import { repairTurn, systemPrompt, userTurn } from "./prompt";
+import { getPacket, packetAssistantAddenda } from "@/lib/packets";
 import type { MockRequest } from "./mock";
 import type { ProviderKind } from "./config";
-import { getPacket } from "@/lib/packets/registry";
-import { packetAssistantAddenda } from "@/lib/packets/types";
 
 /**
  * Conversation state and the suggestion lifecycle.

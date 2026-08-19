@@ -20,14 +20,13 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
   const panes = useWorkspace((s) => s.panes);
   const addDoc = useWorkspace((s) => s.addDoc);
   const openDoc = useWorkspace((s) => s.openDoc);
+  const seedPacketId = useWorkspace((s) => s.seedPacketId);
 
   const status = useProvider((s) => s.status);
   const threads = useThreads((s) => s.threads);
   const send = useThreads((s) => s.send);
   const stop = useThreads((s) => s.stop);
   const clear = useThreads((s) => s.clear);
-
-  const seedPacketId = useWorkspace((s) => s.seedPacketId);
 
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);

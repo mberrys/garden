@@ -12,6 +12,19 @@ describe("surface registry", () => {
     expect(kinds.size).toBe(DOC_KINDS.length);
   });
 
+  it("factories and registry cover the same kinds", () => {
+    expect([...allKinds()].sort()).toEqual([...DOC_KINDS].sort());
+    for (const kind of DOC_KINDS) {
+      expect(getSurface(kind).createDoc().kind).toBe(kind);
+    }
+  });
+
+  it("gives database a catalog color distinct from sheet", () => {
+    expect(getSurface("database").iconColor).toBe("#ec4899");
+    expect(getSurface("sheet").iconColor).toBe("#10b981");
+    expect(getSurface("database").iconColor).not.toBe(getSurface("sheet").iconColor);
+  });
+
   it("getSurface returns a definition for each kind", () => {
     for (const kind of DOC_KINDS) {
       const def = getSurface(kind);
@@ -44,6 +57,14 @@ describe("surface registry", () => {
     const canvasDef = getSurface("canvas");
     expect(typeof canvasDef.describeOp({ op: "addNode", node: { kind: "rect" } })).toBe("string");
     expect(canvasDef.describeOp({ op: "insertMarkdown", index: 0, markdown: "hi" })).toBeUndefined();
+
+    const databaseDef = getSurface("database");
+    expect(typeof databaseDef.describeOp({ op: "addRow" })).toBe("string");
+    expect(databaseDef.describeOp({ op: "setCell", ref: "A1", value: "x" })).toBeUndefined();
+
+    const sheetDef = getSurface("sheet");
+    expect(typeof sheetDef.describeOp({ op: "setCell", ref: "A1", value: "hi" })).toBe("string");
+    expect(sheetDef.describeOp({ op: "setCell", rowId: "row_a", fieldId: "fld_a", value: "x" })).toBeUndefined();
   });
 
   it("op reference generation works via the registry opSchema", () => {

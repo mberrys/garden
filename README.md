@@ -4,7 +4,7 @@ A **generative document workplace** — OpenOffice meets an IDE.
 
 Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
 presentations, drawings, spreadsheets, and databases. One shell, one undo
-stack, and a local AI that edits through reviewable operations — not five apps
+stack, and a local AI that edits through reviewable operations — not six apps
 side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
@@ -12,7 +12,7 @@ wherever you point it.
 
 ---
 
-## What makes it different from five editors in a row
+## What makes it different from six editors in a row
 
 The assistant does not type into your document.
 
@@ -221,6 +221,7 @@ src/
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
+  lib/packets/  Seed Packet v0.1 — profession kits that sprout documents and layout
   lib/store/    zustand workspace state, Dexie persistence, import/export
   lib/packets/  seed packet registry and sprout — profession kits that plant a
                 worktree of documents and bases

@@ -1,5 +1,5 @@
 import { Table2 } from "lucide-react";
-import type { DatabaseDoc } from "@/lib/docs/schema";
+import type { DatabaseDoc, DatabaseField } from "@/lib/docs/schema";
 import { DatabaseOpSchema, applyDatabaseOps } from "@/lib/ops/database";
 import { createDatabaseDoc } from "@/lib/docs/factories";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
@@ -13,13 +13,7 @@ function serializeDatabase(doc: DatabaseDoc, selection?: SurfaceSelection): stri
     `Database "${doc.title}" — ${fields.length} field(s), ${rows.length} row(s), ${views.length} view(s).`,
     `Active view: ${activeViewId ?? "(none)"}`,
     "\nFields:",
-    ...fields.map((f) => {
-      if (f.type === "relation") return `  ${f.id} ${f.name} relation -> ${f.targetDocId}`;
-      if (f.type === "select" || f.type === "multi_select") {
-        return `  ${f.id} ${f.name} ${f.type} [${f.options.join(", ")}]`;
-      }
-      return `  ${f.id} ${f.name} ${f.type}`;
-    }),
+    ...fields.map((f) => fieldLine(f)),
   ];
 
   if (rows.length === 0) {
@@ -47,6 +41,29 @@ function serializeDatabase(doc: DatabaseDoc, selection?: SurfaceSelection): stri
   return parts.join("\n");
 }
 
+function fieldLine(field: DatabaseField): string {
+  switch (field.type) {
+    case "relation":
+      return `  ${field.id} ${field.name} relation -> ${field.targetDocId}`;
+    case "select":
+    case "multi_select":
+      return `  ${field.id} ${field.name} ${field.type} [${field.options.join(", ")}]`;
+    case "text":
+    case "number":
+    case "date":
+    case "checkbox":
+    case "url":
+    case "file":
+    case "garden_ref":
+    case "external_ref":
+      return `  ${field.id} ${field.name} ${field.type}`;
+    default: {
+      const _exhaustive: never = field;
+      return `  ${JSON.stringify(_exhaustive)}`;
+    }
+  }
+}
+
 function describeDatabaseSelection(selection: SurfaceSelection): string | null {
   if (selection.kind !== "database") return null;
   return selection.rowId
@@ -60,6 +77,7 @@ function mockDatabase(request: MockRequest): string {
   const doc = request.doc as DatabaseDoc;
   const ask = request.request.toLowerCase();
   const nameField = doc.body.fields.find((f) => f.type === "text");
+
   if (/add|row|insert/.test(ask)) {
     const cells: Record<string, unknown> = {};
     if (nameField) cells[nameField.id] = "New row (scripted)";
@@ -67,10 +85,7 @@ function mockDatabase(request: MockRequest): string {
   }
   if (/field|column|schema/.test(ask)) {
     return block("Added a notes field.", [
-      {
-        op: "addField",
-        field: { type: "text", name: "Notes" },
-      },
+      { op: "addField", field: { type: "text", name: "Notes" } },
     ]);
   }
   const rowId = doc.body.rows[0]?.id;
@@ -79,12 +94,7 @@ function mockDatabase(request: MockRequest): string {
     return block("This database has no rows to update yet.", []);
   }
   return block("Updated the first row's primary text field.", [
-    {
-      op: "setCell",
-      rowId,
-      fieldId,
-      value: "Updated by scripted provider",
-    },
+    { op: "setCell", rowId, fieldId, value: "Updated by scripted provider" },
   ]);
 }
 
@@ -107,14 +117,14 @@ function describeDatabaseOp(op: Record<string, unknown>): string | undefined {
     case "reorderRow":
       return `Move row ${op.id} to position ${op.toIndex}`;
     case "setCell":
-      if (typeof op.rowId !== "string") return undefined;
+      if (typeof op.rowId !== "string" || typeof op.fieldId !== "string") return undefined;
       return `Set cell on row ${op.rowId}`;
     case "linkRelation":
       return `Link ${((op.targetRowIds as unknown[]) ?? []).length} row(s) on ${op.rowId}`;
     case "unlinkRelation":
       return `Unlink row(s) on ${op.rowId}`;
     case "addView":
-      return `Add ${(op.view as { type?: string } | undefined)?.type ?? "database"} view`;
+      return `Add ${(op.view as { type?: string } | undefined)?.type ?? "typed"} view`;
     case "updateView":
       return `Update view ${op.id}`;
     case "deleteView":
@@ -130,7 +140,7 @@ registerSurface({
   kind: "database",
   label: "Database",
   icon: Table2,
-  iconColor: "#0d9488",
+  iconColor: "#ec4899",
   opSchema: DatabaseOpSchema,
   applyOps: applyDatabaseOps,
   createDoc: createDatabaseDoc,
@@ -144,6 +154,7 @@ registerSurface({
   describeSelection: describeDatabaseSelection,
   mockReply: mockDatabase,
   describeOp: describeDatabaseOp,
+  // File cells can hold blob ids; collecting/remapping them is F01 provenance work.
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
   adapter: {
