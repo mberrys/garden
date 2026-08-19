@@ -6,6 +6,7 @@ import { migrateDoc } from "@/lib/docs/migrations";
 import { createPdfDoc, createTextDoc } from "@/lib/docs/factories";
 import { markdownToDoc } from "@/lib/text/markdown";
 import { applyOps } from "@/lib/ops";
+import { getSurface } from "@/lib/surfaces/registry";
 import * as db from "./db";
 import { flushPendingSaves, storeBlob, useWorkspace } from "./workspace";
 
@@ -69,13 +70,8 @@ function base64ToBytes(base64: string): Uint8Array {
 function referencedBlobIds(docs: Doc[]): Set<string> {
   const ids = new Set<string>();
   for (const doc of docs) {
-    if (doc.kind === "pdf" && doc.body.blobId) ids.add(doc.body.blobId);
-    if (doc.kind === "deck") {
-      for (const slide of doc.body.slides) {
-        for (const el of slide.elements) {
-          if (el.type === "image" && el.blobId) ids.add(el.blobId);
-        }
-      }
+    for (const id of getSurface(doc.kind).referencedBlobIds(doc)) {
+      ids.add(id);
     }
   }
   return ids;
@@ -169,30 +165,7 @@ export async function importBundle(text: string): Promise<ImportResult> {
 
 function remapBlobIds(doc: Doc, map: Map<string, string>): Doc {
   if (map.size === 0) return doc;
-
-  if (doc.kind === "pdf" && doc.body.blobId) {
-    const next = map.get(doc.body.blobId);
-    return next ? { ...doc, body: { ...doc.body, blobId: next } } : doc;
-  }
-
-  if (doc.kind === "deck") {
-    return {
-      ...doc,
-      body: {
-        ...doc.body,
-        slides: doc.body.slides.map((slide) => ({
-          ...slide,
-          elements: slide.elements.map((el) =>
-            el.type === "image" && el.blobId && map.has(el.blobId)
-              ? { ...el, blobId: map.get(el.blobId)! }
-              : el,
-          ),
-        })),
-      },
-    };
-  }
-
-  return doc;
+  return getSurface(doc.kind).remapBlobIds(doc, map);
 }
 
 /* ------------------------------------------------------------------ *
