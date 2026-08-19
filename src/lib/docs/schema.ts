@@ -11,7 +11,7 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
-export const DOC_KINDS = ["text", "pdf", "deck", "canvas"] as const;
+export const DOC_KINDS = ["text", "pdf", "deck", "canvas", "sheet"] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;
 
@@ -20,6 +20,7 @@ export const DOC_KIND_LABELS: Record<DocKind, string> = {
   pdf: "PDF",
   deck: "Deck",
   canvas: "Canvas",
+  sheet: "Sheet",
 };
 
 /* ------------------------------------------------------------------ *
@@ -415,6 +416,56 @@ export const PdfBodySchema = z.object({
 export type PdfBody = z.infer<typeof PdfBodySchema>;
 
 /* ------------------------------------------------------------------ *
+ * Sheet — a grid of cells addressed by A1 references
+ * ------------------------------------------------------------------ */
+
+/** Upper bounds on the grid; generous for a browser doc, small enough to fit. */
+export const SHEET_MAX_ROWS = 500;
+export const SHEET_MAX_COLS = 52; // A..AZ
+
+export const CellAlignSchema = z.enum(["left", "center", "right"]);
+export type CellAlign = z.infer<typeof CellAlignSchema>;
+
+/** How a cell's *computed* value is rendered; the raw string is unchanged. */
+export const CellFormatSchema = z.enum(["auto", "number", "currency", "percent", "text"]);
+export type CellFormat = z.infer<typeof CellFormatSchema>;
+
+/**
+ * A single cell. `value` is the raw user input — a leading `=` marks a formula.
+ * Computed values are derived at render time (see `lib/sheet`), never stored, so
+ * the op reducer stays pure and every edit inverts exactly.
+ */
+export const SheetCellSchema = z.object({
+  value: z.string().default(""),
+  bold: z.boolean().default(false),
+  italic: z.boolean().default(false),
+  align: CellAlignSchema.default("left"),
+  format: CellFormatSchema.default("auto"),
+});
+export type SheetCell = z.infer<typeof SheetCellSchema>;
+
+/** Style fields a `setStyle` op may patch — the cell shape minus `value`. */
+export const CellStylePatchSchema = z
+  .object({
+    bold: z.boolean(),
+    italic: z.boolean(),
+    align: CellAlignSchema,
+    format: CellFormatSchema,
+  })
+  .partial();
+export type CellStylePatch = z.infer<typeof CellStylePatchSchema>;
+
+export const SheetBodySchema = z.object({
+  rows: z.number().int().min(1).max(SHEET_MAX_ROWS).default(20),
+  cols: z.number().int().min(1).max(SHEET_MAX_COLS).default(8),
+  /** Sparse map keyed by A1 ref (e.g. "B3"); empty cells are omitted. */
+  cells: z.record(z.string(), SheetCellSchema).default({}),
+  /** Pixel widths keyed by column letter (e.g. "A"); defaulted when absent. */
+  columnWidths: z.record(z.string(), z.number().min(24).max(640)).default({}),
+});
+export type SheetBody = z.infer<typeof SheetBodySchema>;
+
+/* ------------------------------------------------------------------ *
  * Document envelope
  * ------------------------------------------------------------------ */
 
@@ -450,17 +501,25 @@ export const PdfDocSchema = z.object({
   body: PdfBodySchema,
 });
 
+export const SheetDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("sheet"),
+  body: SheetBodySchema,
+});
+
 export const DocSchema = z.discriminatedUnion("kind", [
   TextDocSchema,
   CanvasDocSchema,
   DeckDocSchema,
   PdfDocSchema,
+  SheetDocSchema,
 ]);
 
 export type TextDoc = z.infer<typeof TextDocSchema>;
 export type CanvasDoc = z.infer<typeof CanvasDocSchema>;
 export type DeckDoc = z.infer<typeof DeckDocSchema>;
 export type PdfDoc = z.infer<typeof PdfDocSchema>;
+export type SheetDoc = z.infer<typeof SheetDocSchema>;
 export type Doc = z.infer<typeof DocSchema>;
 
 /** `DocOf<'deck'>` -> `DeckDoc`. Used to keep the op layer generic but exact. */

@@ -9,6 +9,7 @@ import {
   createCanvasDoc,
   createDeckDoc,
   createPdfDoc,
+  createSheetDoc,
   createTextDoc,
 } from "@/lib/docs/factories";
 import { applyOps, OP_SCHEMAS } from "@/lib/ops";
@@ -78,6 +79,13 @@ describe("mock provider", () => {
         { op: "setPageText", page: 2, text: "Compute spend fell 34% year on year." },
       ]).doc;
     },
+    sheet: () =>
+      applyOps<"sheet">(createSheetDoc("Budget"), [
+        {
+          op: "setCells",
+          cells: { A1: "Item", B1: "Cost", A2: "Rent", B2: "1200", A3: "Food", B3: "300" },
+        },
+      ]).doc,
   };
 
   /**

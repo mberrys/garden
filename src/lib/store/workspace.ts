@@ -25,7 +25,8 @@ export type SurfaceSelection =
   | { kind: "text"; blockIndex: number; blockCount: number; text: string }
   | { kind: "canvas"; nodeIds: string[] }
   | { kind: "deck"; slideId: string | null; elementIds: string[] }
-  | { kind: "pdf"; page: number; text: string; annotationId: string | null };
+  | { kind: "pdf"; page: number; text: string; annotationId: string | null }
+  | { kind: "sheet"; cell: string | null; range: string | null };
 
 interface HistoryEntry {
   inverse: AnyOp[];
@@ -62,7 +63,6 @@ export interface CommitResult {
 const COALESCE_MS = 900;
 const HISTORY_LIMIT = 200;
 const SAVE_DEBOUNCE_MS = 450;
-
 
 const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });
 

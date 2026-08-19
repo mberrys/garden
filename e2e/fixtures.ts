@@ -74,7 +74,7 @@ export async function openSeededWorkspace(page: Page): Promise<void> {
   await page.waitForSelector('button[aria-label="New document"]', { timeout: 30_000 });
 }
 
-export async function newDocument(page: Page, kind: "Document" | "Canvas" | "Deck" | "PDF") {
+export async function newDocument(page: Page, kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet") {
   await page.click('button[aria-label="New document"]');
   await page.click(`[role="menuitem"]:has-text("${kind}")`);
 }

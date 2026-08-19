@@ -4,7 +4,7 @@ import { DOC_KINDS, DocSchema, type DocKind } from "@/lib/docs/schema";
 import { opReference } from "@/lib/ai/op-reference";
 
 describe("surface registry", () => {
-  it("discovers all four built-in surfaces", () => {
+  it("discovers all built-in surfaces", () => {
     const kinds = new Set(allKinds());
     for (const k of DOC_KINDS) {
       expect(kinds.has(k)).toBe(true);
@@ -88,6 +88,7 @@ describe("surface registry", () => {
     expect(getSurface("pdf").adapter.status).toBe("planned");
     expect(getSurface("canvas").adapter.status).toBe("not-required");
     expect(getSurface("deck").adapter.status).toBe("not-required");
+    expect(getSurface("sheet").adapter.status).toBe("not-required");
     expect((allKinds() as string[]).includes("stub")).toBe(false);
   });
 });

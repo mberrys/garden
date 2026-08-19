@@ -1,8 +1,11 @@
 # I01 — Adapter / conformance reconciliation
 
-Closes [#31](https://github.com/mberrys/garden/issues/31). Ports the engine
-boundary from open PR [#52](https://github.com/mberrys/garden/pull/52) onto the
-I00 `SurfaceDefinition` registry on `main`. Does **not** merge #52.
+Closes [#31](https://github.com/mberrys/garden/issues/31). Reconciles the engine
+boundary onto the I00 `SurfaceDefinition` registry. After this branch opened,
+`main` merged PR #52 (adapter harness + catalog) and PR #54 (sheet surface).
+This branch keeps one `src/lib/surfaces` API: `EditorAdapter` in `adapter.ts`,
+adapter posture on each registration, no parallel `catalog.ts`. Sheet's catalog
+entry was folded onto `sheet.register.ts`.
 
 ## Decisions
 

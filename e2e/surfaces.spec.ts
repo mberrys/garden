@@ -80,6 +80,29 @@ test("deck: adding a slide, then presenting and exiting", async ({ page }) => {
   await expect(page.locator('button:has-text("Present")')).toBeVisible();
 });
 
+test("sheet: entering a value and a formula, then undo", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Sheet");
+
+  const grid = page.locator('[role="grid"]');
+  await expect(grid).toBeVisible();
+
+  await page.dblclick('[aria-label="A1"]');
+  await page.fill('[aria-label="Edit A1"]', "10");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[aria-label="A1"]')).toContainText("10");
+
+  await page.dblclick('[aria-label="B1"]');
+  await page.fill('[aria-label="Edit B1"]', "=A1*2");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[aria-label="B1"]')).toContainText("20");
+
+  // Undo reverses the formula cell, leaving the first value untouched.
+  await page.click('button[aria-label="Undo"]');
+  await expect(page.locator('[aria-label="B1"]')).toContainText("");
+  await expect(page.locator('[aria-label="A1"]')).toContainText("10");
+});
+
 test("pdf: rendering, annotating, and capturing the quoted text", async ({ page }) => {
   await openEmptyWorkspace(page);
   await page.setInputFiles('input[type="file"]', await samplePdfPath());
