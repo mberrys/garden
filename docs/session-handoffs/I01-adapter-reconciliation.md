@@ -35,13 +35,15 @@ I00 `SurfaceDefinition` registry on `main`. Does **not** merge #52.
 
 ## Tests run
 
-Recorded at the head of this branch after the implementation commit.
+PR [#55](https://github.com/mberrys/garden/pull/55).
 
-- `npm run test`
-- `npm run typecheck`
-- `npm run lint`
-- `npm run build`
-- `npm run test:e2e`
+- `npm run typecheck` — clean
+- `npm run lint` — clean
+- `npm run test` — 103/103 unit tests, including 10 stub/harness cases, 7 registry+text harness cases, and 8 registry/posture cases
+- `npm run build` — production build succeeds
+- `npm run test:e2e` — 10/10 Playwright tests (four-surface smoke, AI preview/discard/accept/undo, PDF→deck recipe)
+
+No 1.0 coverage ledger existed; evidence stays in this handoff and the PR description.
 
 ## Known risks
 
