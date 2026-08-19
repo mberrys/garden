@@ -12,7 +12,7 @@ import { Toasts } from "./toasts";
 import { AiPanel } from "./ai/ai-panel";
 import { ProviderBadge } from "./ai/provider-badge";
 import { Divider, IconButton } from "./ui";
-import { DOC_KIND_LABELS } from "@/lib/docs/schema";
+import { getSurface } from "@/lib/surfaces";
 import { WindowChromeStrip } from "./window-chrome";
 
 export default function Workspace() {
@@ -80,7 +80,7 @@ function TopBar() {
           <>
             <span className="truncate text-sm font-medium text-ink">{doc.title}</span>
             <span className="shrink-0 text-[11px] uppercase tracking-wide text-faint">
-              {DOC_KIND_LABELS[doc.kind]}
+              {getSurface(doc.kind).label}
             </span>
           </>
         ) : (

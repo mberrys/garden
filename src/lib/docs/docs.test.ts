@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { MIGRATIONS, migrateDoc } from "./migrations";
 import { DOC_KINDS, SCHEMA_VERSION, SLIDE_H, SLIDE_LAYOUTS, SLIDE_W } from "./schema";
-import { createDoc, makeCanvasNode, makeSlide, makeSlideElement } from "./factories";
+import { createDoc } from "./create-doc";
+import { makeCanvasNode, makeSlide, makeSlideElement } from "./factories";
 import { nid } from "./ids";
 
 describe("migrations", () => {
