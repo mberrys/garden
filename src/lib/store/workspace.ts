@@ -6,6 +6,8 @@ import { createDoc } from "@/lib/docs/factories";
 import { applyOps, describeOperation, type AnyOp, type OpOf } from "@/lib/ops";
 import { OpError } from "@/lib/ops/errors";
 import { newBlobId, nid } from "@/lib/docs/ids";
+import "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 import * as store from "./db";
 
 /* ------------------------------------------------------------------ *
@@ -61,18 +63,6 @@ const COALESCE_MS = 900;
 const HISTORY_LIMIT = 200;
 const SAVE_DEBOUNCE_MS = 450;
 
-/**
- * Surfaces whose editor owns its own undo stack. When true, `commit` skips the
- * workspace history for that kind so ctrl+Z is not ambiguous. Text used to opt
- * in here under TipTap; it now commits through the workspace stack like the
- * other surfaces.
- */
-const SURFACE_OWNS_HISTORY: Record<DocKind, boolean> = {
-  text: false,
-  canvas: false,
-  deck: false,
-  pdf: false,
-};
 
 const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });
 
@@ -225,7 +215,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       return { ok: false, error: message };
     }
 
-    const useHistory = !options.skipHistory && !SURFACE_OWNS_HISTORY[doc.kind];
+    const useHistory = !options.skipHistory && !getSurface(doc.kind).ownsHistory;
     let history = state.history;
 
     if (useHistory) {

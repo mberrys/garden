@@ -1,4 +1,4 @@
-import type { EditorAdapter } from "./contract";
+import type { EditorAdapter } from "./definition";
 
 /**
  * Headless Garden session for adapter tests.

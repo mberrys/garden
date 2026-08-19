@@ -1,11 +1,26 @@
 import { z } from "zod";
-import type { EditorAdapter, SurfaceDefinition } from "./contract";
+import type { EditorAdapter } from "./definition";
 import type { AdapterDriver } from "./conformance";
 
 /**
  * Toy notes list used only to prove the adapter contract. Not a product
- * `DocKind` — it never enters the workspace or `.gardenspace`.
+ * `DocKind` — it never enters the workspace or `.gardenspace`, so it does not
+ * register through `registerSurface`/`SurfaceDefinition` (that contract is
+ * keyed to the real `DocKind` union). `StubSurfaceDescription` below is a
+ * standalone shape scoped to exactly what this file needs.
  */
+
+/** Minimal description of a registrable surface, for the stub's own use only. */
+export interface StubSurfaceDescription<Body, Op> {
+  kind: "stub";
+  label: string;
+  bodySchema: z.ZodType<Body>;
+  opSchema: z.ZodType<Op>;
+  applyOps: (body: Body, ops: Op[]) => { body: Body; inverse: Op[] };
+  /** Sample text for what a real registration's generated op reference would say. */
+  opReference: string;
+  createAdapter: () => EditorAdapter<StubDoc, Op, StubSelection>;
+}
 
 export const StubBodySchema = z.object({
   title: z.string(),
@@ -227,13 +242,7 @@ export function createStubAdapter(): StubAdapter {
   return new StubNotesAdapter();
 }
 
-export const STUB_SURFACE: SurfaceDefinition<
-  "stub",
-  StubBody,
-  StubOp,
-  StubSelection,
-  StubDoc
-> = {
+export const STUB_SURFACE: StubSurfaceDescription<StubBody, StubOp> = {
   kind: "stub",
   label: "Stub notes",
   bodySchema: StubBodySchema,

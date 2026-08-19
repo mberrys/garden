@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { Doc } from "@/lib/docs/schema";
 import { migrateDoc } from "@/lib/docs/migrations";
+import { getSurface } from "@/lib/surfaces/registry";
 
 /**
  * Local persistence.
@@ -134,13 +135,8 @@ export async function collectOrphanBlobs(docs: Doc[]): Promise<number> {
 
   const referenced = new Set<string>();
   for (const doc of docs) {
-    if (doc.kind === "pdf" && doc.body.blobId) referenced.add(doc.body.blobId);
-    if (doc.kind === "deck") {
-      for (const slide of doc.body.slides) {
-        for (const el of slide.elements) {
-          if (el.type === "image" && el.blobId) referenced.add(el.blobId);
-        }
-      }
+    for (const id of getSurface(doc.kind).referencedBlobIds(doc)) {
+      referenced.add(id);
     }
   }
 
