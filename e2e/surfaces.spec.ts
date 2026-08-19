@@ -151,7 +151,7 @@ test("database: adding a row, then undo", async ({ page }) => {
   await newDocument(page, "Database");
 
   await expect(page.getByText("0 rows")).toBeVisible();
-  await page.getByRole("button", { name: "Add row" }).click();
+  await page.getByRole("button", { name: "Add row", exact: true }).click();
   await expect(page.getByText("1 rows")).toBeVisible();
 
   await page.click('button[aria-label="Undo"]');
