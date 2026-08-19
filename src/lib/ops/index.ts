@@ -3,6 +3,7 @@ import type { Doc, DocKind, DocOf } from "@/lib/docs/schema";
 import { applyCanvasOps, CanvasOpSchema, type CanvasOp } from "./canvas";
 import { applyDeckOps, DeckOpSchema, type DeckOp } from "./deck";
 import { applyPdfOps, PdfOpSchema, type PdfOp } from "./pdf";
+import { applySheetOps, SheetOpSchema, type SheetOp } from "./sheet";
 import { applyTextOps, TextOpSchema, type TextOp } from "./text";
 import { OpError } from "./errors";
 
@@ -10,6 +11,7 @@ export { OpError } from "./errors";
 export { CanvasOpSchema, type CanvasOp } from "./canvas";
 export { DeckOpSchema, type DeckOp } from "./deck";
 export { PdfOpSchema, type PdfOp } from "./pdf";
+export { SheetOpSchema, type SheetOp } from "./sheet";
 export { TextOpSchema, type TextOp } from "./text";
 
 /** Maps a document kind to its operation type. */
@@ -18,15 +20,17 @@ export interface OpMap {
   canvas: CanvasOp;
   deck: DeckOp;
   pdf: PdfOp;
+  sheet: SheetOp;
 }
 export type OpOf<K extends DocKind> = OpMap[K];
-export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp;
+export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp;
 
 export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   text: TextOpSchema,
   canvas: CanvasOpSchema,
   deck: DeckOpSchema,
   pdf: PdfOpSchema,
+  sheet: SheetOpSchema,
 };
 
 /**
@@ -62,6 +66,9 @@ export function applyOps<K extends DocKind>(
       break;
     case "pdf":
       result = applyPdfOps(target.body, ops as PdfOp[]);
+      break;
+    case "sheet":
+      result = applySheetOps(target.body, ops as SheetOp[]);
       break;
     default: {
       const never: never = target;
@@ -179,6 +186,24 @@ export function describeOperation(op: AnyOp): string {
       return `Record extracted text for page ${op.page}`;
     case "setSource":
       return `Attach ${op.fileName || "PDF"} (${op.pageCount} pages)`;
+
+    // sheet
+    case "setCell":
+      return op.value.trim() === ""
+        ? `Clear cell ${op.ref}`
+        : `Set ${op.ref} to ${preview(op.value)}`;
+    case "setCells": {
+      const n = Object.keys(op.cells).length;
+      return `Set ${n} cell${plural(n)}`;
+    }
+    case "setStyle":
+      return `Style ${op.refs.length} cell${plural(op.refs.length)} (${Object.keys(op.patch).join(", ")})`;
+    case "resize": {
+      const parts: string[] = [];
+      if (op.rows !== undefined) parts.push(`${op.rows} rows`);
+      if (op.cols !== undefined) parts.push(`${op.cols} columns`);
+      return `Resize sheet${parts.length ? ` to ${parts.join(" × ")}` : ""}`;
+    }
   }
 }
 

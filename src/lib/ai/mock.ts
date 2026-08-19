@@ -1,5 +1,6 @@
-import type { CanvasDoc, DeckDoc, Doc, PdfDoc, TextDoc } from "@/lib/docs/schema";
+import type { CanvasDoc, DeckDoc, Doc, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
 import { docToMarkdown } from "@/lib/text/markdown";
+import { parseRef } from "@/lib/sheet/refs";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import { OPS_FENCE } from "./ops-block";
 
@@ -34,6 +35,8 @@ export function mockReply({ doc, request, selection, companions }: MockRequest):
       return mockDeck(doc, ask, companions);
     case "pdf":
       return mockPdf(doc, ask);
+    case "sheet":
+      return mockSheet(doc, ask, companions);
   }
 }
 
@@ -293,6 +296,71 @@ function mockPdf(doc: PdfDoc, ask: string): string {
       note: i === 0 ? "Scripted highlight from the mock provider." : "",
     })),
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * Sheet
+ * ------------------------------------------------------------------ */
+
+function mockSheet(doc: SheetDoc, ask: string, companions?: { doc: Doc }[]): string {
+  const source = companions?.[0]?.doc;
+
+  // Cross-surface: extract a table from a companion document.
+  if (source) {
+    const rows = sourceHighlights(source);
+    const cells: Record<string, string> = { A1: "Point", B1: "Detail" };
+    rows.forEach((line, i) => {
+      cells[`A${i + 2}`] = `Item ${i + 1}`;
+      cells[`B${i + 2}`] = truncate(line, 60);
+    });
+    return block(`Extracted a ${rows.length}-row table from "${source.title}".`, [
+      { op: "setCells", cells },
+    ]);
+  }
+
+  if (/total|sum|average|subtotal/.test(ask)) {
+    // Total the numbers already in column A, if any.
+    let last = -1;
+    for (const [ref, cell] of Object.entries(doc.body.cells)) {
+      const coord = parseRef(ref);
+      if (coord && coord.col === 0 && /^[+-]?[\d.]+$/.test(cell.value.trim())) {
+        last = Math.max(last, coord.row);
+      }
+    }
+    if (last >= 0 && last + 2 <= doc.body.rows) {
+      return block("Added a total under column A.", [
+        { op: "setCell", ref: `A${last + 2}`, value: `=SUM(A1:A${last + 1})` },
+      ]);
+    }
+    return block("Filled a short column and totalled it.", [
+      { op: "setCells", cells: { A1: "10", A2: "20", A3: "30", A4: "=SUM(A1:A3)" } },
+    ]);
+  }
+
+  if (/fill|table|data|populate|sample|example/.test(ask)) {
+    return block("Filled a sample table with a formula column.", [
+      {
+        op: "setCells",
+        cells: {
+          A1: "Quarter",
+          B1: "Revenue",
+          C1: "Share",
+          A2: "Q1",
+          B2: "120",
+          C2: "=B2/B4",
+          A3: "Q2",
+          B3: "150",
+          C3: "=B3/B4",
+          A4: "Total",
+          B4: "=SUM(B2:B3)",
+        },
+      },
+    ]);
+  }
+
+  return block("Set a cell — start a local model for real spreadsheet edits.", [
+    { op: "setCell", ref: "A1", value: "Edited by the mock provider" },
+  ]);
 }
 
 function truncate(s: string, n: number): string {

@@ -32,6 +32,13 @@ const SURFACE_NOTES: Record<DocKind, string> = {
     "The PDF's pages cannot be edited — you work by adding annotations over them. " +
     "Annotation rects are normalised to the page: x/y/w/h are fractions between 0 and 1 " +
     "with the origin at the top-left of the page.",
+  sheet:
+    "Cells are addressed in A1 notation: a column letter then a 1-based row number (A1, " +
+    "B3). Set values with setCell, or fill a whole table at once with setCells (a map of " +
+    "ref to raw value). A value beginning with = is a formula — you may use + - * / ^, " +
+    "parentheses, ranges like A1:B3, and SUM, AVERAGE, MIN, MAX, COUNT, IF, ROUND, ABS and " +
+    "CONCAT. Reference only cells inside the grid's row/column bounds; grow it first with " +
+    "resize if you need more room.",
 };
 
 export function systemPrompt(kind: DocKind): string {

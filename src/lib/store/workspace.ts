@@ -23,7 +23,8 @@ export type SurfaceSelection =
   | { kind: "text"; blockIndex: number; blockCount: number; text: string }
   | { kind: "canvas"; nodeIds: string[] }
   | { kind: "deck"; slideId: string | null; elementIds: string[] }
-  | { kind: "pdf"; page: number; text: string; annotationId: string | null };
+  | { kind: "pdf"; page: number; text: string; annotationId: string | null }
+  | { kind: "sheet"; cell: string | null; range: string | null };
 
 interface HistoryEntry {
   inverse: AnyOp[];
@@ -72,6 +73,7 @@ const SURFACE_OWNS_HISTORY: Record<DocKind, boolean> = {
   canvas: false,
   deck: false,
   pdf: false,
+  sheet: false,
 };
 
 const emptyPane = (): Pane => ({ docIds: [], activeDocId: null });

@@ -1,5 +1,6 @@
 import type { Doc, DocKind } from "@/lib/docs/schema";
 import { docToMarkdown } from "@/lib/text/markdown";
+import { indexToCol, parseRef, toRef } from "@/lib/sheet/refs";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 
 /**
@@ -18,6 +19,7 @@ const BUDGET: Record<DocKind, number> = {
   canvas: 8_000,
   deck: 10_000,
   pdf: 14_000,
+  sheet: 10_000,
 };
 
 export interface DocContext {
@@ -37,6 +39,8 @@ export function serializeDoc(doc: Doc, selection?: SurfaceSelection): DocContext
       return clamp(serializeDeck(doc), BUDGET.deck);
     case "pdf":
       return clamp(serializePdf(doc, selection), BUDGET.pdf);
+    case "sheet":
+      return clamp(serializeSheet(doc), BUDGET.sheet);
   }
 }
 
@@ -156,6 +160,43 @@ function serializePdf(
   return parts.join("\n");
 }
 
+function serializeSheet(doc: Extract<Doc, { kind: "sheet" }>): string {
+  const { rows, cols, cells } = doc.body;
+  const header = `Sheet "${doc.title}", ${rows} rows × ${cols} columns. Cells hold raw values; a leading "=" is a formula.`;
+
+  const refs = Object.keys(cells);
+  if (refs.length === 0) {
+    return `${header}\n(the grid is empty)`;
+  }
+
+  // Only render the populated region, so an empty 20×8 grid costs nothing.
+  let maxRow = 0;
+  let maxCol = 0;
+  for (const ref of refs) {
+    const coord = parseRef(ref);
+    if (!coord) continue;
+    maxRow = Math.max(maxRow, coord.row);
+    maxCol = Math.max(maxCol, coord.col);
+  }
+  maxRow = Math.min(maxRow, rows - 1);
+  maxCol = Math.min(maxCol, cols - 1);
+
+  const headerCells = ["   "];
+  for (let c = 0; c <= maxCol; c++) headerCells.push(indexToCol(c));
+  const lines = [`| ${headerCells.join(" | ")} |`];
+
+  for (let r = 0; r <= maxRow; r++) {
+    const rowCells = [String(r + 1)];
+    for (let c = 0; c <= maxCol; c++) {
+      const cell = cells[toRef({ row: r, col: c })];
+      rowCells.push(cell ? cell.value.replace(/\|/g, "\\|") : "");
+    }
+    lines.push(`| ${rowCells.join(" | ")} |`);
+  }
+
+  return `${header}\n\n${lines.join("\n")}`;
+}
+
 /* ------------------------------------------------------------------ *
  * Selection
  * ------------------------------------------------------------------ */
@@ -183,6 +224,9 @@ export function describeSelection(selection: SurfaceSelection | undefined): stri
       return selection.text
         ? `The user has selected text on page ${selection.page}: "${truncate(selection.text, 400)}"`
         : `The user is looking at page ${selection.page}`;
+    case "sheet":
+      if (selection.range) return `The user has selected the range ${selection.range}`;
+      return selection.cell ? `The user has selected cell ${selection.cell}` : null;
   }
 }
 

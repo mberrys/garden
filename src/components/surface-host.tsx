@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Component, type ReactNode } from "react";
-import type { CanvasDoc, DeckDoc, Doc, PdfDoc, TextDoc } from "@/lib/docs/schema";
+import type { CanvasDoc, DeckDoc, Doc, PdfDoc, SheetDoc, TextDoc } from "@/lib/docs/schema";
 import type { PaneIndex } from "@/lib/store/workspace";
 import { EmptyState } from "./ui";
 
@@ -22,6 +22,10 @@ const CanvasSurface = dynamic(() => import("@/surfaces/canvas/canvas-surface"), 
 });
 const DeckSurface = dynamic(() => import("@/surfaces/deck/deck-surface"), { ssr: false, loading });
 const PdfSurface = dynamic(() => import("@/surfaces/pdf/pdf-surface"), { ssr: false, loading });
+const SheetSurface = dynamic(() => import("@/surfaces/sheet/sheet-surface"), {
+  ssr: false,
+  loading,
+});
 
 export function SurfaceHost({ doc, paneIndex }: { doc: Doc; paneIndex: PaneIndex }) {
   return (
@@ -41,6 +45,8 @@ function renderSurface(doc: Doc, paneIndex: PaneIndex): ReactNode {
       return <DeckSurface doc={doc as DeckDoc} paneIndex={paneIndex} />;
     case "pdf":
       return <PdfSurface doc={doc as PdfDoc} paneIndex={paneIndex} />;
+    case "sheet":
+      return <SheetSurface doc={doc as SheetDoc} paneIndex={paneIndex} />;
   }
 }
 

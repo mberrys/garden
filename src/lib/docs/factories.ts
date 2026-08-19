@@ -5,6 +5,7 @@ import {
   type Doc,
   type DocKind,
   type PdfDoc,
+  type SheetDoc,
   type Slide,
   type SlideElement,
   type SlideLayout,
@@ -76,6 +77,14 @@ export function createPdfDoc(title = "Untitled PDF"): PdfDoc {
   };
 }
 
+export function createSheetDoc(title = "Untitled sheet"): SheetDoc {
+  return {
+    ...envelope("sheet", title),
+    kind: "sheet",
+    body: { rows: 20, cols: 8, cells: {}, columnWidths: {} },
+  };
+}
+
 export function createDoc(kind: DocKind, title?: string): Doc {
   switch (kind) {
     case "text":
@@ -86,6 +95,8 @@ export function createDoc(kind: DocKind, title?: string): Doc {
       return createDeckDoc(title);
     case "pdf":
       return createPdfDoc(title);
+    case "sheet":
+      return createSheetDoc(title);
   }
 }
 

@@ -12,6 +12,7 @@ import {
   Presentation,
   Search,
   Shapes,
+  Table,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -32,6 +33,7 @@ const NEW_DOC_OPTIONS: { kind: DocKind; icon: typeof FileText; label: string }[]
   { kind: "text", icon: FileText, label: "Document" },
   { kind: "canvas", icon: Shapes, label: "Canvas" },
   { kind: "deck", icon: Presentation, label: "Deck" },
+  { kind: "sheet", icon: Table, label: "Sheet" },
   { kind: "pdf", icon: FileType2, label: "PDF" },
 ];
 
