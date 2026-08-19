@@ -1,4 +1,5 @@
 import type { DocKind } from "@/lib/docs/schema";
+import { getPacket } from "@/lib/packets/registry";
 
 /**
  * Cross-surface actions.
@@ -184,8 +185,35 @@ export const RECIPES: Recipe[] = [
       "over that column's data range in the first empty row under it, and label the row 'Total' in " +
       "the first column. Grow the grid with resize first if there is no empty row to write into.",
   },
+  {
+    id: "db-add-rows",
+    label: "Add rows from notes",
+    hint: "Turn bullet points into new rows",
+    from: ["database"],
+    target: "database",
+    prompt:
+      "Read the user's request and add rows to this database. Use addRow with cells filled " +
+      "from the request. Do not invent data that is not implied by the user or visible rows.",
+  },
 ];
 
-export function recipesFor(kind: DocKind): Recipe[] {
-  return RECIPES.filter((recipe) => recipe.from.includes(kind));
+export function recipesFor(kind: DocKind, seedPacketId?: string | null): Recipe[] {
+  const fromGlobal = RECIPES.filter((recipe) => recipe.from.includes(kind));
+  const packet = seedPacketId ? getPacket(seedPacketId) : undefined;
+  const fromPacket = (packet?.recipes ?? []).filter((recipe) => recipe.from.includes(kind));
+  const combined = [...fromGlobal, ...fromPacket];
+  const featured = packet?.featuredRecipeIds ?? [];
+  if (featured.length === 0) return combined;
+
+  const byId = new Map(combined.map((recipe) => [recipe.id, recipe]));
+  const seen = new Set<string>();
+  const head: Recipe[] = [];
+  for (const id of featured) {
+    const recipe = byId.get(id);
+    if (!recipe || seen.has(recipe.id) || !recipe.from.includes(kind)) continue;
+    head.push(recipe);
+    seen.add(recipe.id);
+  }
+  const tail = combined.filter((recipe) => !seen.has(recipe.id));
+  return [...head, ...tail];
 }

@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  Sprout,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
   timestampedName,
 } from "@/lib/store/bundle";
 import { allSurfaces } from "@/lib/surfaces/registry";
+import { listPackets } from "@/lib/packets";
 import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { WindowChromeStrip } from "./window-chrome";
@@ -36,6 +38,9 @@ export function Sidebar() {
   const panes = useWorkspace((s) => s.panes);
   const activePane = useWorkspace((s) => s.activePane);
   const newDoc = useWorkspace((s) => s.newDoc);
+  const plantPacket = useWorkspace((s) => s.plantPacket);
+  const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
+  const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
   const openDoc = useWorkspace((s) => s.openDoc);
   const removeDoc = useWorkspace((s) => s.removeDoc);
   const renameDoc = useWorkspace((s) => s.renameDoc);
@@ -107,6 +112,16 @@ export function Sidebar() {
               {label}
             </MenuItem>
           ))}
+          <MenuLabel>Seed packets</MenuLabel>
+          {listPackets().map((packet) => (
+            <MenuItem
+              key={packet.id}
+              icon={<Sprout size={14} />}
+              onClick={() => void plantPacket(packet.id)}
+            >
+              {packet.label}
+            </MenuItem>
+          ))}
         </Menu>
       </WindowChromeStrip>
 
@@ -135,7 +150,19 @@ export function Sidebar() {
       >
         {listed.length === 0 ? (
           <div className="px-2 py-6 text-center text-xs leading-relaxed text-faint">
-            {query ? "No matches." : "No documents yet. Create one, or drop a PDF here."}
+            {query ? (
+              "No matches."
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <span>No documents yet. Plant a seed packet, create one, or drop a PDF here.</span>
+                {!seedSuppressed && (
+                  <Button size="sm" variant="ghost" onClick={requestPacketPicker}>
+                    <Sprout size={13} />
+                    Plant a seed packet
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           listed.map((doc, index) => {

@@ -6,6 +6,8 @@ import { createDoc } from "@/lib/docs/factories";
 import { applyOps, describeOperation, type AnyOp, type OpOf } from "@/lib/ops";
 import { OpError } from "@/lib/ops/errors";
 import { newBlobId, nid } from "@/lib/docs/ids";
+import { getPacket } from "@/lib/packets/registry";
+import { sproutPacket } from "@/lib/packets/sprout";
 import "@/lib/surfaces";
 import { getSurface } from "@/lib/surfaces/registry";
 import * as store from "./db";
@@ -26,7 +28,8 @@ export type SurfaceSelection =
   | { kind: "canvas"; nodeIds: string[] }
   | { kind: "deck"; slideId: string | null; elementIds: string[] }
   | { kind: "pdf"; page: number; text: string; annotationId: string | null }
-  | { kind: "sheet"; cell: string | null; range: string | null };
+  | { kind: "sheet"; cell: string | null; range: string | null }
+  | { kind: "database"; rowId: string | null; fieldId: string | null };
 
 interface HistoryEntry {
   inverse: AnyOp[];
@@ -88,8 +91,21 @@ interface WorkspaceState {
   selection: Record<string, SurfaceSelection>;
   toasts: Toast[];
   aiPanelOpen: boolean;
+  /** Packet that sprouted this workspace, if any. */
+  seedPacketId: string | null;
+  /** Version of the packet that sprouted this workspace. */
+  seedPacketVersion: number | null;
+  /** User chose "start blank" on an empty workspace. */
+  blankWorkspace: boolean;
+  /** e2e flag: do not auto-plant and do not show the picker. */
+  seedSuppressed: boolean;
+  /** User asked to see the picker (empty blank workspace, or New menu). */
+  packetPickerRequested: boolean;
 
   init: () => Promise<void>;
+  plantPacket: (id: string) => Promise<void>;
+  startBlankWorkspace: () => Promise<void>;
+  requestPacketPicker: () => void;
   commit: <K extends DocKind>(
     docId: string,
     ops: OpOf<K>[],
@@ -134,6 +150,11 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   selection: {},
   toasts: [],
   aiPanelOpen: true,
+  seedPacketId: null,
+  seedPacketVersion: null,
+  blankWorkspace: false,
+  seedSuppressed: false,
+  packetPickerRequested: false,
 
   init: async () => {
     if (get().ready) return;
@@ -143,33 +164,10 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
     const savedPanes = await store.readMeta<[Pane, Pane]>("panes");
     const savedSplit = await store.readMeta<boolean>("splitView");
-
-    // Seed once, and only once: a user who deliberately empties their workspace
-    // should not have the demo documents grow back on the next reload. The
-    // window flag lets the e2e suite start from an empty workspace without
-    // reaching into the database's internals.
-    const seeded = await store.readMeta<boolean>("seeded");
+    const savedPacketId = await store.readMeta<string | null>("seedPacketId");
+    const savedPacketVersion = await store.readMeta<number | null>("seedPacketVersion");
+    const savedBlank = await store.readMeta<boolean>("blankWorkspace");
     const suppressed = typeof window !== "undefined" && window.__GARDEN_NO_SEED__ === true;
-    if (!seeded && !suppressed && docs.length === 0) {
-      const { seedDocuments } = await import("./seed");
-      const seeds = seedDocuments();
-      for (const doc of seeds) {
-        byId[doc.id] = doc;
-        order.push(doc.id);
-        await store.saveDoc(doc);
-      }
-      await store.saveOrder(order);
-      await store.writeMeta("seeded", true);
-
-      const first = seeds[0];
-      const panes: [Pane, Pane] = [
-        { docIds: [first.id], activeDocId: first.id },
-        { docIds: [], activeDocId: null },
-      ];
-      set({ ready: true, docs: byId, order, panes, splitView: false });
-      await store.writeMeta("panes", panes);
-      return;
-    }
 
     const validPane = (pane: Pane | undefined): Pane => {
       const docIds = (pane?.docIds ?? []).filter((id) => byId[id]);
@@ -186,6 +184,11 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       order,
       panes: [validPane(savedPanes?.[0]), validPane(savedPanes?.[1])],
       splitView: Boolean(savedSplit),
+      seedPacketId: savedPacketId ?? null,
+      seedPacketVersion: savedPacketVersion ?? null,
+      blankWorkspace: Boolean(savedBlank),
+      seedSuppressed: suppressed,
+      packetPickerRequested: false,
     });
 
     if (broken.length) {
@@ -197,6 +200,58 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       );
     }
   },
+
+  plantPacket: async (id) => {
+    const packet = getPacket(id);
+    if (!packet) {
+      get().toast("error", `Unknown seed packet "${id}".`);
+      return;
+    }
+
+    const sprouted = sproutPacket(packet);
+    const state = get();
+    const docs = { ...state.docs };
+    const order = [...state.order];
+    for (const doc of sprouted.docs) {
+      docs[doc.id] = doc;
+      order.push(doc.id);
+      await store.saveDoc(doc);
+    }
+    await store.saveOrder(order);
+    await store.writeMeta("seedPacketId", id);
+    await store.writeMeta("seedPacketVersion", packet.version);
+    await store.writeMeta("blankWorkspace", false);
+    await store.writeMeta("seeded", true);
+    await store.writeMeta("panes", sprouted.panes);
+    await store.writeMeta("splitView", sprouted.splitView);
+
+    set({
+      docs,
+      order,
+      panes: sprouted.panes,
+      splitView: sprouted.splitView,
+      activePane: 0,
+      seedPacketId: id,
+      seedPacketVersion: packet.version,
+      blankWorkspace: false,
+      packetPickerRequested: false,
+    });
+  },
+
+  startBlankWorkspace: async () => {
+    await store.writeMeta("blankWorkspace", true);
+    await store.writeMeta("seedPacketId", null);
+    await store.writeMeta("seedPacketVersion", null);
+    await store.writeMeta("seeded", true);
+    set({
+      seedPacketId: null,
+      seedPacketVersion: null,
+      blankWorkspace: true,
+      packetPickerRequested: false,
+    });
+  },
+
+  requestPacketPicker: () => set({ packetPickerRequested: true }),
 
   commit: (docId, ops, options = {}) => {
     if (ops.length === 0) return { ok: true };
@@ -550,4 +605,15 @@ export async function loadBlob(id: string): Promise<Blob | null> {
 function summarise(ops: AnyOp[]): string {
   if (ops.length === 1) return describeOperation(ops[0]);
   return `${ops.length} changes`;
+}
+
+/** Empty workspace shows the packet picker unless the user chose blank or e2e suppressed it. */
+export function workspaceShowsPacketPicker(state: {
+  seedSuppressed: boolean;
+  order: string[];
+  blankWorkspace: boolean;
+  packetPickerRequested: boolean;
+}): boolean {
+  if (state.seedSuppressed || state.order.length > 0) return false;
+  return !state.blankWorkspace || state.packetPickerRequested;
 }

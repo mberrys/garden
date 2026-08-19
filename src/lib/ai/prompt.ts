@@ -6,8 +6,8 @@ import { opReference } from "./op-reference";
 import { OPS_FENCE } from "./ops-block";
 import { getSurface } from "@/lib/surfaces/registry";
 
-export function systemPrompt(kind: DocKind): string {
-  return [
+export function systemPrompt(kind: DocKind, addenda?: string): string {
+  const parts = [
     `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, and a drawing canvas — more like OpenOffice meets an IDE than four separate apps. Seed packets sprout profession worktrees; you edit through reviewable operations.`,
     `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
     "",
@@ -33,7 +33,12 @@ export function systemPrompt(kind: DocKind): string {
     "",
     "## Notes for this surface",
     getSurface(kind).promptNotes,
-  ].join("\n");
+  ];
+  const extra = addenda?.trim();
+  if (extra) {
+    parts.push("", "## Workspace craft", extra);
+  }
+  return parts.join("\n");
 }
 
 export interface UserTurnOptions {

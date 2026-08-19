@@ -3,9 +3,9 @@
 A **generative document workplace** — OpenOffice meets an IDE.
 
 Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
-presentations, drawings, spreadsheets (and soon databases, media). One shell,
-one undo stack, and a local AI that edits through reviewable operations — not
-five apps side by side.
+presentations, drawings, spreadsheets, and databases. One shell, one undo
+stack, and a local AI that edits through reviewable operations — not five apps
+side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
 wherever you point it.
@@ -83,6 +83,35 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ---
 
+## Seed packets
+
+An empty workspace is a picker, not a blank suite. A **seed packet** is a
+profession-shaped starting kit: starter documents, database bases, which panes
+to open, cross-links, layout presets, extra assistant recipes, and prompt
+addenda for that craft. Choosing one **sprouts** the worktree.
+
+Packets are data (TypeScript modules), not one-off React trees. The welcome
+experience is packet `garden/welcome` — the same path as the others.
+
+Each packet carries a `version` persisted in workspace metadata (and in
+`.gardenspace` exports) so sprouted topology can evolve without breaking old
+workspaces.
+
+| Packet | Id | Sprouts |
+| --- | --- | --- |
+| Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
+| History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
+| Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
+| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
+
+You can also start blank and plant a packet later from the sidebar. Which packet
+sprouted the workspace (and its version) is stored in local metadata and
+included when you export a `.gardenspace` file.
+
+Complex packets (multiple bases, links, or many artifacts) show a preview
+listing exact artifacts, bases, views, and links before planting.
+
 ## The surfaces
 
 **Document** — markdown source editor. The stored body remains ProseMirror JSON so
@@ -111,6 +140,13 @@ small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
 number-format styling, and grid resizing.
 
+**Database** — typed fields, rows, grid and kanban views, relation links to
+other bases in the workspace, and `garden_ref` / `external_ref` cells for
+cross-surface provenance. AI row and schema batches go through the same
+review gate as other surfaces. This is the structured-work layer — lighter
+than Airtable or Notion, local-first, and composed by seed packets rather than
+blank grids. Sheets stay as the formula grid; they are not replaced.
+
 ### Cross-surface recipes
 
 Offered in the assistant panel, per surface:
@@ -129,6 +165,7 @@ Offered in the assistant panel, per surface:
 | Deck | Write speaker notes / Tighten the copy | edits in place |
 | Sheet | Summarise the data | a document written up from the sheet |
 | Sheet | Add totals | totals row, in place |
+| Database | Add rows from notes | new rows, in place |
 
 ---
 
@@ -153,7 +190,8 @@ anywhere; the only network request the app makes is to the local model server yo
 configure.
 
 Because browser storage can be cleared, **Export** writes the whole workspace to a
-`.gardenspace` file (documents plus embedded PDFs and images) that **Import** restores.
+`.gardenspace` file (documents plus embedded PDFs and images, and which seed packet
+sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
 `.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
 
@@ -167,7 +205,7 @@ npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
 npm run test       # vitest — document model, op reducers, adapter harness, markdown, AI parsing
-npm run test:e2e   # playwright — all five surfaces, against the mock provider
+npm run test:e2e   # playwright — all six surfaces, against the mock provider
 ```
 
 Run `npm run build` before `npm run test:e2e`; the suite starts the production
@@ -184,9 +222,11 @@ src/
                 exact inverse; this is what makes undo and AI-reject the same thing
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/store/    zustand workspace state, Dexie persistence, import/export
+  lib/packets/  seed packet registry and sprout — profession kits that plant a
+                worktree of documents and bases
   lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
                 (engine boundary), plus a conformance harness a new adapter can fail
-  surfaces/     text, canvas, deck, pdf, sheet
+  surfaces/     text, canvas, deck, pdf, sheet, database
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
@@ -212,4 +252,5 @@ Three conventions are worth knowing before changing anything:
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE), [NOTICE](./NOTICE), and the borrowed-engine
+policy in [docs/licensing.md](./docs/licensing.md).

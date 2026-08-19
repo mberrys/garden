@@ -3,6 +3,7 @@ import type { Doc, DocKind, DocOf } from "@/lib/docs/schema";
 import { CanvasOpSchema, type CanvasOp } from "./canvas";
 import { DeckOpSchema, type DeckOp } from "./deck";
 import { PdfOpSchema, type PdfOp } from "./pdf";
+import { DatabaseOpSchema, type DatabaseOp } from "./database";
 import { SheetOpSchema, type SheetOp } from "./sheet";
 import { TextOpSchema, type TextOp } from "./text";
 import "@/lib/surfaces";
@@ -12,6 +13,7 @@ export { OpError } from "./errors";
 export { CanvasOpSchema, type CanvasOp } from "./canvas";
 export { DeckOpSchema, type DeckOp } from "./deck";
 export { PdfOpSchema, type PdfOp } from "./pdf";
+export { DatabaseOpSchema, type DatabaseOp } from "./database";
 export { SheetOpSchema, type SheetOp } from "./sheet";
 export { TextOpSchema, type TextOp } from "./text";
 
@@ -22,9 +24,10 @@ export interface OpMap {
   deck: DeckOp;
   pdf: PdfOp;
   sheet: SheetOp;
+  database: DatabaseOp;
 }
 export type OpOf<K extends DocKind> = OpMap[K];
-export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp;
+export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp | DatabaseOp;
 
 export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   text: TextOpSchema,
@@ -32,6 +35,7 @@ export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   deck: DeckOpSchema,
   pdf: PdfOpSchema,
   sheet: SheetOpSchema,
+  database: DatabaseOpSchema,
 };
 
 /**
