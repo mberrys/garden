@@ -6,7 +6,7 @@ import { migrateDoc } from "@/lib/docs/migrations";
 import { createPdfDoc, createTextDoc } from "@/lib/docs/factories";
 import { markdownToDoc } from "@/lib/text/markdown";
 import { applyOps } from "@/lib/ops";
-import { getSurface } from "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 import * as db from "./db";
 import { flushPendingSaves, storeBlob, useWorkspace } from "./workspace";
 
@@ -36,6 +36,9 @@ const BundleSchema = z.object({
   order: z.array(z.string()).default([]),
   docs: z.array(z.unknown()),
   blobs: z.array(BundleBlobSchema).default([]),
+  /** Packet that sprouted the workspace, when the export is a full snapshot. */
+  seedPacketId: z.string().nullable().optional(),
+  seedPacketVersion: z.number().int().nullable().optional(),
 });
 
 export type Bundle = z.infer<typeof BundleSchema>;
@@ -98,6 +101,9 @@ export async function exportBundle(docIds?: string[]): Promise<Blob> {
     order: docs.map((d) => d.id),
     docs,
     blobs,
+    ...(docIds === undefined
+      ? { seedPacketId: state.seedPacketId, seedPacketVersion: state.seedPacketVersion }
+      : {}),
   };
 
   return new Blob([JSON.stringify(bundle)], { type: "application/json" });
@@ -158,6 +164,17 @@ export async function importBundle(text: string): Promise<ImportResult> {
     }
     useWorkspace.getState().addDoc(doc, { open: false });
     imported++;
+  }
+
+  if (parsed.data.seedPacketId !== undefined) {
+    const seedPacketId = parsed.data.seedPacketId;
+    await db.writeMeta("seedPacketId", seedPacketId);
+    useWorkspace.setState({ seedPacketId });
+  }
+  if (parsed.data.seedPacketVersion !== undefined) {
+    const seedPacketVersion = parsed.data.seedPacketVersion;
+    await db.writeMeta("seedPacketVersion", seedPacketVersion);
+    useWorkspace.setState({ seedPacketVersion });
   }
 
   return { imported, skipped };

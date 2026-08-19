@@ -1,160 +1,306 @@
-import { expect, it } from "vitest";
 import type { EditorAdapter } from "./adapter";
-import type { GardenDocEnvelope, AdapterSurfaceDefinition } from "./definition";
-import { createAdapterSession, type AdapterSession } from "./session";
+import { createAdapterHost, FeedbackLoopError } from "./host";
 
-export interface AdapterConformanceHooks<
-  Kind extends string,
-  Body,
+/**
+ * Test-only surface of an adapter. Production engines implement this in their
+ * `*.test.ts`, not in the shipped adapter.
+ */
+export interface AdapterDriver<Doc, Intent = unknown> {
+  /** Fire a gesture the adapter must translate into `onUserEdit` ops. */
+  simulateUserEdit(intent: Intent): void;
+  /** Engine-side document, not Garden's copy. */
+  readEngineDoc(): Doc;
+  /** Must be false: Garden's stack is the only undo history. */
+  engineOwnsHistory(): boolean;
+  /** Ephemeral engine fields that must never appear in `.gardenspace`. */
+  readEngineEphemeral(): unknown;
+}
+
+export type TestAdapter<Doc, Op, Selection, Intent = unknown> = EditorAdapter<
+  Doc,
   Op,
-  Selection,
-  Doc extends GardenDocEnvelope<Kind, Body>,
-  AdapterExtra = unknown,
-> {
-  definition: AdapterSurfaceDefinition<Body, Op, Selection, Kind>;
-  createInitialDoc: () => Doc;
-  getAdapter: (
-    session: AdapterSession<Kind, Body, Op, Selection, Doc>,
-  ) => EditorAdapter<Body, Op, Selection> & AdapterExtra;
-  simulateUserEdit: (
-    session: AdapterSession<Kind, Body, Op, Selection, Doc>,
-    adapter: EditorAdapter<Body, Op, Selection> & AdapterExtra,
-  ) => Op[];
-  mutateEngineOnly: (adapter: EditorAdapter<Body, Op, Selection> & AdapterExtra) => void;
-  engineUndo: (adapter: EditorAdapter<Body, Op, Selection> & AdapterExtra) => void;
-  sampleSelection: Selection;
-  sampleAiOps: (doc: Doc) => Op[];
+  Selection
+> &
+  AdapterDriver<Doc, Intent>;
+
+export interface ConformanceSpec<Doc, Op, Selection, Intent = unknown> {
+  create: () => TestAdapter<Doc, Op, Selection, Intent>;
+  applyOps: (doc: Doc, ops: Op[]) => { doc: Doc; inverse: Op[] };
+  serializeDoc: (doc: Doc) => unknown;
+  serializeSelection: (selection: Selection) => unknown;
+  initialDoc: Doc;
+  userEdit: { intent: Intent };
+  /** Applied from outside the engine (undo/AI-after-accept). Must change the doc. */
+  gardenOps: Op[];
+  selection: Selection;
+  pendingAiOps: Op[];
+}
+
+export const CONFORMANCE_CASES = [
+  "userEditsBecomeOps",
+  "noFeedbackLoop",
+  "gardenOwnsUndo",
+  "selectionRoundTrip",
+  "aiReviewGate",
+  "disposeRemount",
+] as const;
+
+export type ConformanceCase = (typeof CONFORMANCE_CASES)[number];
+
+export const CONFORMANCE_LABELS: Record<ConformanceCase, string> = {
+  userEditsBecomeOps: "user edits become Garden ops (no silent engine mutations)",
+  noFeedbackLoop: "Garden ops update the editor without feedback loops",
+  gardenOwnsUndo: "undo is controlled by Garden's stack, not the engine",
+  selectionRoundTrip: "selection round-trips through Garden serialization",
+  aiReviewGate: "AI review-before-apply gates every batch",
+  disposeRemount: "dispose/remount does not leak engine state into Garden serialization",
+};
+
+export interface ConformanceFailure {
+  case: ConformanceCase;
+  message: string;
+}
+
+export interface ConformanceReport {
+  ok: boolean;
+  failures: ConformanceFailure[];
+}
+
+function clone<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function same(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function session<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+) {
+  const adapter = spec.create();
+  const host = createAdapterHost(adapter, {
+    initialDoc: spec.initialDoc,
+    applyOps: spec.applyOps,
+  });
+  return { adapter, host };
+}
+
+function checkUserEditsBecomeOps<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter, host } = session(spec);
+  const before = spec.serializeDoc(clone(spec.initialDoc));
+  adapter.simulateUserEdit(spec.userEdit.intent);
+  if (host.historyLength() === 0) {
+    throw new Error("user edit did not produce Garden ops");
+  }
+  const garden = spec.serializeDoc(host.getDoc());
+  const engine = spec.serializeDoc(adapter.readEngineDoc());
+  if (!same(garden, engine)) {
+    throw new Error("engine diverged from Garden after a user edit (silent engine-owned mutation)");
+  }
+  if (same(garden, before)) {
+    throw new Error("user edit produced ops but Garden state did not change");
+  }
+  adapter.dispose();
+}
+
+function checkNoFeedbackLoop<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter, host } = session(spec);
+  try {
+    host.applyExternal(spec.gardenOps);
+  } catch (err) {
+    if (err instanceof FeedbackLoopError) throw err;
+    throw err;
+  }
+  if (host.historyLength() !== 1) {
+    throw new Error(
+      `Garden ops should be one history entry; got ${host.historyLength()} (adapter likely re-emitted edits)`,
+    );
+  }
+  const garden = spec.serializeDoc(host.getDoc());
+  const engine = spec.serializeDoc(adapter.readEngineDoc());
+  if (!same(garden, engine)) {
+    throw new Error("engine did not match Garden after an external update");
+  }
+  adapter.dispose();
+}
+
+function checkGardenOwnsUndo<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter, host } = session(spec);
+  if (adapter.engineOwnsHistory()) {
+    throw new Error("engine owns undo; Garden's workspace stack must be the only history");
+  }
+  const before = spec.serializeDoc(host.getDoc());
+  adapter.simulateUserEdit(spec.userEdit.intent);
+  const edited = spec.serializeDoc(host.getDoc());
+  if (same(edited, before)) {
+    throw new Error("user edit did not change Garden state; cannot verify undo");
+  }
+  host.undo();
+  if (!same(spec.serializeDoc(host.getDoc()), before)) {
+    throw new Error("Garden undo did not restore the document");
+  }
+  if (!same(spec.serializeDoc(adapter.readEngineDoc()), before)) {
+    throw new Error("engine did not follow Garden undo (engine-owned history?)");
+  }
+  host.redo();
+  if (!same(spec.serializeDoc(host.getDoc()), edited)) {
+    throw new Error("Garden redo did not restore the edited document");
+  }
+  if (!same(spec.serializeDoc(adapter.readEngineDoc()), edited)) {
+    throw new Error("engine did not follow Garden redo");
+  }
+  adapter.dispose();
+}
+
+function checkSelectionRoundTrip<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter } = session(spec);
+  const expected = spec.serializeSelection(
+    JSON.parse(JSON.stringify(spec.selection)) as Selection,
+  );
+  adapter.focusSelection(clone(spec.selection));
+  const read = adapter.readSelection();
+  if (read === null) {
+    throw new Error("readSelection returned null after focusSelection");
+  }
+  if (!same(spec.serializeSelection(read), expected)) {
+    throw new Error("selection did not round-trip through Garden serialization");
+  }
+  adapter.dispose();
+}
+
+function checkAiReviewGate<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter, host } = session(spec);
+  const beforeGarden = spec.serializeDoc(host.getDoc());
+  const beforeEngine = spec.serializeDoc(adapter.readEngineDoc());
+
+  host.proposeAi(spec.pendingAiOps);
+  if (host.pendingAi() === null) {
+    throw new Error("proposeAi did not store a pending batch");
+  }
+  if (!same(spec.serializeDoc(host.getDoc()), beforeGarden)) {
+    throw new Error("pending AI batch mutated Garden state before accept");
+  }
+  if (!same(spec.serializeDoc(adapter.readEngineDoc()), beforeEngine)) {
+    throw new Error("pending AI batch mutated the engine before accept");
+  }
+
+  host.reject();
+  if (host.pendingAi() !== null) {
+    throw new Error("reject did not drop the pending AI batch");
+  }
+  if (!same(spec.serializeDoc(host.getDoc()), beforeGarden)) {
+    throw new Error("rejecting an AI batch mutated Garden state");
+  }
+  if (!same(spec.serializeDoc(adapter.readEngineDoc()), beforeEngine)) {
+    throw new Error("rejecting an AI batch mutated the engine");
+  }
+
+  host.proposeAi(spec.pendingAiOps);
+  host.accept();
+  if (host.pendingAi() !== null) {
+    throw new Error("accept left a pending AI batch in place");
+  }
+  const after = spec.serializeDoc(host.getDoc());
+  if (same(after, beforeGarden)) {
+    throw new Error("accepting an AI batch did not change Garden state");
+  }
+  if (!same(spec.serializeDoc(adapter.readEngineDoc()), after)) {
+    throw new Error("engine did not receive the accepted AI batch via update");
+  }
+  adapter.dispose();
+}
+
+function checkDisposeRemount<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  const { adapter, host } = session(spec);
+  adapter.simulateUserEdit(spec.userEdit.intent);
+  const dirtyEphemeral = adapter.readEngineEphemeral();
+  const serialized = spec.serializeDoc(host.getDoc());
+  const blob = JSON.stringify(serialized);
+  const ephemeralBlob = JSON.stringify(dirtyEphemeral);
+  if (ephemeralBlob && ephemeralBlob !== "{}" && blob.includes(ephemeralBlob)) {
+    throw new Error("serializeDoc embeds engine ephemeral state (would leak into .gardenspace)");
+  }
+
+  adapter.dispose();
+  const remounted = spec.create();
+  const roundTripped = JSON.parse(JSON.stringify(serialized)) as Doc;
+  const remountHost = createAdapterHost(remounted, {
+    initialDoc: roundTripped,
+    applyOps: spec.applyOps,
+  });
+  if (!same(spec.serializeDoc(remounted.readEngineDoc()), spec.serializeDoc(roundTripped))) {
+    throw new Error("remount did not restore Garden state");
+  }
+  if (!same(spec.serializeDoc(remountHost.getDoc()), spec.serializeDoc(roundTripped))) {
+    throw new Error("remounted Garden host diverged from serialized state");
+  }
+  if (same(remounted.readEngineEphemeral(), dirtyEphemeral)) {
+    throw new Error("dispose/remount restored engine ephemeral state");
+  }
+  remounted.dispose();
+}
+
+const CHECKS: { [K in ConformanceCase]: <D, O, S, I>(spec: ConformanceSpec<D, O, S, I>) => void } = {
+  userEditsBecomeOps: checkUserEditsBecomeOps,
+  noFeedbackLoop: checkNoFeedbackLoop,
+  gardenOwnsUndo: checkGardenOwnsUndo,
+  selectionRoundTrip: checkSelectionRoundTrip,
+  aiReviewGate: checkAiReviewGate,
+  disposeRemount: checkDisposeRemount,
+};
+
+export function runConformanceCase<Doc, Op, Selection, Intent>(
+  name: ConformanceCase,
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): void {
+  CHECKS[name](spec);
 }
 
 /**
- * Shared conformance suite for `EditorAdapter` implementations.
+ * Register one vitest/playwright `it` (or equivalent) per conformance case.
  *
- * Future Writer/Sheets/Slides adapters should call this from their own
- * `*.test.ts` and fail until every case passes.
+ * ```ts
+ * describe("writer adapter", () => {
+ *   runAdapterConformance(writerSpec, it);
+ * });
+ * ```
  */
-export function runAdapterConformance<
-  Kind extends string,
-  Body,
-  Op,
-  Selection,
-  Doc extends GardenDocEnvelope<Kind, Body>,
-  AdapterExtra = unknown,
->(hooks: AdapterConformanceHooks<Kind, Body, Op, Selection, Doc, AdapterExtra>): void {
-  const { definition } = hooks;
+export function runAdapterConformance<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+  test: (name: string, fn: () => void) => void,
+): void {
+  for (const name of CONFORMANCE_CASES) {
+    test(CONFORMANCE_LABELS[name], () => {
+      runConformanceCase(name, spec);
+    });
+  }
+}
 
-  it("user edits become Garden ops", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-    const before = session.serialize();
-
-    hooks.mutateEngineOnly(adapter);
-    expect(session.serialize().body).toEqual(before.body);
-
-    const emitted = hooks.simulateUserEdit(session, adapter);
-    expect(emitted.length).toBeGreaterThan(0);
-    for (const op of emitted) {
-      expect(definition.opSchema.safeParse(op).success).toBe(true);
+export function evaluateAdapterConformance<Doc, Op, Selection, Intent>(
+  spec: ConformanceSpec<Doc, Op, Selection, Intent>,
+): ConformanceReport {
+  const failures: ConformanceFailure[] = [];
+  for (const name of CONFORMANCE_CASES) {
+    try {
+      runConformanceCase(name, spec);
+    } catch (err) {
+      failures.push({
+        case: name,
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
-
-    const after = session.getDoc();
-    const roundTrip = definition.apply(before.body, emitted);
-    expect(after.body).toEqual(roundTrip.body);
-    session.dispose();
-  });
-
-  it("does not feedback-loop on update", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-    const edits: Op[][] = [];
-
-    adapter.onUserEdit((ops) => edits.push(ops));
-    session.getAdapter().update(session.getDoc().body);
-    expect(edits).toHaveLength(0);
-    session.dispose();
-  });
-
-  it("Garden owns undo, not the engine", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-    const before = session.serialize();
-
-    hooks.simulateUserEdit(session, adapter);
-    hooks.engineUndo(adapter);
-
-    expect(session.canUndo()).toBe(true);
-    expect(session.undo()).toBe(true);
-    expect(session.getDoc().body).toEqual(before.body);
-    session.dispose();
-  });
-
-  it("round-trips selection through the schema", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-
-    adapter.focusSelection(hooks.sampleSelection);
-    const read = adapter.readSelection();
-    expect(read).toEqual(hooks.sampleSelection);
-
-    const parsed = definition.selectionSchema.safeParse(JSON.parse(JSON.stringify(read)));
-    expect(parsed.success).toBe(true);
-    session.dispose();
-  });
-
-  it("gates AI proposals until accept", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-    const before = session.serialize();
-    const updates: Body[] = [];
-
-    const originalUpdate = adapter.update.bind(adapter);
-    adapter.update = (body: Body) => {
-      updates.push(structuredClone(body));
-      originalUpdate(body);
-    };
-
-    const aiOps = hooks.sampleAiOps(before);
-    session.proposeAi(aiOps);
-    expect(session.hasPendingAi()).toBe(true);
-    expect(updates).toHaveLength(0);
-    expect(session.getDoc().body).toEqual(before.body);
-
-    expect(session.acceptAi()).toBe(true);
-    expect(session.hasPendingAi()).toBe(false);
-    expect(session.getDoc().body).not.toEqual(before.body);
-    expect(updates.length).toBeGreaterThan(0);
-
-    const rejectSession = createAdapterSession(definition, hooks.createInitialDoc());
-    const rejectBefore = rejectSession.serialize();
-    rejectSession.proposeAi(hooks.sampleAiOps(rejectBefore));
-    rejectSession.rejectAi();
-    expect(rejectSession.getDoc().body).toEqual(rejectBefore.body);
-    rejectSession.dispose();
-    session.dispose();
-  });
-
-  it("drops engine state on dispose and remount", () => {
-    const session = createAdapterSession(definition, hooks.createInitialDoc());
-    const adapter = hooks.getAdapter(session);
-
-    hooks.simulateUserEdit(session, adapter);
-    hooks.mutateEngineOnly(adapter);
-
-    const garden = session.serialize();
-    session.remount();
-
-    const nextAdapter = hooks.getAdapter(session);
-    const engine = (
-      nextAdapter as {
-        engineSnapshot?: () => { engineUndoStack: unknown[]; scrollTop: number };
-      }
-    ).engineSnapshot?.();
-
-    expect(session.getDoc().body).toEqual(garden.body);
-    expect(session.serialize()).toEqual(garden);
-    if (engine) {
-      expect(engine.engineUndoStack).toEqual([]);
-      expect(engine.scrollTop).toBe(0);
-    }
-    session.dispose();
-  });
+  }
+  return { ok: failures.length === 0, failures };
 }

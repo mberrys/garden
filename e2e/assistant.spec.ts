@@ -70,6 +70,26 @@ test("a canvas suggestion adds shapes and connectors", async ({ page }) => {
   await expect(page.getByText("Pick a tool and draw")).toBeVisible();
 });
 
+test("a sheet suggestion fills cells, and undo clears them", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Sheet");
+
+  await page.click('button:has-text("Add totals")');
+  await expect(page.getByText("proposed change", { exact: false })).toBeVisible({ timeout: 30_000 });
+
+  const card = page.locator("aside").last();
+  await expect(card).toContainText("cell");
+
+  await page.click('button:has-text("Apply")');
+  await expect(page.getByText(/^Applied \d+ changes?$/)).toBeVisible();
+
+  // The scripted reply fills a short numeric column and totals it with SUM.
+  await expect(page.locator('[aria-label="A4"]')).toContainText("60");
+
+  await page.click('button[aria-label="Undo"]');
+  await expect(page.locator('[aria-label="A4"]')).toContainText("");
+});
+
 test("a PDF builds a deck into the second pane", async ({ page }) => {
   await openEmptyWorkspace(page);
   await page.setInputFiles('input[type="file"]', await samplePdfPath());

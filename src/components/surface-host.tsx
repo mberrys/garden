@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { Component, type ComponentType, type ReactNode } from "react";
 import type { Doc, DocKind } from "@/lib/docs/schema";
 import type { PaneIndex } from "@/lib/store/workspace";
-import { getSurface } from "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 import { EmptyState } from "./ui";
 
 const loading = () => (
@@ -37,10 +37,6 @@ function renderSurface(doc: Doc, paneIndex: PaneIndex): ReactNode {
   return <Surface doc={doc} paneIndex={paneIndex} />;
 }
 
-/**
- * One surface crashing must not take the workspace with it — the other pane may
- * hold unsaved work, and everything is already persisted per document.
- */
 class SurfaceBoundary extends Component<
   { children: ReactNode; title: string },
   { error: Error | null }

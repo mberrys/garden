@@ -1,23 +1,15 @@
 import type { Doc, DocKind } from "@/lib/docs/schema";
+import { DOC_KIND_LABELS } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import { describeSelection, serializeDoc } from "./context";
 import { opReference } from "./op-reference";
 import { OPS_FENCE } from "./ops-block";
-import { getSurface } from "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 
-/**
- * Prompt construction.
- *
- * Written for small local models, which means: short instructions, one
- * unambiguous output format, concrete examples, and no cleverness that depends
- * on strong instruction-following.
- */
-
-export function systemPrompt(kind: DocKind): string {
-  const surface = getSurface(kind);
-  return [
+export function systemPrompt(kind: DocKind, addenda?: string): string {
+  const parts = [
     `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, and a drawing canvas — more like OpenOffice meets an IDE than four separate apps. Seed packets sprout profession worktrees; you edit through reviewable operations.`,
-    `You are currently working on a ${surface.label.toLowerCase()}.`,
+    `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
     "",
     "## How to answer",
     "Reply with a brief sentence or two of plain prose explaining what you are doing.",
@@ -40,8 +32,13 @@ export function systemPrompt(kind: DocKind): string {
     opReference(kind),
     "",
     "## Notes for this surface",
-    surface.promptNotes,
-  ].join("\n");
+    getSurface(kind).promptNotes,
+  ];
+  const extra = addenda?.trim();
+  if (extra) {
+    parts.push("", "## Workspace craft", extra);
+  }
+  return parts.join("\n");
 }
 
 export interface UserTurnOptions {
@@ -56,7 +53,7 @@ export function userTurn({ doc, request, selection, companions }: UserTurnOption
   const parts: string[] = [];
 
   const { content, truncated } = serializeDoc(doc, selection);
-  parts.push(`## Current ${getSurface(doc.kind).label.toLowerCase()}: "${doc.title}"`);
+  parts.push(`## Current ${DOC_KIND_LABELS[doc.kind].toLowerCase()}: "${doc.title}"`);
   parts.push(content);
   if (truncated) parts.push("(the document above was truncated to fit)");
 
@@ -66,7 +63,7 @@ export function userTurn({ doc, request, selection, companions }: UserTurnOption
   for (const companion of companions ?? []) {
     const rendered = serializeDoc(companion.doc, companion.selection);
     parts.push(
-      `\n## Source material — ${getSurface(companion.doc.kind).label.toLowerCase()} "${companion.doc.title}"`,
+      `\n## Source material — ${DOC_KIND_LABELS[companion.doc.kind].toLowerCase()} "${companion.doc.title}"`,
     );
     parts.push(rendered.content);
   }

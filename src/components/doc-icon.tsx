@@ -1,7 +1,7 @@
 "use client";
 
 import type { DocKind } from "@/lib/docs/schema";
-import { getSurface } from "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 
 export function DocIcon({
   kind,
@@ -24,9 +24,4 @@ export function DocIcon({
       aria-hidden
     />
   );
-}
-
-/** Per-kind accent for callers that need the color without the icon component. */
-export function kindColor(kind: DocKind): string {
-  return getSurface(kind).iconColor;
 }

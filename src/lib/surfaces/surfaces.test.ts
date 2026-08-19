@@ -1,19 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
-import { Box } from "lucide-react";
-import {
-  allKinds,
-  allSurfaces,
-  getSurface,
-  registerSurface,
-  unregisterSurface,
-} from "@/lib/surfaces";
-import { DOC_KINDS, DocSchema, SCHEMA_VERSION, type Doc, type DocKind } from "@/lib/docs/schema";
-import { opReference, opReferenceFromSchema } from "@/lib/ai/op-reference";
-import { newDocId } from "@/lib/docs/ids";
+import { allKinds, allSurfaces, getSurface } from ".";
+import { DOC_KINDS, DocSchema, type DocKind } from "@/lib/docs/schema";
+import { opReference } from "@/lib/ai/op-reference";
 
 describe("surface registry", () => {
-  it("discovers all four built-in surfaces", () => {
+  it("discovers all built-in surfaces", () => {
     const kinds = new Set(allKinds());
     for (const k of DOC_KINDS) {
       expect(kinds.has(k)).toBe(true);
@@ -76,83 +67,31 @@ describe("surface registry", () => {
       expect(typeof def.referencedBlobIds).toBe("function");
       expect(typeof def.remapBlobIds).toBe("function");
       expect(typeof def.loadComponent).toBe("function");
-      expect(def.bodySchema).toBeDefined();
-      expect(def.opSchema).toBeDefined();
     }
   });
 
-  it("registers a stub surface, generates op reference, and round-trips ops", () => {
-    const StubBodySchema = z.object({ value: z.string() });
-    const StubOpSchema = z.discriminatedUnion("op", [
-      z
-        .object({
-          op: z.literal("setValue"),
-          value: z.string(),
-        })
-        .describe("Replace the stub value"),
-    ]);
-
-    const now = Date.now();
-    const stubDoc = {
-      id: newDocId(),
-      kind: "stub",
-      title: "Stub",
-      createdAt: now,
-      updatedAt: now,
-      schemaVersion: SCHEMA_VERSION,
-      body: { value: "initial" },
-    };
-
-    registerSurface({
-      kind: "stub",
-      label: "Stub",
-      icon: Box,
-      iconColor: "#64748b",
-      bodySchema: StubBodySchema,
-      opSchema: StubOpSchema,
-      applyOps: (body, ops) => {
-        let value = body.value;
-        const inverse: { op: "setValue"; value: string }[] = [];
-        for (const op of ops) {
-          if (op.op === "setValue") {
-            inverse.push({ op: "setValue", value });
-            value = op.value;
-          }
-        }
-        return { body: { value }, inverse };
-      },
-      createDoc: (title = "Untitled stub") =>
-        ({
-          ...stubDoc,
-          id: newDocId(),
-          title,
-          body: { value: "" },
-        }) as unknown as Doc,
-      ownsHistory: false,
-      contextBudget: 1_000,
-      promptNotes: "Stub surface for tests.",
-      serializeDoc: (doc) => doc.body.value || "(empty)",
-      describeSelection: () => null,
-      mockReply: () => "Stub mock.",
-      describeOp: (op) => (op.op === "setValue" ? `Set value to "${op.value}"` : undefined),
-      referencedBlobIds: () => new Set(),
-      remapBlobIds: (doc) => doc,
-      loadComponent: async () => ({ default: () => null }),
-    });
-
-    expect(allSurfaces().some((s) => s.kind === "stub")).toBe(true);
-
-    const ref = opReferenceFromSchema(getSurface("stub" as DocKind).opSchema);
-    expect(ref).toMatch(/setValue/);
-
-    const def = allSurfaces().find((s) => s.kind === "stub")!;
-    const body = { value: "hello" };
-    const { body: next, inverse } = def.applyOps(body, [{ op: "setValue", value: "world" }]);
-    expect(next.value).toBe("world");
-    const restored = def.applyOps(next, inverse);
-    expect(restored.body.value).toBe("hello");
-
-    unregisterSurface("stub");
-    expect(() => getSurface("stub" as DocKind)).toThrow(/unknown surface kind/i);
+  it("describes every built-in against the adapter contract", () => {
+    const kinds = new Set(allKinds());
+    expect([...kinds].sort()).toEqual([...DOC_KINDS].sort());
+    for (const def of allSurfaces()) {
+      expect(def.ownsHistory).toBe(false);
+      expect(def.adapter.engine === "garden" || def.adapter.engine === "borrowed").toBe(true);
+      expect(def.adapter.status === "planned" || def.adapter.status === "not-required").toBe(true);
+      expect(def.adapter.userEdits.length).toBeGreaterThan(0);
+      expect(def.adapter.gardenUpdates.length).toBeGreaterThan(0);
+      expect(def.adapter.selection.length).toBeGreaterThan(0);
+      expect(def.adapter.notes.length).toBeGreaterThan(0);
+      expect(def.createAdapter).toBeUndefined();
+    }
+    expect(getSurface("text").adapter.status).toBe("planned");
+    expect(getSurface("pdf").adapter.engine).toBe("borrowed");
+    expect(getSurface("pdf").adapter.status).toBe("planned");
+    expect(getSurface("canvas").adapter.status).toBe("not-required");
+    expect(getSurface("deck").adapter.status).toBe("not-required");
+    expect(getSurface("sheet").adapter.status).toBe("not-required");
+    expect(getSurface("database").adapter.status).toBe("not-required");
+    expect(getSurface("database").ownsHistory).toBe(false);
+    expect(getSurface("database").createAdapter).toBeUndefined();
+    expect((allKinds() as string[]).includes("stub")).toBe(false);
   });
 });

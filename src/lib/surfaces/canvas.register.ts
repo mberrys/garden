@@ -1,10 +1,10 @@
 import { Shapes } from "lucide-react";
-import { CanvasBodySchema, type CanvasDoc } from "@/lib/docs/schema";
+import type { CanvasDoc } from "@/lib/docs/schema";
 import { CanvasOpSchema, applyCanvasOps } from "@/lib/ops/canvas";
 import { createCanvasDoc } from "@/lib/docs/factories";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
 import type { SurfaceSelection } from "@/lib/store/workspace";
-import type { MockRequest } from "@/lib/ai/mock-types";
+import type { MockRequest } from "@/lib/ai/mock";
 import { registerSurface } from "./registry";
 
 function serializeCanvas(doc: CanvasDoc): string {
@@ -126,7 +126,6 @@ registerSurface({
   label: "Canvas",
   icon: Shapes,
   iconColor: "#8b5cf6",
-  bodySchema: CanvasBodySchema,
   opSchema: CanvasOpSchema,
   applyOps: applyCanvasOps,
   createDoc: createCanvasDoc,
@@ -143,6 +142,15 @@ registerSurface({
   describeOp: describeCanvasOp,
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "gestures preview locally, then commit on release",
+    gardenUpdates: "React host re-renders from CanvasDoc.body",
+    selection: "node id list, pushed to the workspace store",
+    notes: "Garden-owned scene graph. Optional Konva later (#41) must mount as an adapter, not as the document model.",
+    relatedIssue: 41,
+  },
   loadComponent: () => import("@/surfaces/canvas/canvas-surface"),
 });
 

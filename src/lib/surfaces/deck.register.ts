@@ -1,17 +1,12 @@
 import { Presentation } from "lucide-react";
-import {
-  DeckBodySchema,
-  SLIDE_H,
-  SLIDE_W,
-  type DeckDoc,
-  type Doc,
-} from "@/lib/docs/schema";
+import type { DeckDoc, Doc } from "@/lib/docs/schema";
+import { SLIDE_W, SLIDE_H } from "@/lib/docs/schema";
 import { DeckOpSchema, applyDeckOps } from "@/lib/ops/deck";
 import { createDeckDoc } from "@/lib/docs/factories";
 import { docToMarkdown } from "@/lib/text/markdown";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
 import type { SurfaceSelection } from "@/lib/store/workspace";
-import type { MockRequest } from "@/lib/ai/mock-types";
+import type { MockRequest } from "@/lib/ai/mock";
 import { registerSurface } from "./registry";
 
 function serializeDeck(doc: DeckDoc): string {
@@ -151,7 +146,6 @@ registerSurface({
   label: "Deck",
   icon: Presentation,
   iconColor: "#f59e0b",
-  bodySchema: DeckBodySchema,
   opSchema: DeckOpSchema,
   applyOps: applyDeckOps,
   createDoc: createDeckDoc,
@@ -167,6 +161,15 @@ registerSurface({
   describeOp: describeDeckOp,
   referencedBlobIds: deckReferencedBlobIds,
   remapBlobIds: deckRemapBlobIds,
+  adapter: {
+    engine: "garden",
+    status: "not-required",
+    userEdits: "stage gestures call commit with deck ops",
+    gardenUpdates: "React host re-renders from DeckDoc.body",
+    selection: "active slide + element ids, pushed to the workspace store",
+    notes: "Garden-owned slide stage. Slides suite (#38) keeps this model; export is separate.",
+    relatedIssue: 38,
+  },
   loadComponent: () => import("@/surfaces/deck/deck-surface"),
 });
 

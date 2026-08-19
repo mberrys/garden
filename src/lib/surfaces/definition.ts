@@ -1,58 +1,48 @@
 import type { ComponentType } from "react";
 import type { ZodType } from "zod";
 import type { LucideIcon } from "lucide-react";
-import type { Doc } from "@/lib/docs/schema";
+import type { Doc, DocKind } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
-import type { MockRequest } from "@/lib/ai/mock-types";
+import type { MockRequest } from "@/lib/ai/mock";
 import type { EditorAdapter } from "./adapter";
 
-/** Garden document envelope shared by product docs and conformance fixtures. */
-export interface GardenDocEnvelope<Kind extends string, Body> {
-  id: string;
-  kind: Kind;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  schemaVersion: number;
-  body: Body;
-}
-
 /**
- * Contract for an `EditorAdapter` implementation and the conformance harness.
- * Product built-ins register through {@link SurfaceDefinition} instead.
+ * How a surface sits against {@link EditorAdapter} today — including built-ins
+ * that have not wrapped their React host yet. Status is `planned` when a later
+ * suite issue will put a borrowed engine behind the contract.
  */
-export interface AdapterSurfaceDefinition<
-  Body,
-  Op,
-  Selection,
-  Kind extends string = string,
-> {
-  kind: Kind;
-  label: string;
-  bodySchema: ZodType<Body>;
-  opSchema: ZodType<Op>;
-  selectionSchema: ZodType<Selection>;
-  apply: (body: Body, ops: Op[]) => { body: Body; inverse: Op[] };
-  createAdapter: () => EditorAdapter<Body, Op, Selection>;
-  /** Product UI host — optional until a surface wires a React host. */
-  Host?: ComponentType<{ doc: { kind: Kind; body: Body } }>;
+export type AdapterStatus = "not-required" | "planned";
+
+export type EngineOwnership = "garden" | "borrowed";
+
+export interface AdapterPosture {
+  engine: EngineOwnership;
+  status: AdapterStatus;
+  /** `EditorAdapter.onUserEdit` — how gestures become ops today. */
+  userEdits: string;
+  /** `EditorAdapter.update` — how Garden state reaches the UI. */
+  gardenUpdates: string;
+  /** `readSelection` / `focusSelection` — what the surface publishes today. */
+  selection: string;
+  notes: string;
+  relatedIssue?: number;
 }
 
 /**
- * Everything the app needs to know about a product surface, gathered in one object.
+ * Everything the app needs to know about a surface, gathered in one object.
  * Built-in surfaces and future custom surfaces register through the same shape.
  *
  * The `any` in body/doc positions is deliberate: the registry erases the per-
  * surface body type so it can hold all surfaces in one Map. Callers that need
  * type safety narrow through `DocOf<K>` after looking up the definition.
  */
-export interface SurfaceDefinition {
-  kind: string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface SurfaceDefinition<K extends DocKind = any> {
+  kind: K;
   label: string;
   icon: LucideIcon;
   iconColor: string;
 
-  bodySchema: ZodType;
   opSchema: ZodType;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   applyOps: (body: any, ops: any[]) => { body: any; inverse: any[] };
@@ -72,6 +62,15 @@ export interface SurfaceDefinition {
   referencedBlobIds: (doc: any) => Set<string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   remapBlobIds: (doc: any, map: Map<string, string>) => any;
+
+  adapter: AdapterPosture;
+  /**
+   * Present when the surface borrows an editor engine. Garden-owned UIs omit it
+   * until a later suite issue wraps them. The stub notes adapter is not a
+   * `DocKind` and does not register here.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createAdapter?: () => EditorAdapter<any, any, any>;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loadComponent: () => Promise<{ default: ComponentType<any> }>;

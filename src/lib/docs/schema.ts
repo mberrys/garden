@@ -11,9 +11,22 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
-export const DOC_KINDS = ["text", "pdf", "deck", "canvas"] as const;
+export const DOC_KINDS = ["text", "pdf", "deck", "canvas", "sheet", "database"] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;
+
+export const DOC_KIND_LABELS: Record<DocKind, string> = {
+  text: "Document",
+  pdf: "PDF",
+  deck: "Deck",
+  canvas: "Canvas",
+  sheet: "Sheet",
+  database: "Database",
+};
+
+/** Surfaces a packet may require; used for capability gating in the picker. */
+export const PACKET_CAPABILITIES = ["relations", "external_ref", "garden_ref"] as const;
+export type PacketCapability = (typeof PACKET_CAPABILITIES)[number];
 
 /* ------------------------------------------------------------------ *
  * Shared primitives
@@ -408,6 +421,190 @@ export const PdfBodySchema = z.object({
 export type PdfBody = z.infer<typeof PdfBodySchema>;
 
 /* ------------------------------------------------------------------ *
+ * Sheet — a grid of cells addressed by A1 references
+ * ------------------------------------------------------------------ */
+
+/** Upper bounds on the grid; generous for a browser doc, small enough to fit. */
+export const SHEET_MAX_ROWS = 500;
+export const SHEET_MAX_COLS = 52; // A..AZ
+
+export const CellAlignSchema = z.enum(["left", "center", "right"]);
+export type CellAlign = z.infer<typeof CellAlignSchema>;
+
+/** How a cell's *computed* value is rendered; the raw string is unchanged. */
+export const CellFormatSchema = z.enum(["auto", "number", "currency", "percent", "text"]);
+export type CellFormat = z.infer<typeof CellFormatSchema>;
+
+/**
+ * A single cell. `value` is the raw user input — a leading `=` marks a formula.
+ * Computed values are derived at render time (see `lib/sheet`), never stored, so
+ * the op reducer stays pure and every edit inverts exactly.
+ */
+export const SheetCellSchema = z.object({
+  value: z.string().default(""),
+  bold: z.boolean().default(false),
+  italic: z.boolean().default(false),
+  align: CellAlignSchema.default("left"),
+  format: CellFormatSchema.default("auto"),
+});
+export type SheetCell = z.infer<typeof SheetCellSchema>;
+
+/** Style fields a `setStyle` op may patch — the cell shape minus `value`. */
+export const CellStylePatchSchema = z
+  .object({
+    bold: z.boolean(),
+    italic: z.boolean(),
+    align: CellAlignSchema,
+    format: CellFormatSchema,
+  })
+  .partial();
+export type CellStylePatch = z.infer<typeof CellStylePatchSchema>;
+
+export const SheetBodySchema = z.object({
+  rows: z.number().int().min(1).max(SHEET_MAX_ROWS).default(20),
+  cols: z.number().int().min(1).max(SHEET_MAX_COLS).default(8),
+  /** Sparse map keyed by A1 ref (e.g. "B3"); empty cells are omitted. */
+  cells: z.record(z.string(), SheetCellSchema).default({}),
+  /** Pixel widths keyed by column letter (e.g. "A"); defaulted when absent. */
+  columnWidths: z.record(z.string(), z.number().min(24).max(640)).default({}),
+});
+export type SheetBody = z.infer<typeof SheetBodySchema>;
+
+/* ------------------------------------------------------------------ *
+ * Database — typed fields, rows, grid + kanban views
+ * ------------------------------------------------------------------ */
+
+export const GardenRefSchema = z.object({
+  documentId: z.string(),
+  objectId: z.string().optional(),
+});
+export type GardenRef = z.infer<typeof GardenRefSchema>;
+
+export const ExternalRefSchema = z.object({
+  provider: z.string(),
+  externalId: z.string().optional(),
+  url: z.string().optional(),
+  importedAt: z.string().optional(),
+  sourceUpdatedAt: z.string().optional(),
+  snapshotHash: z.string().optional(),
+});
+export type ExternalRef = z.infer<typeof ExternalRefSchema>;
+
+export const DATABASE_FIELD_TYPES = [
+  "text",
+  "number",
+  "date",
+  "select",
+  "multi_select",
+  "checkbox",
+  "url",
+  "relation",
+  "file",
+  "garden_ref",
+  "external_ref",
+] as const;
+export const DatabaseFieldTypeSchema = z.enum(DATABASE_FIELD_TYPES);
+export type DatabaseFieldType = z.infer<typeof DatabaseFieldTypeSchema>;
+
+const fieldCommon = {
+  id: z.string(),
+  name: z.string(),
+};
+
+export const TextFieldSchema = z.object({ ...fieldCommon, type: z.literal("text") });
+export const NumberFieldSchema = z.object({ ...fieldCommon, type: z.literal("number") });
+export const DateFieldSchema = z.object({ ...fieldCommon, type: z.literal("date") });
+export const SelectFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("select"),
+  options: z.array(z.string()).default([]),
+});
+export const MultiSelectFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("multi_select"),
+  options: z.array(z.string()).default([]),
+});
+export const CheckboxFieldSchema = z.object({ ...fieldCommon, type: z.literal("checkbox") });
+export const UrlFieldSchema = z.object({ ...fieldCommon, type: z.literal("url") });
+export const RelationFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("relation"),
+  targetDocId: z.string(),
+});
+export const FileFieldSchema = z.object({ ...fieldCommon, type: z.literal("file") });
+export const GardenRefFieldSchema = z.object({ ...fieldCommon, type: z.literal("garden_ref") });
+export const ExternalRefFieldSchema = z.object({
+  ...fieldCommon,
+  type: z.literal("external_ref"),
+});
+
+export const DatabaseFieldSchema = z.discriminatedUnion("type", [
+  TextFieldSchema,
+  NumberFieldSchema,
+  DateFieldSchema,
+  SelectFieldSchema,
+  MultiSelectFieldSchema,
+  CheckboxFieldSchema,
+  UrlFieldSchema,
+  RelationFieldSchema,
+  FileFieldSchema,
+  GardenRefFieldSchema,
+  ExternalRefFieldSchema,
+]);
+export type DatabaseField = z.infer<typeof DatabaseFieldSchema>;
+
+export const DATABASE_VIEW_TYPES = ["grid", "kanban"] as const;
+export const DatabaseViewTypeSchema = z.enum(DATABASE_VIEW_TYPES);
+export type DatabaseViewType = z.infer<typeof DatabaseViewTypeSchema>;
+
+const viewCommon = {
+  id: z.string(),
+  name: z.string(),
+};
+
+export const GridViewSchema = z.object({
+  ...viewCommon,
+  type: z.literal("grid"),
+  hiddenFieldIds: z.array(z.string()).default([]),
+  sortFieldId: z.string().nullable().default(null),
+  sortDirection: z.enum(["asc", "desc"]).default("asc"),
+});
+
+export const KanbanViewSchema = z.object({
+  ...viewCommon,
+  type: z.literal("kanban"),
+  groupFieldId: z.string(),
+});
+
+export const DatabaseViewSchema = z.discriminatedUnion("type", [GridViewSchema, KanbanViewSchema]);
+export type DatabaseView = z.infer<typeof DatabaseViewSchema>;
+
+export const CellValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.string()),
+  GardenRefSchema,
+  ExternalRefSchema,
+  z.null(),
+]);
+export type CellValue = z.infer<typeof CellValueSchema>;
+
+export const DatabaseRowSchema = z.object({
+  id: z.string(),
+  cells: z.record(z.string(), CellValueSchema).default({}),
+});
+export type DatabaseRow = z.infer<typeof DatabaseRowSchema>;
+
+export const DatabaseBodySchema = z.object({
+  fields: z.array(DatabaseFieldSchema).default([]),
+  rows: z.array(DatabaseRowSchema).default([]),
+  views: z.array(DatabaseViewSchema).default([]),
+  activeViewId: z.string().nullable().default(null),
+});
+export type DatabaseBody = z.infer<typeof DatabaseBodySchema>;
+
+/* ------------------------------------------------------------------ *
  * Document envelope
  * ------------------------------------------------------------------ */
 
@@ -443,17 +640,33 @@ export const PdfDocSchema = z.object({
   body: PdfBodySchema,
 });
 
+export const SheetDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("sheet"),
+  body: SheetBodySchema,
+});
+
+export const DatabaseDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("database"),
+  body: DatabaseBodySchema,
+});
+
 export const DocSchema = z.discriminatedUnion("kind", [
   TextDocSchema,
   CanvasDocSchema,
   DeckDocSchema,
   PdfDocSchema,
+  SheetDocSchema,
+  DatabaseDocSchema,
 ]);
 
 export type TextDoc = z.infer<typeof TextDocSchema>;
 export type CanvasDoc = z.infer<typeof CanvasDocSchema>;
 export type DeckDoc = z.infer<typeof DeckDocSchema>;
 export type PdfDoc = z.infer<typeof PdfDocSchema>;
+export type SheetDoc = z.infer<typeof SheetDocSchema>;
+export type DatabaseDoc = z.infer<typeof DatabaseDocSchema>;
 export type Doc = z.infer<typeof DocSchema>;
 
 /** `DocOf<'deck'>` -> `DeckDoc`. Used to keep the op layer generic but exact. */

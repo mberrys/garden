@@ -3,21 +3,17 @@ import type { SurfaceDefinition } from "./definition";
 
 const registry = new Map<string, SurfaceDefinition>();
 
-export function registerSurface(def: SurfaceDefinition): void {
+export function registerSurface<K extends DocKind>(def: SurfaceDefinition<K>): void {
   if (registry.has(def.kind)) {
     throw new Error(`Surface "${def.kind}" is already registered`);
   }
-  registry.set(def.kind, def);
+  registry.set(def.kind, def as SurfaceDefinition);
 }
 
-export function unregisterSurface(kind: string): void {
-  registry.delete(kind);
-}
-
-export function getSurface<K extends DocKind>(kind: K): SurfaceDefinition {
+export function getSurface<K extends DocKind>(kind: K): SurfaceDefinition<K> {
   const def = registry.get(kind);
   if (!def) throw new Error(`Unknown surface kind: "${kind}"`);
-  return def;
+  return def as SurfaceDefinition<K>;
 }
 
 export function allSurfaces(): SurfaceDefinition[] {

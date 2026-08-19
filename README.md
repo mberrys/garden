@@ -3,8 +3,8 @@
 A **generative document workplace** — OpenOffice meets an IDE.
 
 Plant a **seed packet** for a craft; it sprouts a worktree of text, PDFs,
-presentations, drawings (and soon sheets, databases, media). One shell, one undo
-stack, and a local AI that edits through reviewable operations — not four apps
+presentations, drawings, spreadsheets, and databases. One shell, one undo
+stack, and a local AI that edits through reviewable operations — not five apps
 side by side.
 
 Everything runs on your machine. Documents live in your browser; the model runs
@@ -12,7 +12,7 @@ wherever you point it.
 
 ---
 
-## What makes it different from four editors in a row
+## What makes it different from five editors in a row
 
 The assistant does not type into your document.
 
@@ -83,6 +83,35 @@ that also makes localhost-bound servers reachable without CORS configuration.
 
 ---
 
+## Seed packets
+
+An empty workspace is a picker, not a blank suite. A **seed packet** is a
+profession-shaped starting kit: starter documents, database bases, which panes
+to open, cross-links, layout presets, extra assistant recipes, and prompt
+addenda for that craft. Choosing one **sprouts** the worktree.
+
+Packets are data (TypeScript modules), not one-off React trees. The welcome
+experience is packet `garden/welcome` — the same path as the others.
+
+Each packet carries a `version` persisted in workspace metadata (and in
+`.gardenspace` exports) so sprouted topology can evolve without breaking old
+workspaces.
+
+| Packet | Id | Sprouts |
+| --- | --- | --- |
+| Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
+| History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
+| Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
+| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
+
+You can also start blank and plant a packet later from the sidebar. Which packet
+sprouted the workspace (and its version) is stored in local metadata and
+included when you export a `.gardenspace` file.
+
+Complex packets (multiple bases, links, or many artifacts) show a preview
+listing exact artifacts, bases, views, and links before planting.
+
 ## The surfaces
 
 **Document** — markdown source editor. The stored body remains ProseMirror JSON so
@@ -105,6 +134,19 @@ stored in normalised page coordinates so it survives zooming, per-page text
 extraction that feeds the assistant, and export that flattens annotations into a
 copy of the original file.
 
+**Sheet** — a grid of cells addressed by A1 references, with a formula bar and a
+small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
+`ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
+never stored, so every cell edit stays exactly invertible. Bold/italic/align/
+number-format styling, and grid resizing.
+
+**Database** — typed fields, rows, grid and kanban views, relation links to
+other bases in the workspace, and `garden_ref` / `external_ref` cells for
+cross-surface provenance. AI row and schema batches go through the same
+review gate as other surfaces. This is the structured-work layer — lighter
+than Airtable or Notion, local-first, and composed by seed packets rather than
+blank grids. Sheets stay as the formula grid; they are not replaced.
+
 ### Cross-surface recipes
 
 Offered in the assistant panel, per surface:
@@ -116,10 +158,14 @@ Offered in the assistant panel, per surface:
 | PDF | Highlight key passages | annotations on the pages you have read |
 | Document | Diagram this | a canvas of the structure it describes |
 | Document | Turn into slides | a deck |
+| Document | Extract a table | a sheet built from the document |
 | Document | Tighten this / Add an outline | edits in place |
 | Canvas | Write it up | a document from the diagram |
 | Canvas | Tidy the layout | alignment and spacing fixes |
 | Deck | Write speaker notes / Tighten the copy | edits in place |
+| Sheet | Summarise the data | a document written up from the sheet |
+| Sheet | Add totals | totals row, in place |
+| Database | Add rows from notes | new rows, in place |
 
 ---
 
@@ -144,7 +190,8 @@ anywhere; the only network request the app makes is to the local model server yo
 configure.
 
 Because browser storage can be cleared, **Export** writes the whole workspace to a
-`.gardenspace` file (documents plus embedded PDFs and images) that **Import** restores.
+`.gardenspace` file (documents plus embedded PDFs and images, and which seed packet
+sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
 `.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
 
@@ -157,8 +204,8 @@ npm run dev        # dev server
 npm run build      # production build
 npm run typecheck  # tsc --noEmit
 npm run lint       # eslint
-npm run test       # vitest — document model, op reducers, markdown, AI parsing
-npm run test:e2e   # playwright — all four surfaces, against the mock provider
+npm run test       # vitest — document model, op reducers, adapter harness, markdown, AI parsing
+npm run test:e2e   # playwright — all six surfaces, against the mock provider
 ```
 
 Run `npm run build` before `npm run test:e2e`; the suite starts the production
@@ -169,29 +216,21 @@ installed.
 
 ```
 src/
-  lib/docs/     Zod schemas for all four document kinds — the single source of
+  lib/docs/     Zod schemas for every document kind — the single source of
                 truth for types, persistence validation, and the AI's vocabulary
   lib/ops/      one pure reducer per surface, each returning the new body and an
                 exact inverse; this is what makes undo and AI-reject the same thing
-  lib/surfaces/ SurfaceDefinition registry — built-ins and extensions register the
-                same contract (schemas, ops, AI helpers, React host loader)
   lib/ai/       provider adapters, prompt construction, op-block parsing, recipes
   lib/store/    zustand workspace state, Dexie persistence, import/export
-  surfaces/     text, canvas, deck, pdf React hosts
+  lib/packets/  seed packet registry and sprout — profession kits that plant a
+                worktree of documents and bases
+  lib/surfaces/ SurfaceDefinition (registration contract) and EditorAdapter
+                (engine boundary), plus a conformance harness a new adapter can fail
+  surfaces/     text, canvas, deck, pdf, sheet, database
   components/   shell: sidebar, panes, assistant panel, review cards
 ```
 
-Built-in surfaces register through `registerSurface()` in `lib/surfaces/*.register.ts`.
-Adding a surface means one registration module (schema, ops reducer, AI serialize/mock,
-icon/label, host `loadComponent`) plus typed catalog entries in `DOC_KINDS` and
-`DocSchema`. The shell, ops dispatch, assistant prompts, and blob cleanup read the
-registry — not per-kind switches scattered across the app.
-
-`AdapterSurfaceDefinition` and `runAdapterConformance` in `lib/surfaces/conformance.ts`
-exercise the engine boundary (`EditorAdapter`) for test doubles and future engine
-swaps. Product built-ins still commit through `workspace.commit()` → `applyOps()`.
-
-Two conventions are worth knowing before changing anything:
+Three conventions are worth knowing before changing anything:
 
 1. **Schemas are the source of truth.** TypeScript types come from `z.infer`, and
    the operation reference in the AI prompt is *generated* from the same schemas —
@@ -202,8 +241,16 @@ Two conventions are worth knowing before changing anything:
    calls `applyOps()`. There is no second code path for AI edits, which is why
    they are undoable, previewable and rejectable without any special handling.
 
+3. **Engines are replaceable; Garden state is canonical.** `SurfaceDefinition` is
+   the registration contract a surface registers through. `EditorAdapter` is the
+   engine boundary: user input becomes Garden ops, Garden ops update the engine
+   without feedback loops, undo lives on Garden's stack, and `.gardenspace` never
+   persists engine internals. Built-in surfaces are described against this
+   contract before they all implement it.
+
 ---
 
 ## Licence
 
-MIT — see [LICENSE](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE), [NOTICE](./NOTICE), and the borrowed-engine
+policy in [docs/licensing.md](./docs/licensing.md).

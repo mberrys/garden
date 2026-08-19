@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { Doc } from "@/lib/docs/schema";
 import { migrateDoc } from "@/lib/docs/migrations";
-import { getSurface } from "@/lib/surfaces";
+import { getSurface } from "@/lib/surfaces/registry";
 
 /**
  * Local persistence.

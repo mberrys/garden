@@ -1,16 +1,6 @@
 import type { Doc } from "@/lib/docs/schema";
 import type { SurfaceSelection } from "@/lib/store/workspace";
-import { getSurface } from "@/lib/surfaces";
-
-/**
- * Serialises a document into the view the model gets.
- *
- * Two constraints shape every format here:
- *  1. A 7B model has a small effective context. Verbose JSON crowds out the
- *     actual content, so each surface gets a compact line-oriented rendering.
- *  2. Ops address things by id or index, so every id and index the model might
- *     need to reference has to appear in the text it reads.
- */
+import { getSurface } from "@/lib/surfaces/registry";
 
 export interface DocContext {
   /** Human-readable rendering handed to the model. */

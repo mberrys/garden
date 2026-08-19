@@ -1,10 +1,10 @@
 import { FileType2 } from "lucide-react";
-import { PdfBodySchema, type PdfDoc } from "@/lib/docs/schema";
+import type { PdfDoc } from "@/lib/docs/schema";
 import { PdfOpSchema, applyPdfOps } from "@/lib/ops/pdf";
 import { createPdfDoc } from "@/lib/docs/factories";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
 import type { SurfaceSelection } from "@/lib/store/workspace";
-import type { MockRequest } from "@/lib/ai/mock-types";
+import type { MockRequest } from "@/lib/ai/mock";
 import { registerSurface } from "./registry";
 
 function serializePdf(doc: PdfDoc, selection?: SurfaceSelection): string {
@@ -136,7 +136,6 @@ registerSurface({
   label: "PDF",
   icon: FileType2,
   iconColor: "#ef4444",
-  bodySchema: PdfBodySchema,
   opSchema: PdfOpSchema,
   applyOps: applyPdfOps,
   createDoc: createPdfDoc,
@@ -152,6 +151,15 @@ registerSurface({
   describeOp: describePdfOp,
   referencedBlobIds: pdfReferencedBlobIds,
   remapBlobIds: pdfRemapBlobIds,
+  adapter: {
+    engine: "borrowed",
+    status: "planned",
+    userEdits: "annotation gestures commit pdf ops; extracted text uses skipHistory",
+    gardenUpdates: "pdf.js renders bytes; annotation overlay reads PdfDoc.body",
+    selection: "page + quote + annotation id, pushed to the workspace store",
+    notes: "pdf.js is a renderer. Annotations, undo, and .gardenspace must stay Garden-owned (#40).",
+    relatedIssue: 40,
+  },
   loadComponent: () => import("@/surfaces/pdf/pdf-surface"),
 });
 

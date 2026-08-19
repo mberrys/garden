@@ -1,12 +1,15 @@
 import {
   type CanvasDoc,
   type CanvasNode,
+  type DatabaseDoc,
   type DeckDoc,
+  type Doc,
+  type DocKind,
   type PdfDoc,
+  type SheetDoc,
   type Slide,
   type SlideElement,
   type SlideLayout,
-  type DocKind,
   type TextDoc,
   CanvasNodeSchema,
   SlideElementSchema,
@@ -14,7 +17,7 @@ import {
   SLIDE_H,
   SLIDE_W,
 } from "./schema";
-import { newDocId, newElementId, newNodeId, newSlideId } from "./ids";
+import { newDocId, newElementId, newFieldId, newNodeId, newSlideId, newViewId } from "./ids";
 import { markdownToDoc } from "@/lib/text/markdown";
 
 function envelope(kind: DocKind, title: string) {
@@ -73,6 +76,58 @@ export function createPdfDoc(title = "Untitled PDF"): PdfDoc {
       pageText: {},
     },
   };
+}
+
+export function createSheetDoc(title = "Untitled sheet"): SheetDoc {
+  return {
+    ...envelope("sheet", title),
+    kind: "sheet",
+    body: { rows: 20, cols: 8, cells: {}, columnWidths: {} },
+  };
+}
+
+export function createDatabaseDoc(title = "Untitled database"): DatabaseDoc {
+  const viewId = newViewId();
+  return {
+    ...envelope("database", title),
+    kind: "database",
+    body: {
+      fields: [{ id: newFieldId(), name: "Name", type: "text" }],
+      rows: [],
+      views: [
+        {
+          id: viewId,
+          name: "Grid",
+          type: "grid",
+          hiddenFieldIds: [],
+          sortFieldId: null,
+          sortDirection: "asc",
+        },
+      ],
+      activeViewId: viewId,
+    },
+  };
+}
+
+export function createDoc(kind: DocKind, title?: string): Doc {
+  switch (kind) {
+    case "text":
+      return createTextDoc(title);
+    case "canvas":
+      return createCanvasDoc(title);
+    case "deck":
+      return createDeckDoc(title);
+    case "pdf":
+      return createPdfDoc(title);
+    case "sheet":
+      return createSheetDoc(title);
+    case "database":
+      return createDatabaseDoc(title);
+    default: {
+      const _exhaustive: never = kind;
+      throw new Error(`unknown document kind: ${String(_exhaustive)}`);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ *
