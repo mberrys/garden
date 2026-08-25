@@ -174,16 +174,16 @@ registerFormat({
         text = "";
       }
     }
-    const xml = officeXmlFromBytes(bytes);
+    const documentXml = zipEntryText(bytes, "word/document.xml") ?? officeXmlFromBytes(bytes);
     if (!text) {
-      const extracted = extractDocxText(xml);
+      const extracted = extractDocxText(documentXml);
       text = extracted.text;
       warnings.push(...extracted.warnings.filter((item) => item.code !== "docx-styles"));
     }
-    if (/w:tbl/.test(xml)) {
+    if (/<w:tbl[\s>]/.test(documentXml)) {
       warnings.push(warning("docx-tables", "tables", "partial", "Tables flatten to paragraphs."));
     }
-    if (/w:comment|w:ins[\s>]|w:del[\s>]/.test(xml)) {
+    if (/<w:commentRangeStart[\s>]|<w:commentReference[\s>]|<w:ins[\s>]|<w:del[\s>]/.test(documentXml)) {
       warnings.push(
         warning("docx-tracked", "tracked-changes", "unsupported", "Comments and tracked changes are dropped."),
       );

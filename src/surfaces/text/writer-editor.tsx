@@ -195,7 +195,7 @@ export default function WriterEditor({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-8 shrink-0 items-center gap-1 border-b border-line bg-raised px-2">
+      <div className="flex h-8 shrink-0 flex-wrap items-center gap-1 overflow-x-auto border-b border-line bg-raised px-2">
         <FormatButton label="Bold" onClick={() => run(toggleMark(gardenSchema.marks.bold))}>
           B
         </FormatButton>

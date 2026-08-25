@@ -94,6 +94,7 @@ describe("interchange harness", () => {
     const blob = JSON.stringify(again.docs);
     expect(blob).toContain("Hello Garden");
     expect(blob).toContain("A short paragraph");
+    expect(again.warnings.some((item) => item.code === "docx-tracked")).toBe(false);
   });
 
   it("round-trips a SUM formula through XLSX", async () => {
