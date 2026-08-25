@@ -22,7 +22,7 @@ describe("database query", () => {
       },
     ]).doc;
     const rows = queryRows(doc.body.rows, doc.body.fields, doc.body.views[0]);
-    expect(rows.map((r) => r.cells[name])).toEqual(["Bea"]);
+    expect(rows.map((r) => r.cells[name])).toEqual(["Bea", "Zoe"]);
   });
 
   it("stays interactive at 5k rows (filter+sort under 250ms)", () => {

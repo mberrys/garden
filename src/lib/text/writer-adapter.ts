@@ -46,6 +46,7 @@ export function createTextAdapter(): TestAdapter<TextDoc, TextOp, SurfaceSelecti
     },
     simulateUserEdit(intent) {
       if (applying) return;
+      ephemeral.caretPx += 13;
       const ops: TextOp[] = [{ op: "replaceDoc", markdown: intent.markdown }];
       onEdit?.(ops);
     },

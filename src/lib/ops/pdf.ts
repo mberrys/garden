@@ -93,8 +93,8 @@ export function applyPdfOps(body: PdfBody, ops: PdfOp[]): { body: PdfBody; inver
   let blobId = body.blobId;
   let fileName = body.fileName;
   let pageCount = body.pageCount;
-  let evidence = body.evidence.slice();
-  let citations = body.citations.slice();
+  const evidence = body.evidence.slice();
+  const citations = body.citations.slice();
   const inverse: PdfOp[] = [];
 
   for (const op of ops) {

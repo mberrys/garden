@@ -3,9 +3,6 @@ import {
   EvidenceRefSchema,
   ExternalRefSchema,
   GardenRefSchema,
-  type EvidenceRef,
-  type ExternalRef,
-  type GardenRef,
 } from "@/lib/refs/schema";
 
 export {

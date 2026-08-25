@@ -50,8 +50,12 @@ export function createCanvasAdapter(): TestAdapter<
     },
     simulateUserEdit(intent) {
       if (applying) return;
+      ephemeral.panPx += 8;
       const ops: CanvasOp[] = [
-        { op: "addNode", node: { kind: "rect", x: intent.x, y: intent.y, w: 80, h: 48 } },
+        {
+          op: "addNode",
+          node: { kind: "rect", id: "nd_intent", x: intent.x, y: intent.y, w: 80, h: 48 },
+        },
       ];
       onEdit?.(ops);
     },
