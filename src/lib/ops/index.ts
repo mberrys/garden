@@ -92,7 +92,7 @@ export function parseOps<K extends DocKind>(
   raw.forEach((item, i) => {
     const parsed = schema.safeParse(item);
     if (parsed.success) {
-      ops.push(parsed.data);
+      (ops as unknown as unknown[]).push(parsed.data);
     } else {
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)

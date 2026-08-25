@@ -5,29 +5,45 @@ import { docToMarkdown } from "@/lib/text/markdown";
 import type { EditorAdapter } from "@/lib/surfaces/adapter";
 import type { AdapterDriver, TestAdapter } from "@/lib/surfaces/conformance";
 import type { SurfaceSelection } from "@/lib/store/workspace";
+import type { EditorState } from "prosemirror-state";
+import {
+  createGardenEditorState,
+  engineTextDoc,
+  pmDocFromMarkdown,
+  selectionFromPm,
+  selectionToPm,
+  textOpsFromPmReplace,
+} from "./pm-bridge";
 
 export type TextIntent = { type: "type"; markdown: string };
 
 /**
- * Writer adapter: ProseMirror-shaped Garden JSON in, replaceDoc ops out.
- * History stays on Garden's stack — this adapter never owns undo.
+ * Writer adapter: a live ProseMirror `EditorState` in, Garden text ops out.
+ * History stays on Garden's stack — this adapter never loads `prosemirror-history`.
  */
 export function createTextAdapter(): TestAdapter<TextDoc, TextOp, SurfaceSelection, TextIntent> {
-  let doc = createTextDoc();
+  let meta = createTextDoc();
+  let state: EditorState = createGardenEditorState(meta.body);
   let selection: SurfaceSelection | null = null;
   let onEdit: ((ops: TextOp[]) => void) | null = null;
   let applying = false;
   const ephemeral = { caretPx: 0 };
 
+  function load(next: TextDoc): void {
+    meta = structuredClone(next);
+    state = createGardenEditorState(next.body);
+    selection = selectionFromPm(state);
+  }
+
   const adapter: EditorAdapter<TextDoc, TextOp, SurfaceSelection> &
     AdapterDriver<TextDoc, TextIntent> = {
     mount(next) {
-      doc = structuredClone(next);
+      load(next);
     },
     update(next) {
       if (applying) return;
       applying = true;
-      doc = structuredClone(next);
+      load(next);
       applying = false;
     },
     onUserEdit(callback) {
@@ -38,20 +54,25 @@ export function createTextAdapter(): TestAdapter<TextDoc, TextOp, SurfaceSelecti
     },
     focusSelection(next) {
       selection = next;
+      state = selectionToPm(state, next);
     },
     dispose() {
       onEdit = null;
       selection = null;
       ephemeral.caretPx = 0;
+      state = createGardenEditorState({ type: "doc", content: [{ type: "paragraph" }] });
     },
     simulateUserEdit(intent) {
       if (applying) return;
       ephemeral.caretPx += 13;
-      const ops: TextOp[] = [{ op: "replaceDoc", markdown: intent.markdown }];
-      onEdit?.(ops);
+      const nextPm = pmDocFromMarkdown(intent.markdown);
+      const tr = state.tr.replaceWith(0, state.doc.content.size, nextPm.content);
+      state = state.apply(tr);
+      selection = selectionFromPm(state);
+      onEdit?.(textOpsFromPmReplace(meta, state.doc));
     },
     readEngineDoc() {
-      return structuredClone(doc);
+      return engineTextDoc(meta, state.doc);
     },
     engineOwnsHistory() {
       return false;

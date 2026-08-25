@@ -30,6 +30,19 @@ function spec(): ConformanceSpec<TextDoc, TextOp, SurfaceSelection, TextIntent> 
 describe("writer adapter", () => {
   runAdapterConformance(spec(), it);
 
+  it("maps a ProseMirror document replacement to spliceBlocks", () => {
+    const adapter = createTextAdapter();
+    const initial = createTextDoc("Notes", "Hello");
+    let captured: TextOp[] = [];
+    adapter.mount(initial);
+    adapter.onUserEdit((ops) => {
+      captured = ops;
+    });
+    adapter.simulateUserEdit({ type: "type", markdown: "Hello world" });
+    expect(captured[0]?.op).toBe("spliceBlocks");
+    expect(JSON.stringify(adapter.readEngineDoc().body)).toContain("Hello world");
+  });
+
   it("does not persist caret pixels", () => {
     const adapter = createTextAdapter();
     adapter.mount(createTextDoc());

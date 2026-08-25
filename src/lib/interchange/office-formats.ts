@@ -2,17 +2,14 @@ import { createDeckDoc, makeSlide } from "@/lib/docs/factories";
 import { createSheetDoc } from "@/lib/docs/factories";
 import { registerFormat } from "./harness";
 import { warning } from "./warnings";
-
-function decode(bytes: Uint8Array): string {
-  return new TextDecoder().decode(bytes);
-}
+import { officeXmlFromBytes } from "./zip";
 
 registerFormat({
   format: "pptx",
   kind: "deck",
   extensions: [".pptx"],
   async importBytes(bytes, name) {
-    const xml = decode(bytes);
+    const xml = officeXmlFromBytes(bytes);
     const titles = [...xml.matchAll(/<a:t>([^<]+)<\/a:t>/g)].map((m) => m[1]);
     const doc = createDeckDoc(name.replace(/\.pptx$/i, "") || "Imported deck");
     const slides = titles.length
@@ -30,7 +27,7 @@ registerFormat({
   kind: "deck",
   extensions: [".odp"],
   async importBytes(bytes, name) {
-    const xml = decode(bytes);
+    const xml = officeXmlFromBytes(bytes);
     const titles = [...xml.matchAll(/<text:p[^>]*>([^<]+)<\/text:p>/g)].map((m) => m[1]);
     const doc = createDeckDoc(name.replace(/\.odp$/i, "") || "Imported deck");
     const slides = titles.slice(0, 8).map((title) => makeSlide("title-body", { title, body: "" }));
@@ -46,7 +43,7 @@ registerFormat({
   kind: "sheet",
   extensions: [".xlsx"],
   async importBytes(bytes, name) {
-    const xml = decode(bytes);
+    const xml = officeXmlFromBytes(bytes);
     const values = [...xml.matchAll(/<v>([^<]*)<\/v>/g)].map((m) => m[1]);
     const doc = createSheetDoc(name.replace(/\.xlsx$/i, "") || "Imported sheet");
     const cells: Record<string, { value: string }> = {};
@@ -65,7 +62,7 @@ registerFormat({
   kind: "sheet",
   extensions: [".ods"],
   async importBytes(bytes, name) {
-    const xml = decode(bytes);
+    const xml = officeXmlFromBytes(bytes);
     const values = [...xml.matchAll(/<text:p[^>]*>([^<]*)<\/text:p>/g)].map((m) => m[1]);
     const doc = createSheetDoc(name.replace(/\.ods$/i, "") || "Imported sheet");
     const cells: Record<string, { value: string }> = {};

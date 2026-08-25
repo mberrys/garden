@@ -89,14 +89,14 @@ These are the libraries named by the editor-platform issues. Status is
 
 | Library | Licence | Policy | Notes |
 | --- | --- | --- | --- |
-| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Not yet a runtime dependency; the text surface still edits markdown over ProseMirror-shaped Garden state |
+| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Runtime: `prosemirror-*`. Garden JSON stays canonical; no `prosemirror-history` |
 | Univer Sheets (OSS) | Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)). Engine only; not the document model |
 | Univer Pro / Univer import-export | commercial | **Red by default** | Native Office interchange is Pro/server, not OSS |
 | IronCalc | MIT / Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)) |
 | PDF.js | Apache-2.0 | Green | Already used for PDF rendering |
 | pdf-lib | MIT | Green | Already used for annotation export |
-| PptxGenJS | MIT | Green | PPTX **export** from Garden deck state ([#38](https://github.com/mberrys/garden/issues/38)) |
-| Mammoth | BSD-2-Clause | Green | DOCX import → Garden text model ([#34](https://github.com/mberrys/garden/issues/34)) |
+| PptxGenJS | MIT | Green | PPTX **export** from Garden deck state ([#38](https://github.com/mberrys/garden/issues/38)). Runtime dependency |
+| Mammoth | BSD-2-Clause | Green | DOCX import → Garden text model ([#34](https://github.com/mberrys/garden/issues/34)). Runtime ZIP DOCX path |
 | `docx` | MIT | Green | DOCX export from Garden text model ([#34](https://github.com/mberrys/garden/issues/34)) |
 | SheetJS Community Edition | Apache-2.0 | Green | Evaluate against fixtures ([#37](https://github.com/mberrys/garden/issues/37)). Commercial SheetJS features stay red |
 | ExcelJS | MIT | Green | Evaluate against the same fixtures ([#37](https://github.com/mberrys/garden/issues/37)) |

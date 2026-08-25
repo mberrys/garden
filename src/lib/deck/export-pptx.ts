@@ -2,8 +2,8 @@ import type { DeckDoc } from "@/lib/docs/schema";
 import { SLIDE_H, SLIDE_W } from "@/lib/docs/schema";
 
 /**
- * PPTX export from Garden deck state. Uses a zip+XML subset so the default
- * path does not depend on Univer Pro. PptxGenJS may wrap this later.
+ * PPTX export from Garden deck state via PptxGenJS. Canonical slide JSON stays
+ * Garden-owned; the library is serialization infrastructure only.
  */
 function xmlEscape(value: string): string {
   return value
@@ -163,33 +163,51 @@ export function zipStore(files: { name: string; data: Uint8Array }[]): Uint8Arra
   return concat([...locals, central, end]);
 }
 
-export function exportDeckPptxBytes(doc: DeckDoc): Uint8Array {
-  const encoder = new TextEncoder();
-  const slides = exportDeckPptxXml(doc);
-  const files: { name: string; data: Uint8Array }[] = [
-    {
-      name: "[Content_Types].xml",
-      data: encoder.encode(
-        `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${slides
-          .map(
-            (_, i) =>
-              `<Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`,
-          )
-          .join("")}</Types>`,
-      ),
-    },
-    {
-      name: "ppt/presentation.xml",
-      data: encoder.encode(
-        `<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldIdLst>${slides
-          .map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 1}"/>`)
-          .join("")}</p:sldIdLst></p:presentation>`,
-      ),
-    },
-  ];
-  slides.forEach((xml, i) => {
-    files.push({ name: `ppt/slides/slide${i + 1}.xml`, data: encoder.encode(xml) });
-  });
-  return zipStore(files);
+function asPptxBytes(out: string | ArrayBuffer | Blob | Uint8Array): Uint8Array {
+  if (out instanceof Uint8Array) return out;
+  if (out instanceof ArrayBuffer) return new Uint8Array(out);
+  if (typeof Blob !== "undefined" && out instanceof Blob) {
+    throw new Error("pptxgenjs returned a Blob; request uint8array output");
+  }
+  return new TextEncoder().encode(String(out));
+}
+
+/** PPTX bytes from Garden deck state via PptxGenJS (MIT). Never persists engine objects. */
+export async function exportDeckPptxBytes(doc: DeckDoc): Promise<Uint8Array> {
+  const mod = (await import("pptxgenjs")) as unknown as {
+    default?: new () => PptxGenInstance;
+  } & (new () => PptxGenInstance);
+  const PptxGenJS = (mod.default ?? mod) as new () => PptxGenInstance;
+  const pptx = new PptxGenJS();
+  const width = SLIDE_W / 96;
+  const height = SLIDE_H / 96;
+  pptx.defineLayout({ name: "GARDEN", width, height });
+  pptx.layout = "GARDEN";
+  pptx.title = doc.title;
+  pptx.author = "garden";
+  for (let i = 0; i < doc.body.slides.length; i++) {
+    const { title, body } = slideText(doc, i);
+    const slide = pptx.addSlide();
+    slide.addText(title, { x: 0.5, y: 0.4, w: width - 1, h: 1, fontSize: 28, bold: true });
+    if (body) {
+      slide.addText(body, { x: 0.5, y: 1.6, w: width - 1, h: 5, fontSize: 16 });
+    }
+    const notes = doc.body.slides[i]?.notes;
+    if (notes) slide.addNotes(notes);
+  }
+  const out = await pptx.write({ outputType: "uint8array" });
+  return asPptxBytes(out);
+}
+
+interface PptxGenInstance {
+  defineLayout: (layout: { name: string; width: number; height: number }) => void;
+  layout: string;
+  title: string;
+  author: string;
+  addSlide: () => {
+    addText: (text: string, opts: Record<string, unknown>) => void;
+    addNotes: (notes: string) => void;
+  };
+  write: (props: { outputType: "uint8array" }) => Promise<string | ArrayBuffer | Blob | Uint8Array>;
 }
 

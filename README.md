@@ -116,9 +116,10 @@ listing exact artifacts, bases, views, and links before planting.
 
 ## The surfaces
 
-**Document** — markdown source editor. The stored body remains ProseMirror JSON so
-AI ops and cross-surface recipes stay typed; typing commits coalesced edits onto
-the shared workspace undo stack (including accepted AI suggestions).
+**Document** — ProseMirror rich-text editor behind Garden's existing PM JSON
+body. Typing, IME, and clipboard go through ProseMirror transactions mapped to
+Garden ops; workspace undo is the only history. Markdown remains the import,
+export, and AI interchange path.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
@@ -127,8 +128,8 @@ connectors that bind to shape anchors and re-route as shapes move. Marquee selec
 multi-select, nudge, align and restack.
 
 **Deck** — slide rail, a 1280×720 stage with drag/resize elements, seven layouts,
-speaker notes, and a presenter mode that runs inside the pane, so you can present
-in one half while the source stays visible in the other.
+speaker notes, presenter mode, and PPTX export from Garden slide JSON via
+PptxGenJS (not Univer Slides).
 
 **PDF** — pdf.js rendering with a real selectable text layer and page
 virtualisation, an annotation overlay (highlight, underline, strikeout, box, note)

@@ -302,15 +302,16 @@ export default function DeckSurface({
             variant="ghost"
             disabled={!slide}
             onClick={() => {
-              const bytes = exportDeckPptxBytes(doc);
-              const copy = new Uint8Array(bytes.byteLength);
-              copy.set(bytes);
-              downloadBlob(
-                new Blob([copy.buffer], {
-                  type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                }),
-                downloadablePptxName(doc.title),
-              );
+              void exportDeckPptxBytes(doc).then((bytes) => {
+                const copy = new Uint8Array(bytes.byteLength);
+                copy.set(bytes);
+                downloadBlob(
+                  new Blob([copy.buffer], {
+                    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                  }),
+                  downloadablePptxName(doc.title),
+                );
+              });
             }}
           >
             Export PPTX

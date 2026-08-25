@@ -97,7 +97,11 @@ describe("surface registry", () => {
     for (const def of allSurfaces()) {
       expect(def.ownsHistory).toBe(false);
       expect(def.adapter.engine === "garden" || def.adapter.engine === "borrowed").toBe(true);
-      expect(def.adapter.status === "planned" || def.adapter.status === "not-required").toBe(true);
+      expect(
+        def.adapter.status === "planned" ||
+          def.adapter.status === "not-required" ||
+          def.adapter.status === "active",
+      ).toBe(true);
       expect(def.adapter.userEdits.length).toBeGreaterThan(0);
       expect(def.adapter.gardenUpdates.length).toBeGreaterThan(0);
       expect(def.adapter.selection.length).toBeGreaterThan(0);
@@ -108,7 +112,7 @@ describe("surface registry", () => {
         expect(def.createAdapter).toBeUndefined();
       }
     }
-    expect(getSurface("text").adapter.status).toBe("planned");
+    expect(getSurface("text").adapter.status).toBe("active");
     expect(getSurface("pdf").adapter.engine).toBe("borrowed");
     expect(getSurface("pdf").adapter.status).toBe("planned");
     expect(getSurface("canvas").adapter.status).toBe("not-required");

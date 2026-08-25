@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDeckDoc } from "@/lib/docs/factories";
+import { zipEntryText } from "@/lib/interchange/zip";
 import { downloadablePptxName, exportDeckManifest, exportDeckPptxBytes, exportDeckPptxXml } from "./export-pptx";
 
 describe("PPTX export", () => {
@@ -20,9 +21,14 @@ describe("PPTX export", () => {
     expect(downloadablePptxName("Talk")).toBe("Talk.pptx");
   });
 
-  it("packages XML into a ZIP with the PK signature", () => {
-    const bytes = exportDeckPptxBytes(createDeckDoc("Zip"));
+  it("packages a PptxGenJS PPTX with the PK signature from Garden state", async () => {
+    const doc = createDeckDoc("Zip");
+    doc.body.slides[0].notes = "Speaker note";
+    const bytes = await exportDeckPptxBytes(doc);
     expect(String.fromCharCode(bytes[0], bytes[1])).toBe("PK");
     expect(bytes.length).toBeGreaterThan(100);
+    const presentation = zipEntryText(bytes, "ppt/presentation.xml");
+    expect(presentation).toBeTruthy();
+    expect(JSON.stringify(doc.body)).not.toContain("pptxgenjs");
   });
 });

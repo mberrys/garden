@@ -25,22 +25,24 @@ test("seeds a starter workspace from the welcome packet", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Welcome to garden");
   await expect(sidebar).toContainText("How an edit flows");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/seed packets/);
+  await expect(page.locator(".garden-markdown")).toContainText(/seed packets/);
   await expect(page.locator('canvas[aria-label="Drawing canvas"]')).toBeVisible();
 });
 
 test("text: typing persists across a reload", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".garden-markdown");
+  const editor = page.locator(".garden-markdown");
+  await expect(editor).toHaveAttribute("contenteditable", "true");
+  await editor.click();
   await page.keyboard.type("Persistence check.");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
+  await expect(editor).toContainText(/Persistence check\./);
 
   // Give the debounced write-behind time to reach IndexedDB.
   await page.waitForTimeout(1200);
   await page.reload();
-  await page.waitForSelector(".garden-markdown");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
+  await page.waitForSelector(".garden-markdown[contenteditable='true']");
+  await expect(page.locator(".garden-markdown")).toContainText(/Persistence check\./);
 });
 
 test("canvas: drawing a shape and a stroke, then undo", async ({ page }) => {
@@ -95,6 +97,16 @@ test("deck: adding a slide, then presenting and exiting", async ({ page }) => {
   await expect(page.locator('button:has-text("Present")')).toBeVisible();
 });
 
+test("deck: export pptx downloads a presentation package", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Deck");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export PPTX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.pptx$/);
+});
+
 test("sheet: entering a value and a formula, then undo", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Sheet");
@@ -140,7 +152,7 @@ test("campaign packet sprouts databases and a brief", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Campaign Brief");
   await expect(sidebar).toContainText("Story Angles");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Campaign brief/);
+  await expect(page.locator(".garden-markdown")).toContainText(/Campaign brief/);
   await expect(page.getByText("Local-first workplace")).toBeVisible();
 });
 
@@ -187,5 +199,5 @@ test("flavor lens is a view preference, not a content fork", async ({ page }) =>
   await newDocument(page, "Document");
   await page.selectOption('select[aria-label="Flavor"]', "data");
   await expect(page.locator('select[aria-label="Flavor"]')).toHaveValue("data");
-  await expect(page.locator(".garden-markdown")).toBeVisible();
+  await expect(page.locator(".garden-markdown[contenteditable='true']")).toBeVisible();
 });

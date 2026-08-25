@@ -73,7 +73,7 @@ export async function openSeededWorkspace(page: Page): Promise<void> {
   await page.goto("/");
   await page.waitForSelector('button[aria-label="Plant Welcome"]', { timeout: 30_000 });
   await page.getByRole("button", { name: "Plant Welcome" }).click();
-  await page.locator(".garden-markdown").waitFor({ timeout: 30_000 });
+  await page.locator(".garden-markdown[contenteditable='true']").waitFor({ timeout: 30_000 });
 }
 
 export async function newDocument(

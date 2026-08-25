@@ -176,7 +176,7 @@ function useGlobalShortcuts() {
       }
 
       if (!docId || !doc) return;
-      // Allow undo/redo while the markdown textarea is focused; other surfaces
+      // Allow undo/redo while the Writer is focused; other surfaces
       // still ignore shortcuts when a generic input has focus.
       if (doc.kind !== "text" && isTypingTarget(e.target)) return;
 

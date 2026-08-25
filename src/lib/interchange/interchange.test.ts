@@ -8,6 +8,7 @@ import {
   type FixtureManifest,
 } from "./index";
 import { assertGardenCanonical } from "./warnings";
+import { zipStore } from "@/lib/deck/export-pptx";
 
 function bytesOf(text: string): Uint8Array {
   return new TextEncoder().encode(text);
@@ -22,6 +23,14 @@ describe("interchange harness", () => {
     assertGardenCanonical(result);
     expect(JSON.stringify(result.docs)).toContain("Hello Garden");
     expect(result.warnings.some((w) => w.severity === "partial")).toBe(true);
+  });
+
+  it("imports a ZIP-wrapped document.xml DOCX", async () => {
+    const xml = `<?xml version="1.0"?><w:document><w:p><w:r><w:t>Zipped Garden</w:t></w:r></w:p></w:document>`;
+    const bytes = zipStore([{ name: "word/document.xml", data: bytesOf(xml) }]);
+    const result = await importOfficeFile(bytes, "hello.docx");
+    expect(JSON.stringify(result.docs)).toContain("Zipped Garden");
+    assertGardenCanonical(result);
   });
 
   it("treats a missing importer as an explicit skip, not a pass", async () => {

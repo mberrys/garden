@@ -154,7 +154,7 @@ describe("registered text surface through the adapter harness", () => {
     const def = getSurface("text");
     expect(def.kind).toBe("text");
     expect(typeof def.createAdapter).toBe("function");
-    expect(def.adapter.status).toBe("planned");
+    expect(def.adapter.status).toBe("active");
   });
 
   runAdapterConformance(textSpec(), it);
