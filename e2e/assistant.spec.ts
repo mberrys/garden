@@ -129,3 +129,15 @@ test("prompt-to-surface discard leaves no mini-tool; accept plants one", async (
   await page.getByRole("button", { name: "Apply transaction" }).click();
   await expect(page.locator("aside").first()).toContainText("Proposed mini-tool");
 });
+
+test("a typed mini-tool request is a reviewable plan, not a crash", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  await page.locator(".garden-markdown[contenteditable='true']").waitFor();
+  await page.getByPlaceholder(/Ask about this document/).fill("make a tool for outreach");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Propose mini-tool:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply transaction" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await expect(page.locator("aside").first()).not.toContainText("Proposed mini-tool");
+});
