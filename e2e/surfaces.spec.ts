@@ -14,7 +14,10 @@ test("empty workspace offers a seed packet picker", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Plant History seminar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Grant shop" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Field notes" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Experiment report" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Matter" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Campaign" })).toBeVisible();
+  await expect(page.getByLabel("Flavor")).toBeVisible();
 });
 
 test("seeds a starter workspace from the welcome packet", async ({ page }) => {
@@ -170,4 +173,19 @@ test("pdf: rendering, annotating, and capturing the quoted text", async ({ page 
   await expect(
     page.getByRole("button", { name: /p1 · highlight/i }),
   ).toContainText("The migration completed");
+});
+
+test("media: empty board is a distinct surface", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Media");
+  await expect(page.getByText("0 assets")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add images" })).toBeVisible();
+});
+
+test("flavor lens is a view preference, not a content fork", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  await page.selectOption('select[aria-label="Flavor"]', "data");
+  await expect(page.locator('select[aria-label="Flavor"]')).toHaveValue("data");
+  await expect(page.locator(".garden-markdown")).toBeVisible();
 });

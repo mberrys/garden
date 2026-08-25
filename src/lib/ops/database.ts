@@ -107,9 +107,9 @@ export const DatabaseOpSchema = z.discriminatedUnion("op", [
   z
     .object({
       op: z.literal("addView"),
-      view: z.object({ type: z.enum(["grid", "kanban"]) }).catchall(z.unknown()),
+      view: z.object({ type: z.enum(["grid", "kanban", "calendar"]) }).catchall(z.unknown()),
     })
-    .describe("Add a grid or kanban view"),
+    .describe("Add a grid, kanban, or calendar view"),
   z
     .object({
       op: z.literal("updateView"),

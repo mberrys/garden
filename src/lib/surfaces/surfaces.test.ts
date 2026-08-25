@@ -102,7 +102,11 @@ describe("surface registry", () => {
       expect(def.adapter.gardenUpdates.length).toBeGreaterThan(0);
       expect(def.adapter.selection.length).toBeGreaterThan(0);
       expect(def.adapter.notes.length).toBeGreaterThan(0);
-      expect(def.createAdapter).toBeUndefined();
+      if (def.kind === "text" || def.kind === "canvas") {
+        expect(typeof def.createAdapter).toBe("function");
+      } else {
+        expect(def.createAdapter).toBeUndefined();
+      }
     }
     expect(getSurface("text").adapter.status).toBe("planned");
     expect(getSurface("pdf").adapter.engine).toBe("borrowed");

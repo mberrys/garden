@@ -4,6 +4,8 @@ import "./deck.register";
 import "./pdf.register";
 import "./sheet.register";
 import "./database.register";
+import "./media.register";
+import "./mini.register";
 
 export { registerSurface, getSurface, allSurfaces, allKinds } from "./registry";
 export type {

@@ -9,6 +9,8 @@ import {
   createCanvasDoc,
   createDatabaseDoc,
   createDeckDoc,
+  createMediaDoc,
+  createMiniDoc,
   createPdfDoc,
   createSheetDoc,
   createTextDoc,
@@ -88,6 +90,8 @@ describe("mock provider", () => {
         },
       ]).doc,
     database: () => createDatabaseDoc("Tracker"),
+    media: () => createMediaDoc("Board"),
+    mini: () => createMiniDoc("Tool"),
   };
 
   /**

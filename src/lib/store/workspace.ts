@@ -5,12 +5,18 @@ import type { CanvasBody, Doc, DocKind, DocOf } from "@/lib/docs/schema";
 import { createDoc } from "@/lib/docs/factories";
 import { applyOps, describeOperation, type AnyOp, type OpOf } from "@/lib/ops";
 import { OpError } from "@/lib/ops/errors";
-import { newBlobId, nid } from "@/lib/docs/ids";
+import { newBlobId, nid, newPlanId } from "@/lib/docs/ids";
 import { getPacket } from "@/lib/packets/registry";
 import { sproutPacket } from "@/lib/packets/sprout";
 import "@/lib/surfaces";
 import { getSurface } from "@/lib/surfaces/registry";
 import * as store from "./db";
+import {
+  applyPlan,
+  previewPlan,
+  type WorkspacePlan,
+  type WorkspaceSnapshot,
+} from "./transaction";
 
 /* ------------------------------------------------------------------ *
  * Types
@@ -29,7 +35,9 @@ export type SurfaceSelection =
   | { kind: "deck"; slideId: string | null; elementIds: string[] }
   | { kind: "pdf"; page: number; text: string; annotationId: string | null }
   | { kind: "sheet"; cell: string | null; range: string | null }
-  | { kind: "database"; rowId: string | null; fieldId: string | null };
+  | { kind: "database"; rowId: string | null; fieldId: string | null }
+  | { kind: "media"; assetId: string | null }
+  | { kind: "mini"; recordId: string | null; fieldId: string | null };
 
 interface HistoryEntry {
   inverse: AnyOp[];
@@ -95,6 +103,13 @@ interface WorkspaceState {
   seedPacketId: string | null;
   /** Version of the packet that sprouted this workspace. */
   seedPacketVersion: number | null;
+  /** Reversible flavor lens (view-state only). */
+  flavorId: string | null;
+  /** Last workspace-level action, so undo can reverse a multi-doc transaction. */
+  lastAction: { type: "doc"; docId: string } | { type: "tx" } | null;
+  txUndo: WorkspacePlan[];
+  txRedo: WorkspacePlan[];
+  pendingPlan: { plan: WorkspacePlan; preview: ReturnType<typeof previewPlan> } | null;
   /** User chose "start blank" on an empty workspace. */
   blankWorkspace: boolean;
   /** e2e flag: do not auto-plant and do not show the picker. */
@@ -106,6 +121,12 @@ interface WorkspaceState {
   plantPacket: (id: string) => Promise<void>;
   startBlankWorkspace: () => Promise<void>;
   requestPacketPicker: () => void;
+  applyTransaction: (plan: WorkspacePlan) => { ok: boolean; error?: string };
+  previewTransaction: (plan: WorkspacePlan) => ReturnType<typeof previewPlan>;
+  setFlavor: (flavorId: string | null) => void;
+  proposePlan: (plan: WorkspacePlan) => void;
+  dismissPlan: () => void;
+  acceptPlan: () => { ok: boolean; error?: string };
   commit: <K extends DocKind>(
     docId: string,
     ops: OpOf<K>[],
@@ -152,6 +173,11 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   aiPanelOpen: true,
   seedPacketId: null,
   seedPacketVersion: null,
+  flavorId: null,
+  lastAction: null,
+  txUndo: [],
+  txRedo: [],
+  pendingPlan: null,
   blankWorkspace: false,
   seedSuppressed: false,
   packetPickerRequested: false,
@@ -167,6 +193,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     const savedPacketId = await store.readMeta<string | null>("seedPacketId");
     const savedPacketVersion = await store.readMeta<number | null>("seedPacketVersion");
     const savedBlank = await store.readMeta<boolean>("blankWorkspace");
+    const savedFlavor = await store.readMeta<string | null>("flavorId");
     const suppressed = typeof window !== "undefined" && window.__GARDEN_NO_SEED__ === true;
 
     const validPane = (pane: Pane | undefined): Pane => {
@@ -186,6 +213,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       splitView: Boolean(savedSplit),
       seedPacketId: savedPacketId ?? null,
       seedPacketVersion: savedPacketVersion ?? null,
+      flavorId: savedFlavor ?? null,
       blankWorkspace: Boolean(savedBlank),
       seedSuppressed: suppressed,
       packetPickerRequested: false,
@@ -209,33 +237,27 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     }
 
     const sprouted = sproutPacket(packet);
-    const state = get();
-    const docs = { ...state.docs };
-    const order = [...state.order];
-    for (const doc of sprouted.docs) {
-      docs[doc.id] = doc;
-      order.push(doc.id);
-      await store.saveDoc(doc);
+    const plan: WorkspacePlan = {
+      id: newPlanId(),
+      label: `Plant ${packet.label}`,
+      changes: [
+        ...sprouted.docs.map((doc) => ({ type: "createDoc" as const, doc })),
+        {
+          type: "setLayout",
+          panes: sprouted.panes,
+          splitView: sprouted.splitView,
+        },
+        { type: "setPacketBinding", packetId: id, version: packet.version },
+      ],
+    };
+    const result = get().applyTransaction(plan);
+    if (!result.ok) {
+      get().toast("error", result.error ?? "Could not plant packet.");
+      return;
     }
-    await store.saveOrder(order);
-    await store.writeMeta("seedPacketId", id);
-    await store.writeMeta("seedPacketVersion", packet.version);
     await store.writeMeta("blankWorkspace", false);
     await store.writeMeta("seeded", true);
-    await store.writeMeta("panes", sprouted.panes);
-    await store.writeMeta("splitView", sprouted.splitView);
-
-    set({
-      docs,
-      order,
-      panes: sprouted.panes,
-      splitView: sprouted.splitView,
-      activePane: 0,
-      seedPacketId: id,
-      seedPacketVersion: packet.version,
-      blankWorkspace: false,
-      packetPickerRequested: false,
-    });
+    set({ blankWorkspace: false, packetPickerRequested: false, activePane: 0 });
   },
 
   startBlankWorkspace: async () => {
@@ -253,6 +275,62 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
   requestPacketPicker: () => set({ packetPickerRequested: true }),
 
+  previewTransaction: (plan) => previewPlan(plan, snapshotOf(get())),
+
+  proposePlan: (plan) => {
+    set({ pendingPlan: { plan, preview: previewPlan(plan, snapshotOf(get())) } });
+  },
+
+  dismissPlan: () => set({ pendingPlan: null }),
+
+  acceptPlan: () => {
+    const pending = get().pendingPlan;
+    if (!pending) return { ok: false, error: "no pending plan" };
+    const result = get().applyTransaction(pending.plan);
+    if (result.ok) set({ pendingPlan: null });
+    return result;
+  },
+
+  setFlavor: (flavorId) => {
+    const result = get().applyTransaction({
+      id: newPlanId(),
+      label: "Switch flavor",
+      changes: [{ type: "setFlavor", flavorId }],
+    });
+    if (result.ok) void store.writeMeta("flavorId", flavorId);
+  },
+
+  applyTransaction: (plan) => {
+    const state = get();
+    const result = applyPlan(plan, snapshotOf(state));
+    if (!result.ok) return { ok: false, error: result.error };
+
+    const created = plan.changes.filter((c) => c.type === "createDoc");
+    const deleted = plan.changes.filter((c) => c.type === "deleteDoc");
+
+    set({
+      docs: result.snapshot.docs,
+      order: result.snapshot.order,
+      panes: result.snapshot.panes,
+      splitView: result.snapshot.splitView,
+      seedPacketId: result.snapshot.seedPacketId,
+      seedPacketVersion: result.snapshot.seedPacketVersion,
+      flavorId: result.snapshot.flavorId,
+      lastAction: { type: "tx" },
+      txUndo: [...state.txUndo, result.inverse].slice(-HISTORY_LIMIT),
+      txRedo: [],
+    });
+
+    void persistSnapshot(result.snapshot);
+    for (const change of created) {
+      if (change.type === "createDoc") void store.saveDoc(change.doc);
+    }
+    for (const change of deleted) {
+      if (change.type === "deleteDoc") void store.deleteDocRow(change.docId);
+    }
+    return { ok: true };
+  },
+
   commit: (docId, ops, options = {}) => {
     if (ops.length === 0) return { ok: true };
     const state = get();
@@ -262,8 +340,9 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     let next: Doc;
     let inverse: AnyOp[];
     try {
-      const result = applyOps(doc as DocOf<DocKind>, ops as OpOf<DocKind>[]);
-      next = result.doc;
+      const surface = getSurface(doc.kind);
+      const result = surface.applyOps(doc.body, ops);
+      next = { ...doc, body: result.body, updatedAt: Date.now() };
       inverse = result.inverse as AnyOp[];
     } catch (err) {
       const message = err instanceof OpError ? err.message : String(err);
@@ -278,8 +357,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       const previous = existing.undo[existing.undo.length - 1];
       const entry: HistoryEntry = {
         inverse,
-        forward: ops as AnyOp[],
-        label: options.label ?? summarise(ops as AnyOp[]),
+        forward: ops as unknown as AnyOp[],
+        label: options.label ?? summarise(ops as unknown as AnyOp[]),
         coalesceKey: options.coalesceKey,
         at: Date.now(),
       };
@@ -297,7 +376,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
           {
             ...entry,
             inverse: [...inverse, ...previous.inverse],
-            forward: [...previous.forward, ...(ops as AnyOp[])],
+            forward: [...previous.forward, ...(ops as unknown as AnyOp[])],
             label: previous.label,
           },
         ];
@@ -308,13 +387,37 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       history = { ...history, [docId]: { undo, redo: [] } };
     }
 
-    set({ docs: { ...state.docs, [docId]: next }, history });
+    set({ docs: { ...state.docs, [docId]: next }, history, lastAction: { type: "doc", docId } });
     scheduleSave(next);
     return { ok: true };
   },
 
   undo: (docId) => {
     const state = get();
+    if (state.lastAction?.type === "tx") {
+      const inverse = state.txUndo[state.txUndo.length - 1];
+      if (!inverse) return;
+      const result = applyPlan(inverse, snapshotOf(state));
+      if (!result.ok) {
+        get().toast("error", `Could not undo: ${result.error}`);
+        return;
+      }
+      set({
+        docs: result.snapshot.docs,
+        order: result.snapshot.order,
+        panes: result.snapshot.panes,
+        splitView: result.snapshot.splitView,
+        seedPacketId: result.snapshot.seedPacketId,
+        seedPacketVersion: result.snapshot.seedPacketVersion,
+        flavorId: result.snapshot.flavorId,
+        txUndo: state.txUndo.slice(0, -1),
+        txRedo: [...state.txRedo, inverse],
+        lastAction: state.txUndo.length > 1 ? { type: "tx" } : null,
+      });
+      void persistSnapshot(result.snapshot);
+      return;
+    }
+
     const entries = state.history[docId];
     const entry = entries?.undo[entries.undo.length - 1];
     const doc = state.docs[docId];
@@ -369,8 +472,12 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  canUndo: (docId) => (get().history[docId]?.undo.length ?? 0) > 0,
-  canRedo: (docId) => (get().history[docId]?.redo.length ?? 0) > 0,
+  canUndo: (docId) =>
+    (get().lastAction?.type === "tx" && get().txUndo.length > 0) ||
+    (get().history[docId]?.undo.length ?? 0) > 0,
+  canRedo: (docId) =>
+    (get().txRedo.length > 0 && get().lastAction?.type !== "doc") ||
+    (get().history[docId]?.redo.length ?? 0) > 0,
 
   addDoc: (doc, options = {}) => {
     const state = get();
@@ -605,6 +712,38 @@ export async function loadBlob(id: string): Promise<Blob | null> {
 function summarise(ops: AnyOp[]): string {
   if (ops.length === 1) return describeOperation(ops[0]);
   return `${ops.length} changes`;
+}
+
+export function snapshotOf(state: {
+  docs: Record<string, Doc>;
+  order: string[];
+  panes: [Pane, Pane];
+  splitView: boolean;
+  seedPacketId: string | null;
+  seedPacketVersion: number | null;
+  flavorId: string | null;
+}): WorkspaceSnapshot {
+  return {
+    docs: state.docs,
+    order: state.order,
+    panes: state.panes,
+    splitView: state.splitView,
+    seedPacketId: state.seedPacketId,
+    seedPacketVersion: state.seedPacketVersion,
+    flavorId: state.flavorId,
+  };
+}
+
+async function persistSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
+  await store.saveOrder(snapshot.order);
+  await store.writeMeta("panes", snapshot.panes);
+  await store.writeMeta("splitView", snapshot.splitView);
+  await store.writeMeta("seedPacketId", snapshot.seedPacketId);
+  await store.writeMeta("seedPacketVersion", snapshot.seedPacketVersion);
+  await store.writeMeta("flavorId", snapshot.flavorId);
+  for (const doc of Object.values(snapshot.docs)) {
+    await store.saveDoc(doc);
+  }
 }
 
 /** Empty workspace shows the packet picker unless the user chose blank or e2e suppressed it. */

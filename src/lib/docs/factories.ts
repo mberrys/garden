@@ -5,6 +5,8 @@ import {
   type DeckDoc,
   type Doc,
   type DocKind,
+  type MediaDoc,
+  type MiniDoc,
   type PdfDoc,
   type SheetDoc,
   type Slide,
@@ -17,7 +19,15 @@ import {
   SLIDE_H,
   SLIDE_W,
 } from "./schema";
-import { newDocId, newElementId, newFieldId, newNodeId, newSlideId, newViewId } from "./ids";
+import {
+  newDocId,
+  newElementId,
+  newFieldId,
+  newNodeId,
+  newRecordId,
+  newSlideId,
+  newViewId,
+} from "./ids";
 import { markdownToDoc } from "@/lib/text/markdown";
 
 function envelope(kind: DocKind, title: string) {
@@ -74,6 +84,8 @@ export function createPdfDoc(title = "Untitled PDF"): PdfDoc {
       pageCount: 0,
       annotations: [],
       pageText: {},
+      evidence: [],
+      citations: [],
     },
   };
 }
@@ -102,9 +114,35 @@ export function createDatabaseDoc(title = "Untitled database"): DatabaseDoc {
           hiddenFieldIds: [],
           sortFieldId: null,
           sortDirection: "asc",
+          filters: [],
         },
       ],
       activeViewId: viewId,
+    },
+  };
+}
+
+export function createMediaDoc(title = "Untitled board"): MediaDoc {
+  return {
+    ...envelope("media", title),
+    kind: "media",
+    body: { layout: "board", assets: [], groups: [] },
+  };
+}
+
+export function createMiniDoc(title = "Untitled mini-tool"): MiniDoc {
+  const fieldId = newFieldId();
+  return {
+    ...envelope("mini", title),
+    kind: "mini",
+    body: {
+      descriptor: {
+        id: newRecordId(),
+        label: title,
+        template: "table",
+        fields: [{ id: fieldId, name: "Name", type: "text" }],
+      },
+      records: [],
     },
   };
 }
@@ -123,6 +161,10 @@ export function createDoc(kind: DocKind, title?: string): Doc {
       return createSheetDoc(title);
     case "database":
       return createDatabaseDoc(title);
+    case "media":
+      return createMediaDoc(title);
+    case "mini":
+      return createMiniDoc(title);
     default: {
       const _exhaustive: never = kind;
       throw new Error(`unknown document kind: ${String(_exhaustive)}`);

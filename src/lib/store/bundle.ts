@@ -7,6 +7,7 @@ import { createPdfDoc, createTextDoc } from "@/lib/docs/factories";
 import { markdownToDoc } from "@/lib/text/markdown";
 import { applyOps } from "@/lib/ops";
 import { getSurface } from "@/lib/surfaces/registry";
+import { formatForFilename, importOfficeFile } from "@/lib/interchange";
 import * as db from "./db";
 import { flushPendingSaves, storeBlob, useWorkspace } from "./workspace";
 
@@ -238,7 +239,28 @@ export async function importFile(file: File): Promise<string | null> {
     return store.addDoc({ ...doc, body: markdownToDoc(text) });
   }
 
-  throw new Error(`Cannot import "${file.name}" — supported: .pdf, .md, .txt, ${BUNDLE_EXTENSION}`);
+  if (formatForFilename(file.name)) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const result = await importOfficeFile(bytes, file.name);
+    const docs = result.docs as Doc[];
+    let firstId: string | null = null;
+    for (const doc of docs) {
+      const id = store.addDoc(doc);
+      firstId ??= id;
+    }
+    const partial = result.warnings.filter((w) => w.severity !== "supported");
+    if (partial.length) {
+      store.toast(
+        "info",
+        `Imported with ${partial.length} fidelity warning${partial.length === 1 ? "" : "s"} (not full fidelity).`,
+      );
+    }
+    return firstId;
+  }
+
+  throw new Error(
+    `Cannot import "${file.name}" — supported: .pdf, .md, .txt, .docx, .odt, .pptx, .odp, .xlsx, .ods, ${BUNDLE_EXTENSION}`,
+  );
 }
 
 /* ------------------------------------------------------------------ *

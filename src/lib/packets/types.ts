@@ -53,7 +53,12 @@ export const LayoutPresetSchema = z.object({
 });
 
 const DatabaseFieldSeedSchema = z.discriminatedUnion("type", [
-  z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("text") }),
+  z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("text"),
+    origin: z.enum(["observed", "derived", "imported"]).optional(),
+  }),
   z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("number") }),
   z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("date") }),
   z.object({
@@ -78,7 +83,12 @@ const DatabaseFieldSeedSchema = z.discriminatedUnion("type", [
   }),
   z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("file") }),
   z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("garden_ref") }),
-  z.object({ id: z.string().min(1), name: z.string().min(1), type: z.literal("external_ref") }),
+  z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("external_ref"),
+    origin: z.enum(["observed", "derived", "imported"]).optional(),
+  }),
 ]);
 
 export const DatabaseViewSeedSchema = z.discriminatedUnion("type", [
@@ -95,6 +105,12 @@ export const DatabaseViewSeedSchema = z.discriminatedUnion("type", [
     name: z.string().min(1),
     type: z.literal("kanban"),
     groupFieldId: z.string().min(1),
+  }),
+  z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    type: z.literal("calendar"),
+    dateFieldId: z.string().min(1),
   }),
 ]);
 
@@ -271,6 +287,11 @@ export function parseSeedPacket(input: unknown): SeedPacket {
       if (view.type === "kanban" && !fieldIds.has(view.groupFieldId)) {
         throw new Error(
           `Packet "${packet.id}" kanban view "${view.id}" references unknown field "${view.groupFieldId}".`,
+        );
+      }
+      if (view.type === "calendar" && !fieldIds.has(view.dateFieldId)) {
+        throw new Error(
+          `Packet "${packet.id}" calendar view "${view.id}" references unknown field "${view.dateFieldId}".`,
         );
       }
       if (view.type === "grid" && view.sortFieldId && !fieldIds.has(view.sortFieldId)) {

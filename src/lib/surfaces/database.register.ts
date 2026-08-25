@@ -163,7 +163,8 @@ registerSurface({
     userEdits: "grid and inspector commit addRow/setCell/linkRelation ops from Garden-owned controls",
     gardenUpdates: "React grid/kanban/inspector re-render from DatabaseBody",
     selection: "selected row + field, pushed to the workspace store",
-    notes: "Garden-owned structured base. No borrowed engine planned. garden_ref/external_ref stay Bases-local until F01.",
+    notes: "Garden-owned structured base. TanStack Table/Virtual is UI infrastructure; Garden state stays canonical. Shared GardenRef/ExternalRef live in src/lib/refs.",
+    relatedIssue: 43,
   },
   loadComponent: () => import("@/surfaces/database/database-surface"),
 });

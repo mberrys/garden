@@ -18,6 +18,8 @@ describe("seed packets", () => {
       "garden/history-seminar",
       "garden/grant-shop",
       "garden/field-notes",
+      "data/experiment-report",
+      "legal/matter",
       "comms/campaign",
     ]);
   });

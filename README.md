@@ -102,7 +102,9 @@ workspaces.
 | Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
 | History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
 | Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
-| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
+| Field notes | `garden/field-notes` | visit log, site sketch, field media, debrief |
+| Experiment report | `data/experiment-report` | study notes, experiments, run refs, findings, metrics sheet, analysis |
+| Matter | `legal/matter` | matter notes, authorities (external reporters), issues, draft |
 | Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
 
 You can also start blank and plant a packet later from the sidebar. Which packet
@@ -131,21 +133,26 @@ in one half while the source stays visible in the other.
 **PDF** — pdf.js rendering with a real selectable text layer and page
 virtualisation, an annotation overlay (highlight, underline, strikeout, box, note)
 stored in normalised page coordinates so it survives zooming, per-page text
-extraction that feeds the assistant, and export that flattens annotations into a
+extraction that feeds the assistant, page citations and evidence refs, an OCR
+provider hook (no bundled engine), and export that flattens annotations into a
 copy of the original file.
 
 **Sheet** — a grid of cells addressed by A1 references, with a formula bar and a
 small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 `ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
-number-format styling, and grid resizing.
+number-format styling, and grid resizing. The 1.0 engine spike keeps this
+Garden-native grid rather than Univer/IronCalc.
 
-**Database** — typed fields, rows, grid and kanban views, relation links to
-other bases in the workspace, and `garden_ref` / `external_ref` cells for
-cross-surface provenance. AI row and schema batches go through the same
-review gate as other surfaces. This is the structured-work layer — lighter
-than Airtable or Notion, local-first, and composed by seed packets rather than
-blank grids. Sheets stay as the formula grid; they are not replaced.
+**Database** — typed fields, rows, grid, kanban, and calendar views, filters,
+relation links, and shared `GardenRef` / `ExternalRef` cells. The grid uses
+TanStack Table/Virtual for 1–5k local rows; Garden JSON stays canonical.
+
+**Media** — a board of image/file assets with captions, tags, groups, and
+document links. Distinct from Drawing.
+
+**Mini-tool** — constrained prompt-to-surface templates (card-grid, table,
+timeline). Proposed as a reviewable workspace transaction; never generated React.
 
 ### Cross-surface recipes
 

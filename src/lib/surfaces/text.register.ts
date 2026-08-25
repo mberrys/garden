@@ -6,6 +6,7 @@ import { docToMarkdown } from "@/lib/text/markdown";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import type { MockRequest } from "@/lib/ai/mock";
+import { createTextAdapter } from "@/lib/text/writer-adapter";
 import { registerSurface } from "./registry";
 
 function serializeText(doc: TextDoc): string {
@@ -151,14 +152,15 @@ registerSurface({
   referencedBlobIds: () => new Set(),
   remapBlobIds: (doc) => doc,
   adapter: {
-    engine: "garden",
+    engine: "borrowed",
     status: "planned",
     userEdits: "textarea onChange commits coalesced replaceDoc ops",
     gardenUpdates: "doc.body sync with a lastPushed echo guard",
     selection: "block range + selected text, pushed to the workspace store",
-    notes: "Stored body is ProseMirror JSON; the textarea is not the source of truth. Writer (#33) will put ProseMirror behind EditorAdapter.",
+    notes: "Stored body is ProseMirror JSON. WriterAdapter is the engine boundary; Garden owns undo.",
     relatedIssue: 33,
   },
+  createAdapter: createTextAdapter,
   loadComponent: () => import("@/surfaces/text/text-surface"),
 });
 

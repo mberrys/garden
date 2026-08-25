@@ -195,6 +195,62 @@ export const RECIPES: Recipe[] = [
       "Read the user's request and add rows to this database. Use addRow with cells filled " +
       "from the request. Do not invent data that is not implied by the user or visible rows.",
   },
+  {
+    id: "pdf-to-rows",
+    label: "Extract source rows",
+    hint: "Turn cited PDF passages into database rows",
+    from: ["pdf"],
+    target: "database",
+    newTitle: (title) => `${title} — sources`,
+    prompt:
+      "Create source rows from the PDF's extracted text and citations. Each row is one " +
+      "passage. Put the quote in a text field and do not invent page numbers. Prefer " +
+      "addRow. If evidence refs exist, keep their relation (supports/contradicts/qualifies).",
+  },
+  {
+    id: "media-caption",
+    label: "Caption the board",
+    hint: "Write captions from filenames and tags",
+    from: ["media"],
+    target: "media",
+    prompt:
+      "Write a short caption for each uncaptioned asset. Use the filename and tags. Do not " +
+      "invent events that are not implied by the names. Use setCaption per asset id.",
+  },
+  {
+    id: "media-to-doc",
+    label: "Write a figure list",
+    hint: "Turn the media board into a document",
+    from: ["media"],
+    target: "text",
+    newTitle: (title) => `${title} — figures`,
+    prompt:
+      "Write a figure list from the source media board. One heading per asset, then the " +
+      "caption. Do not invent files that are not on the board.",
+  },
+  {
+    id: "mini-add-records",
+    label: "Fill the mini-tool",
+    hint: "Add records from the request",
+    from: ["mini"],
+    target: "mini",
+    prompt:
+      "Add records to this mini-tool using addRecord. Only use field ids from the descriptor. " +
+      "Never emit React, HTML, or editor-engine code. Do not call setDescriptor unless the " +
+      "user asked to change the template.",
+  },
+  {
+    id: "prompt-to-surface",
+    label: "Propose a mini-tool",
+    hint: "Constrained template, reviewed as a workspace transaction",
+    from: ["text", "database"],
+    target: "mini",
+    newTitle: (title) => `${title} — tool`,
+    prompt:
+      "Propose a mini-tool descriptor for this request. Use setDescriptor with template " +
+      "card-grid, table, or timeline and a short field list. Then addRecord for starter " +
+      "rows. Never emit React source or a new editor engine.",
+  },
 ];
 
 export function recipesFor(kind: DocKind, seedPacketId?: string | null): Recipe[] {

@@ -1,7 +1,9 @@
 import { commsCampaignPacket } from "./comms-campaign";
+import { experimentReportPacket } from "./experiment-report";
 import { fieldNotesPacket } from "./field-notes";
 import { grantShopPacket } from "./grant-shop";
 import { historySeminarPacket } from "./history-seminar";
+import { legalMatterPacket } from "./legal-matter";
 import { parseSeedPacket, type SeedPacket } from "./types";
 import { welcomePacket } from "./welcome";
 
@@ -10,6 +12,8 @@ const RAW_PACKETS = [
   historySeminarPacket,
   grantShopPacket,
   fieldNotesPacket,
+  experimentReportPacket,
+  legalMatterPacket,
   commsCampaignPacket,
 ];
 

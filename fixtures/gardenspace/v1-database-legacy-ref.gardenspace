@@ -1,0 +1,54 @@
+{
+  "format": "gardenspace",
+  "version": 1,
+  "exportedAt": 1,
+  "order": ["doc_v1_db", "doc_v1_src"],
+  "docs": [
+    {
+      "id": "doc_v1_src",
+      "kind": "text",
+      "title": "Source memo",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": { "type": "doc", "content": [] }
+    },
+    {
+      "id": "doc_v1_db",
+      "kind": "database",
+      "title": "Legacy sources",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": {
+        "fields": [
+          { "id": "fld_name", "name": "Name", "type": "text" },
+          { "id": "fld_ref", "name": "Source", "type": "garden_ref" }
+        ],
+        "rows": [
+          {
+            "id": "row_v1",
+            "cells": {
+              "fld_name": "Memo",
+              "fld_ref": { "documentId": "doc_v1_src" }
+            }
+          }
+        ],
+        "views": [
+          {
+            "id": "vw_grid",
+            "name": "Grid",
+            "type": "grid",
+            "hiddenFieldIds": [],
+            "sortFieldId": null,
+            "sortDirection": "asc"
+          }
+        ],
+        "activeViewId": "vw_grid"
+      }
+    }
+  ],
+  "blobs": [],
+  "seedPacketId": null,
+  "seedPacketVersion": null
+}

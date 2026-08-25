@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
   CellValue,
   DatabaseDoc,
@@ -13,6 +15,8 @@ import type {
 } from "@/lib/docs/schema";
 import { newRowId } from "@/lib/docs/ids";
 import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
+import { queryRows, rowDate, monthCells } from "@/lib/database/query";
+import { resolveGardenRef } from "@/lib/refs";
 import { Button, cx } from "@/components/ui";
 
 function cellDisplay(
@@ -29,9 +33,7 @@ function cellDisplay(
     case "relation":
       return Array.isArray(value) ? `${value.length} linked` : "";
     case "garden_ref": {
-      const ref = value as GardenRef;
-      const doc = docs[ref.documentId];
-      return doc?.title ?? ref.documentId;
+      return resolveGardenRef(value as GardenRef, docs).label;
     }
     case "external_ref": {
       const ref = value as ExternalRef;
@@ -49,32 +51,6 @@ function cellDisplay(
       return String(_exhaustive);
     }
   }
-}
-
-function sortRows(
-  rows: DatabaseRow[],
-  fields: DatabaseField[],
-  view: DatabaseView | undefined,
-): DatabaseRow[] {
-  if (!view || view.type !== "grid" || !view.sortFieldId) return rows;
-  const field = fields.find((f) => f.id === view.sortFieldId);
-  if (!field) return rows;
-  const dir = view.sortDirection === "desc" ? -1 : 1;
-  return [...rows].sort((a, b) => {
-    const av = a.cells[field.id];
-    const bv = b.cells[field.id];
-    const as = cellSortKey(field, av);
-    const bs = cellSortKey(field, bv);
-    if (as < bs) return -1 * dir;
-    if (as > bs) return 1 * dir;
-    return 0;
-  });
-}
-
-function cellSortKey(field: DatabaseField, value: CellValue | undefined): string | number {
-  if (value === undefined || value === null) return "";
-  if (field.type === "number" && typeof value === "number") return value;
-  return cellDisplay(field, value, {});
 }
 
 export default function DatabaseSurface({
@@ -121,6 +97,29 @@ export default function DatabaseSurface({
     selectRow(id);
   };
 
+  const filterText =
+    activeView?.filters?.find((filter) => filter.op === "contains")?.value ?? "";
+
+  const setFilter = (value: string) => {
+    if (!activeView) return;
+    const textField = doc.body.fields.find((f) => f.type === "text");
+    commit(
+      doc.id,
+      [
+        {
+          op: "updateView",
+          id: activeView.id,
+          patch: {
+            filters: value.trim() && textField
+              ? [{ fieldId: textField.id, op: "contains", value: value.trim() }]
+              : [],
+          },
+        },
+      ],
+      { coalesceKey: `db-filter:${doc.id}`, label: "Filter rows" },
+    );
+  };
+
   const setCell = (rowId: string, fieldId: string, value: CellValue) => {
     commit(doc.id, [{ op: "setCell", rowId, fieldId, value }], {
       coalesceKey: `db-cell:${doc.id}:${rowId}:${fieldId}`,
@@ -128,7 +127,7 @@ export default function DatabaseSurface({
     });
   };
 
-  const rows = sortRows(doc.body.rows, doc.body.fields, activeView);
+  const rows = queryRows(doc.body.rows, doc.body.fields, activeView);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
@@ -151,7 +150,18 @@ export default function DatabaseSurface({
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] text-faint">{doc.body.rows.length} rows</span>
+          <input
+            aria-label="Filter rows"
+            placeholder="Filter"
+            value={typeof filterText === "string" ? filterText : ""}
+            onChange={(e) => setFilter(e.target.value)}
+            className="h-7 w-36 rounded-md border border-line bg-bg px-2 text-xs"
+          />
+          <span className="text-[10px] text-faint">
+            {rows.length === doc.body.rows.length
+              ? `${doc.body.rows.length} rows`
+              : `${rows.length}/${doc.body.rows.length} rows`}
+          </span>
           <Button size="sm" variant="default" onClick={addRow}>Add row</Button>
         </div>
       </div>
@@ -160,6 +170,15 @@ export default function DatabaseSurface({
         <div className="min-w-0 flex-1 overflow-auto">
           {activeView?.type === "kanban" ? (
             <KanbanView
+              view={activeView}
+              rows={rows}
+              fields={doc.body.fields}
+              docs={docs}
+              selectedRowId={selectedRowId}
+              onSelectRow={selectRow}
+            />
+          ) : activeView?.type === "calendar" ? (
+            <CalendarView
               view={activeView}
               rows={rows}
               fields={doc.body.fields}
@@ -195,6 +214,9 @@ export default function DatabaseSurface({
   );
 }
 
+const columnHelper = createColumnHelper<DatabaseRow>();
+const ROW_HEIGHT = 36;
+
 function GridView({
   fields,
   rows,
@@ -210,6 +232,41 @@ function GridView({
   onSelectRow: (rowId: string) => void;
   onSetCell: (rowId: string, fieldId: string, value: CellValue) => void;
 }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const columns = useMemo(
+    () =>
+      fields.map((field) =>
+        columnHelper.accessor((row) => row.cells[field.id], {
+          id: field.id,
+          header: field.name,
+          cell: (info) => (
+            <CellEditor
+              field={field}
+              value={info.getValue()}
+              docs={docs}
+              onChange={(value) => onSetCell(info.row.original.id, field.id, value)}
+            />
+          ),
+        }),
+      ),
+    [fields, docs, onSetCell],
+  );
+
+  const table = useReactTable({
+    data: rows,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row.id,
+  });
+
+  const tableRows = table.getRowModel().rows;
+  const virtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 16,
+  });
+
   if (fields.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-muted">
@@ -219,43 +276,43 @@ function GridView({
   }
 
   return (
-    <table className="w-full min-w-max border-collapse text-xs">
-      <thead className="sticky top-0 z-10 bg-raised">
-        <tr>
-          {fields.map((field) => (
-            <th
-              key={field.id}
-              className="border-b border-line px-2 py-1.5 text-left font-medium text-muted"
+    <div ref={parentRef} className="h-full overflow-auto" data-virtualized-grid="true">
+      <div className="sticky top-0 z-10 flex min-w-max border-b border-line bg-raised text-xs">
+        {table.getHeaderGroups().map((group) =>
+          group.headers.map((header) => (
+            <div
+              key={header.id}
+              className="w-44 shrink-0 px-2 py-1.5 font-medium text-muted"
             >
-              {field.name}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr
-            key={row.id}
-            className={cx(
-              "cursor-pointer hover:bg-hover",
-              selectedRowId === row.id && "bg-accent/10",
-            )}
-            onClick={() => onSelectRow(row.id)}
-          >
-            {fields.map((field) => (
-              <td key={field.id} className="border-b border-line px-2 py-1 align-top">
-                <CellEditor
-                  field={field}
-                  value={row.cells[field.id]}
-                  docs={docs}
-                  onChange={(value) => onSetCell(row.id, field.id, value)}
-                />
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              {flexRender(header.column.columnDef.header, header.getContext())}
+            </div>
+          )),
+        )}
+      </div>
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((item) => {
+          const row = tableRows[item.index];
+          return (
+            <div
+              key={row.id}
+              data-index={item.index}
+              className={cx(
+                "absolute left-0 flex min-w-max cursor-pointer border-b border-line hover:bg-hover",
+                selectedRowId === row.original.id && "bg-accent/10",
+              )}
+              style={{ transform: `translateY(${item.start}px)`, height: ROW_HEIGHT }}
+              onClick={() => onSelectRow(row.original.id)}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <div key={cell.id} className="w-44 shrink-0 px-2 py-1">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -314,6 +371,52 @@ function KanbanView({
                 );
               })}
             </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CalendarView({
+  view,
+  rows,
+  fields,
+  docs,
+  selectedRowId,
+  onSelectRow,
+}: {
+  view: Extract<DatabaseView, { type: "calendar" }>;
+  rows: DatabaseRow[];
+  fields: DatabaseField[];
+  docs: Record<string, Doc>;
+  selectedRowId: string | null;
+  onSelectRow: (rowId: string) => void;
+}) {
+  const now = new Date();
+  const days = monthCells(now.getFullYear(), now.getMonth());
+  const titleField = fields.find((f) => f.type === "text");
+  return (
+    <div className="grid h-full grid-cols-7 gap-px bg-line p-px">
+      {days.map((day) => {
+        const key = day.toISOString().slice(0, 10);
+        const dayRows = rows.filter((row) => rowDate(row, view.dateFieldId) === key);
+        return (
+          <div key={key} className="min-h-[88px] bg-bg p-1">
+            <div className="text-[10px] text-faint">{day.getDate()}</div>
+            {dayRows.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => onSelectRow(row.id)}
+                className={cx(
+                  "mt-0.5 w-full truncate rounded px-1 text-left text-[10px]",
+                  selectedRowId === row.id ? "bg-accent text-accent-fg" : "bg-raised",
+                )}
+              >
+                {titleField ? cellDisplay(titleField, row.cells[titleField.id], docs) : row.id}
+              </button>
+            ))}
           </div>
         );
       })}

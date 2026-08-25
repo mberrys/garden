@@ -78,7 +78,7 @@ export async function openSeededWorkspace(page: Page): Promise<void> {
 
 export async function newDocument(
   page: Page,
-  kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet" | "Database",
+  kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet" | "Database" | "Media" | "Mini-tool",
 ) {
   await page.click('button[aria-label="New document"]');
   await page.click(`[role="menuitem"]:has-text("${kind}")`);
