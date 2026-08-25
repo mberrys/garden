@@ -252,19 +252,18 @@ function GridView({
     [fields, docs, onSetCell],
   );
 
-  const tableRows = rows;
-  const virtualizer = useVirtualizer({
-    count: tableRows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 16,
-  });
-
   const table = useReactTable({
     data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
+  });
+  const tableRows = table.getRowModel().rows;
+  const virtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 16,
   });
 
   if (fields.length === 0) {
