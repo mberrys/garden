@@ -220,6 +220,10 @@ Run `npm run build` before `npm run test:e2e`; the suite starts the production
 server. It forces the scripted provider, so it never depends on a model being
 installed.
 
+GitHub Actions runs that same gate on pulls and on pushes to `main`
+(`.github/workflows/ci.yml`): typecheck, lint, vitest, production build, then
+Playwright against the mock provider.
+
 ### How it fits together
 
 ```
