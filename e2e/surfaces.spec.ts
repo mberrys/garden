@@ -152,8 +152,14 @@ test("campaign packet sprouts databases and a brief", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Campaign Brief");
   await expect(sidebar).toContainText("Story Angles");
+  await expect(sidebar).toContainText("Pitch Interactions");
   await expect(page.locator(".garden-markdown")).toContainText(/Campaign brief/);
   await expect(page.getByText("Local-first workplace")).toBeVisible();
+
+  await sidebar.getByText("Pitch Interactions").click();
+  await expect(page.getByRole("button", { name: "Schedule" })).toBeVisible();
+  await expect(page.getByText("September 2026")).toBeVisible();
+  await expect(page.getByText(/Pitched local-first angle to Nina/)).toBeVisible();
 });
 
 test("pdf: rendering, annotating, and capturing the quoted text", async ({ page }) => {

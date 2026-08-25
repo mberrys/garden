@@ -69,6 +69,21 @@ describe("seed packets", () => {
     expect(result.panes[1].docIds).toHaveLength(1);
   });
 
+  it("comms/campaign seeds a calendar view on the pitch schedule", () => {
+    const packet = getPacket("comms/campaign");
+    expect(packet).toBeDefined();
+    const pitchesSeed = packet!.starterBases?.find((base) => base.localId === "pitches");
+    expect(pitchesSeed?.views.some((view) => view.type === "calendar")).toBe(true);
+
+    const result = sproutPacket(packet!);
+    const pitches = result.docs.find((d) => d.title === "Pitch Interactions");
+    expect(pitches?.kind).toBe("database");
+    if (pitches?.kind !== "database") return;
+    const calendar = pitches.body.views.find((view) => view.type === "calendar");
+    expect(calendar).toMatchObject({ type: "calendar", dateFieldId: "fld_date", name: "Schedule" });
+    expect(pitches.body.activeViewId).toBe(calendar?.id);
+  });
+
   it("comms/campaign resolves relation links across bases", () => {
     const packet = getPacket("comms/campaign");
     expect(packet).toBeDefined();

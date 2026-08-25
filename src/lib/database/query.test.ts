@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDatabaseDoc } from "@/lib/docs/factories";
 import { applyOps } from "@/lib/ops";
-import { queryRows } from "./query";
+import { calendarMonthFromRows, queryRows } from "./query";
 
 describe("database query", () => {
   it("filters and sorts without copying the document model", () => {
@@ -43,5 +43,17 @@ describe("database query", () => {
     const elapsed = performance.now() - start;
     expect(result.length).toBeGreaterThan(200);
     expect(elapsed).toBeLessThan(250);
+  });
+
+  it("opens a calendar on the first dated row, not today's empty month", () => {
+    const month = calendarMonthFromRows(
+      [
+        { id: "row_a", cells: { fld_date: "2026-09-02" } },
+        { id: "row_b", cells: { fld_date: "2026-09-14" } },
+      ],
+      "fld_date",
+      new Date("2026-08-25T12:00:00"),
+    );
+    expect(month).toEqual({ year: 2026, month: 8 });
   });
 });

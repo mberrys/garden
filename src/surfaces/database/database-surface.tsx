@@ -15,7 +15,7 @@ import type {
 } from "@/lib/docs/schema";
 import { newRowId } from "@/lib/docs/ids";
 import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
-import { queryRows, rowDate, monthCells } from "@/lib/database/query";
+import { calendarMonthFromRows, localDayKey, monthCells, queryRows, rowDate } from "@/lib/database/query";
 import { resolveGardenRef } from "@/lib/refs";
 import { Button, cx } from "@/components/ui";
 
@@ -392,13 +392,43 @@ function CalendarView({
   selectedRowId: string | null;
   onSelectRow: (rowId: string) => void;
 }) {
-  const now = new Date();
-  const days = monthCells(now.getFullYear(), now.getMonth());
+  const start = calendarMonthFromRows(rows, view.dateFieldId);
+  const [year, setYear] = useState(start.year);
+  const [month, setMonth] = useState(start.month);
+  const days = monthCells(year, month);
   const titleField = fields.find((f) => f.type === "text");
+  const label = new Date(year, month, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+
+  const shiftMonth = (delta: number) => {
+    const next = new Date(year, month + delta, 1);
+    setYear(next.getFullYear());
+    setMonth(next.getMonth());
+  };
+
   return (
-    <div className="grid h-full grid-cols-7 gap-px bg-line p-px">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
+        <button
+          type="button"
+          aria-label="Previous month"
+          className="rounded-md px-2 py-0.5 text-xs text-muted hover:bg-hover hover:text-ink"
+          onClick={() => shiftMonth(-1)}
+        >
+          Prev
+        </button>
+        <div className="flex-1 text-center text-xs font-medium text-ink">{label}</div>
+        <button
+          type="button"
+          aria-label="Next month"
+          className="rounded-md px-2 py-0.5 text-xs text-muted hover:bg-hover hover:text-ink"
+          onClick={() => shiftMonth(1)}
+        >
+          Next
+        </button>
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-7 gap-px bg-line p-px">
       {days.map((day) => {
-        const key = day.toISOString().slice(0, 10);
+        const key = localDayKey(day);
         const dayRows = rows.filter((row) => rowDate(row, view.dateFieldId) === key);
         return (
           <div key={key} className="min-h-[88px] bg-bg p-1">
@@ -419,6 +449,7 @@ function CalendarView({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

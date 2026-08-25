@@ -78,7 +78,31 @@ export function monthCells(year: number, month: number): Date[] {
   });
 }
 
+export function localDayKey(day: Date): string {
+  const y = day.getFullYear();
+  const m = String(day.getMonth() + 1).padStart(2, "0");
+  const d = String(day.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function rowDate(row: DatabaseRow, fieldId: string): string | null {
   const value = row.cells[fieldId];
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
+}
+
+/** Month to open on a calendar view: first dated row, else `now`. */
+export function calendarMonthFromRows(
+  rows: DatabaseRow[],
+  fieldId: string,
+  now = new Date(),
+): { year: number; month: number } {
+  for (const row of rows) {
+    const key = rowDate(row, fieldId);
+    if (!key) continue;
+    const parsed = new Date(`${key}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return { year: parsed.getFullYear(), month: parsed.getMonth() };
+    }
+  }
+  return { year: now.getFullYear(), month: now.getMonth() };
 }

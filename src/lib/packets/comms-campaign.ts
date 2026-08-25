@@ -72,10 +72,10 @@ function resultsDeck() {
 
 export const commsCampaignPacket: SeedPacket = {
   id: "comms/campaign",
-  version: 1,
+  version: 2,
   label: "Campaign",
   blurb:
-    "Campaign brief, message house, contacts, story pipeline, pitch log, coverage ledger, and results deck.",
+    "Campaign brief, message house, contacts, story pipeline, pitch calendar, coverage ledger, and results deck.",
   requires: {
     surfaces: ["text", "database", "deck"],
     capabilities: ["relations"],
@@ -230,8 +230,15 @@ export const commsCampaignPacket: SeedPacket = {
         { id: "fld_notes", name: "Notes", type: "text" },
       ],
       views: [
+        {
+          id: "vw_pitches_calendar",
+          name: "Schedule",
+          type: "calendar",
+          dateFieldId: "fld_date",
+        },
         { id: "vw_pitches_grid", name: "Grid", type: "grid" },
       ],
+      activeViewId: "vw_pitches_calendar",
       rows: [
         {
           localId: "pitch_1",

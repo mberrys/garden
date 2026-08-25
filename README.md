@@ -105,7 +105,7 @@ workspaces.
 | Field notes | `garden/field-notes` | visit log, site sketch, field media, debrief |
 | Experiment report | `data/experiment-report` | study notes, experiments, run refs, findings, metrics sheet, analysis |
 | Matter | `legal/matter` | matter notes, authorities (external reporters), issues, draft |
-| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitch calendar, coverage, results deck |
 
 You can also start blank and plant a packet later from the sidebar. Which packet
 sprouted the workspace (and its version) is stored in local metadata and
@@ -119,35 +119,43 @@ listing exact artifacts, bases, views, and links before planting.
 **Document** — ProseMirror rich-text editor behind Garden's existing PM JSON
 body. Typing, IME, and clipboard go through ProseMirror transactions mapped to
 Garden ops; workspace undo is the only history. Markdown remains the import,
-export, and AI interchange path.
+export, and AI interchange path. Writer is semantic editing. A PDF is not a
+Writer document; it stays a separate evidence surface.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
 rectangles/ellipses/diamonds/text/frames, freehand ink and a highlighter, and
 connectors that bind to shape anchors and re-route as shapes move. Marquee select,
-multi-select, nudge, align and restack.
+multi-select, nudge, align and restack. Excalidraw is a useful reference for
+whiteboard interaction. It is not a Garden dependency and must not be embedded
+as the canvas.
 
 **Deck** — slide rail, a 1280×720 stage with drag/resize elements, seven layouts,
 speaker notes, presenter mode, and PPTX export from Garden slide JSON via
 PptxGenJS (not Univer Slides).
 
-**PDF** — pdf.js rendering with a real selectable text layer and page
-virtualisation, an annotation overlay (highlight, underline, strikeout, box, note)
-stored in normalised page coordinates so it survives zooming, per-page text
-extraction that feeds the assistant, page citations and evidence refs, an OCR
-provider hook (no bundled engine), and export that flattens annotations into a
-copy of the original file.
+**PDF** — evidence and fixed layout, not semantic editing. pdf.js rendering with
+a real selectable text layer and page virtualisation, an annotation overlay
+(highlight, underline, strikeout, box, note) stored in normalised page
+coordinates so it survives zooming, per-page text extraction that feeds the
+assistant, page citations and evidence refs, an OCR provider hook (no bundled
+engine), and export that flattens annotations into a copy of the original file.
+Writer is where you rewrite prose. PDF is where you cite a page.
 
 **Sheet** — a grid of cells addressed by A1 references, with a formula bar and a
 small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 `ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
 number-format styling, and grid resizing. The 1.0 engine spike keeps this
-Garden-native grid rather than Univer/IronCalc.
+Garden-native grid rather than Univer/IronCalc. Sheets calculate. They are not
+the database.
 
-**Database** — typed fields, rows, grid, kanban, and calendar views, filters,
-relation links, and shared `GardenRef` / `ExternalRef` cells. The grid uses
-TanStack Table/Virtual for 1–5k local rows; Garden JSON stays canonical.
+**Database** — records, views, and relations: a light local tracker, not Airtable
+or Notion, and not a spreadsheet. Typed fields, rows, grid, kanban, and calendar
+views, filters, relation links, and shared `GardenRef` / `ExternalRef` cells.
+The campaign packet seeds a pitch Schedule calendar. TanStack Table and
+Virtual draw the grid for 1–5k local rows. They are UI infrastructure. Garden
+JSON is the document. Bases are not Sheets.
 
 **Media** — a board of image/file assets with captions, tags, groups, and
 document links. Distinct from Drawing.
