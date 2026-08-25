@@ -16,6 +16,8 @@ import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import type { TextDoc } from "@/lib/docs/schema";
 import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
+import { downloadBytes, downloadableName } from "@/lib/store/bundle";
+import { exportOffice } from "@/lib/interchange";
 import { docToPlainText } from "@/lib/text/markdown";
 import { gardenSchema } from "@/lib/text/pm-schema";
 import {
@@ -71,6 +73,7 @@ export default function WriterEditor({
 }) {
   const commit = useWorkspace((s) => s.commit);
   const setSelection = useWorkspace((s) => s.setSelection);
+  const toast = useWorkspace((s) => s.toast);
   const mountRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const docRef = useRef(doc);
@@ -176,6 +179,20 @@ export default function WriterEditor({
     view.focus();
   }
 
+  function exportFormat(format: "docx" | "odt") {
+    void exportOffice(doc, format)
+      .then(({ bytes }) => {
+        const mime =
+          format === "docx"
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            : "application/vnd.oasis.opendocument.text";
+        downloadBytes(bytes, downloadableName(doc.title, format), mime);
+      })
+      .catch((err: unknown) => {
+        toast("error", err instanceof Error ? err.message : `Could not export ${format.toUpperCase()}.`);
+      });
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-8 shrink-0 items-center gap-1 border-b border-line bg-raised px-2">
@@ -206,6 +223,13 @@ export default function WriterEditor({
           onClick={() => run(wrapInList(gardenSchema.nodes.bulletList))}
         >
           •
+        </FormatButton>
+        <span className="mx-1 h-4 w-px bg-line" />
+        <FormatButton label="Export DOCX" onClick={() => exportFormat("docx")}>
+          Export DOCX
+        </FormatButton>
+        <FormatButton label="Export ODT" onClick={() => exportFormat("odt")}>
+          Export ODT
         </FormatButton>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg">

@@ -1,0 +1,11 @@
+{
+  "id": "hello",
+  "format": "odt",
+  "status": "run",
+  "expectedKind": "text",
+  "expectedContains": [
+    "Hello Garden",
+    "A short paragraph"
+  ],
+  "roundTrip": true
+}

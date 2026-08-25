@@ -119,8 +119,9 @@ listing exact artifacts, bases, views, and links before planting.
 **Document** — ProseMirror rich-text editor behind Garden's existing PM JSON
 body. Typing, IME, and clipboard go through ProseMirror transactions mapped to
 Garden ops; workspace undo is the only history. Markdown remains the import,
-export, and AI interchange path. Writer is semantic editing. A PDF is not a
-Writer document; it stays a separate evidence surface.
+export, and AI interchange path. Writer also imports and exports a heading /
+paragraph / list subset of DOCX and ODT. Writer is semantic editing. A PDF is
+not a Writer document; it stays a separate evidence surface.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
@@ -131,8 +132,8 @@ whiteboard interaction. It is not a Garden dependency and must not be embedded
 as the canvas.
 
 **Deck** — slide rail, a 1280×720 stage with drag/resize elements, seven layouts,
-speaker notes, presenter mode, and PPTX export from Garden slide JSON via
-PptxGenJS (not Univer Slides).
+speaker notes, presenter mode, PPTX export via PptxGenJS, and PPTX/ODP import
+of text, basic shapes, images, notes, and positions (not Univer Slides).
 
 **PDF** — evidence and fixed layout, not semantic editing. pdf.js rendering with
 a real selectable text layer and page virtualisation, an annotation overlay
@@ -146,9 +147,10 @@ Writer is where you rewrite prose. PDF is where you cite a page.
 small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 `ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
-number-format styling, and grid resizing. The 1.0 engine spike keeps this
-Garden-native grid rather than Univer/IronCalc. Sheets calculate. They are not
-the database.
+number-format styling, and grid resizing. XLSX import/export uses ExcelJS; ODS
+uses a first-party ODF subset (not SheetJS commercial, not Univer Pro). The 1.0
+engine spike keeps this Garden-native grid rather than Univer/IronCalc. Sheets
+calculate. They are not the database.
 
 **Database** — records, views, and relations: a light local tracker, not Airtable
 or Notion, and not a spreadsheet. Typed fields, rows, grid, kanban, and calendar
@@ -162,6 +164,21 @@ document links. Distinct from Drawing.
 
 **Mini-tool** — constrained prompt-to-surface templates (card-grid, table,
 timeline). Proposed as a reviewable workspace transaction; never generated React.
+
+### Office interchange (documented subsets)
+
+Drop or pick `.docx`, `.odt`, `.xlsx`, `.ods`, `.pptx`, or `.odp` to import into
+the matching Garden surface. Canonical state stays Garden JSON; fidelity
+warnings toast the first few `message`s. Details: [docs/interchange.md](docs/interchange.md).
+
+| Surface | Import | Export | Subset / known lossiness |
+| --- | --- | --- | --- |
+| Document | DOCX (Mammoth), ODT | DOCX, ODT | Headings, paragraphs, lists. No styles, tables, comments, tracked changes |
+| Sheet | XLSX (ExcelJS), ODS | XLSX, ODS | First sheet; values, formulas, bold/italic/align. No macros, pivots, charts, VBA |
+| Deck | PPTX, ODP | PPTX (PptxGenJS) | Text, basic shapes, images, notes, positions. No SmartArt, animations, video, charts, groups, macros |
+
+This is not Word / Excel / PowerPoint parity. Unsupported constructs emit
+warnings and are dropped.
 
 ### Cross-surface recipes
 
@@ -209,7 +226,8 @@ Because browser storage can be cleared, **Export** writes the whole workspace to
 `.gardenspace` file (documents plus embedded PDFs and images, and which seed packet
 sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
-`.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
+`.pdf`, `.md`, `.txt`, `.docx`, `.odt`, `.xlsx`, `.ods`, `.pptx`, `.odp`, or
+`.gardenspace` anywhere in the window to import it.
 
 ---
 

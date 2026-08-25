@@ -5,6 +5,10 @@ import type { Page } from "@playwright/test";
 
 export const FIXTURE_DIR = join(process.cwd(), "test-results", "fixtures");
 
+export function sampleOfficePath(format: "docx" | "xlsx", id: string): string {
+  return join(process.cwd(), "fixtures/interchange", format, id, `input.${format}`);
+}
+
 /**
  * Builds the sample PDF the suite reads and annotates. Generated rather than
  * committed so the repository carries no binary fixture, and so the text is

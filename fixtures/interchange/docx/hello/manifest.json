@@ -1,0 +1,11 @@
+{
+  "id": "hello",
+  "format": "docx",
+  "status": "run",
+  "expectedKind": "text",
+  "expectedContains": [
+    "Hello Garden",
+    "A short paragraph"
+  ],
+  "roundTrip": true
+}

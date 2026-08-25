@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { createTextDoc } from "@/lib/docs/factories";
+import { createDeckDoc, createSheetDoc, createTextDoc } from "@/lib/docs/factories";
 import {
+  allFormats,
+  exportOffice,
+  formatFidelityToast,
   importOfficeFile,
   runInterchangeFixture,
   scoreWarnings,
   warning,
   type FixtureManifest,
+  type OfficeFormat,
 } from "./index";
 import { assertGardenCanonical } from "./warnings";
+import { loadInterchangeCorpus, runInterchangeCorpus } from "./corpus";
 import { zipStore } from "@/lib/deck/export-pptx";
 
 function bytesOf(text: string): Uint8Array {
@@ -52,6 +57,12 @@ describe("interchange harness", () => {
         warnings: [],
       }),
     ).toThrow(/non-Garden/);
+    expect(() =>
+      assertGardenCanonical({
+        docs: [{ id: "x", kind: "text", body: { univer: true } }],
+        warnings: [],
+      }),
+    ).toThrow(/engine-library/);
   });
 
   it("scores fidelity warnings", () => {
@@ -62,9 +73,115 @@ describe("interchange harness", () => {
     expect(score).toEqual({ supported: 0, partial: 1, unsupported: 1 });
   });
 
-  it("round-trips a Garden text fixture through markdown subset equivalence", () => {
-    const doc = createTextDoc("Hello", "# Title\n\nBody");
-    expect(doc.kind).toBe("text");
-    expect(JSON.stringify(doc.body)).not.toContain("engineState");
+  it("formats toast copy from the first warnings plus a remainder count", () => {
+    const lines = formatFidelityToast([
+      warning("a", "x", "partial", "first"),
+      warning("b", "y", "partial", "second"),
+      warning("c", "z", "unsupported", "third"),
+      warning("d", "w", "partial", "fourth"),
+    ]);
+    expect(lines[0]).toContain("first");
+    expect(lines[1]).toContain("second");
+    expect(lines[2]).toContain("third");
+    expect(lines[3]).toMatch(/1 more/);
+  });
+
+  it("round-trips a Garden heading and paragraph through DOCX", async () => {
+    const doc = createTextDoc("Hello", "# Hello Garden\n\nA short paragraph.");
+    const exported = await exportOffice(doc, "docx");
+    const again = await importOfficeFile(exported.bytes, "hello.docx");
+    assertGardenCanonical(again);
+    const blob = JSON.stringify(again.docs);
+    expect(blob).toContain("Hello Garden");
+    expect(blob).toContain("A short paragraph");
+  });
+
+  it("round-trips a SUM formula through XLSX", async () => {
+    const doc = createSheetDoc("Grid");
+    const withCells = {
+      ...doc,
+      body: {
+        ...doc.body,
+        rows: 2,
+        cols: 2,
+        cells: {
+          A1: { value: "=SUM(B1:B2)", bold: false, italic: false, align: "left" as const, format: "auto" as const },
+          B1: { value: "1", bold: false, italic: false, align: "left" as const, format: "auto" as const },
+          B2: { value: "2", bold: false, italic: false, align: "left" as const, format: "auto" as const },
+        },
+      },
+    };
+    const exported = await exportOffice(withCells, "xlsx");
+    const again = await importOfficeFile(exported.bytes, "grid.xlsx");
+    assertGardenCanonical(again);
+    expect(JSON.stringify(again.docs)).toContain("=SUM(B1:B2)");
+  });
+
+  it("imports PPTX title, body, and notes from a generated package", async () => {
+    const bytes = zipStore([
+      {
+        name: "ppt/presentation.xml",
+        data: bytesOf(
+          `<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst></p:presentation>`,
+        ),
+      },
+      {
+        name: "ppt/_rels/presentation.xml.rels",
+        data: bytesOf(
+          `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="slides/slide1.xml"/></Relationships>`,
+        ),
+      },
+      {
+        name: "ppt/slides/slide1.xml",
+        data: bytesOf(
+          `<?xml version="1.0"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="685800" y="457200"/><a:ext cx="8229600" cy="1143000"/></a:xfrm></p:spPr><p:txBody><a:p><a:r><a:t>Garden Title</a:t></a:r></a:p></p:txBody></p:sp><p:sp><p:nvSpPr><p:cNvPr id="3" name="Body"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr/><p:txBody><a:p><a:r><a:t>Garden body copy</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>`,
+        ),
+      },
+      {
+        name: "ppt/slides/_rels/slide1.xml.rels",
+        data: bytesOf(
+          `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="../notesSlides/notesSlide1.xml"/></Relationships>`,
+        ),
+      },
+      {
+        name: "ppt/notesSlides/notesSlide1.xml",
+        data: bytesOf(
+          `<?xml version="1.0"?><p:notes xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>Speaker notes here</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:notes>`,
+        ),
+      },
+    ]);
+    const result = await importOfficeFile(bytes, "simple.pptx");
+    assertGardenCanonical(result);
+    const blob = JSON.stringify(result.docs);
+    expect(blob).toContain("Garden Title");
+    expect(blob).toContain("Garden body copy");
+    expect(blob).toContain("Speaker notes here");
+  });
+
+  it("refuses ODP export because the adapter has no exporter", async () => {
+    await expect(exportOffice(createDeckDoc("Talk"), "odp")).rejects.toThrow(/No exporter/);
+  });
+});
+
+describe("committed interchange corpus", () => {
+  it("has a run fixture for every registered adapter family", async () => {
+    const fixtures = loadInterchangeCorpus();
+    const registered = new Set(allFormats());
+    const families: OfficeFormat[] = ["docx", "odt", "pptx", "odp", "xlsx", "ods"];
+    for (const format of families) {
+      const items = fixtures.filter((item) => item.manifest.format === format);
+      expect(items.length, `${format} is missing from fixtures/interchange`).toBeGreaterThan(0);
+      if (registered.has(format)) {
+        expect(
+          items.some((item) => item.manifest.status === "run"),
+          `${format} is skip-only even though an adapter exists`,
+        ).toBe(true);
+      }
+    }
+    const runs = await runInterchangeCorpus();
+    for (const run of runs) {
+      expect(run.status, `${run.id}: ${run.reason ?? "failed"}`).not.toBe("fail");
+    }
+    expect(runs.some((run) => run.status === "pass")).toBe(true);
   });
 });

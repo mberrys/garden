@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { newDocument, openEmptyWorkspace, openSeededWorkspace, samplePdfPath } from "./fixtures";
+import { newDocument, openEmptyWorkspace, openSeededWorkspace, sampleOfficePath, samplePdfPath } from "./fixtures";
 
 /**
  * End-to-end coverage of each surface's core interaction, run against the
@@ -206,4 +206,30 @@ test("flavor lens is a view preference, not a content fork", async ({ page }) =>
   await page.selectOption('select[aria-label="Flavor"]', "data");
   await expect(page.locator('select[aria-label="Flavor"]')).toHaveValue("data");
   await expect(page.locator(".garden-markdown[contenteditable='true']")).toBeVisible();
+});
+
+test("writer: dropping a DOCX fixture shows the heading", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await page.setInputFiles('input[type="file"]', sampleOfficePath("docx", "hello"));
+  await expect(page.locator(".garden-markdown")).toContainText(/Hello Garden/, { timeout: 30_000 });
+});
+
+test("writer: export docx downloads a package", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export DOCX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.docx$/);
+});
+
+test("sheet: export xlsx downloads a workbook", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Sheet");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export XLSX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
 });

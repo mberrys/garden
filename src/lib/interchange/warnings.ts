@@ -7,9 +7,17 @@ export interface FidelityWarning {
   message: string;
 }
 
+export interface InterchangeBlob {
+  id: string;
+  name: string;
+  mime: string;
+  bytes: Uint8Array;
+}
+
 export interface InterchangeResult {
   docs: unknown[];
   warnings: FidelityWarning[];
+  blobs?: InterchangeBlob[];
 }
 
 export function warning(
@@ -37,4 +45,14 @@ export function assertGardenCanonical(result: InterchangeResult): void {
       throw new Error("importer leaked engine-library state");
     }
   }
+}
+
+export function formatFidelityToast(warnings: FidelityWarning[]): string[] {
+  const partial = warnings.filter((item) => item.severity !== "supported");
+  if (partial.length === 0) return [];
+  const shown = partial.slice(0, 3).map((item) => `${item.code}: ${item.message}`);
+  if (partial.length > 3) {
+    shown.push(`${partial.length - 3} more fidelity warning${partial.length - 3 === 1 ? "" : "s"}`);
+  }
+  return shown;
 }

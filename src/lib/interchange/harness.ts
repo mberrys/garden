@@ -21,6 +21,10 @@ export function getFormat(format: OfficeFormat): FormatAdapter | undefined {
   return adapters.get(format);
 }
 
+export function allFormats(): OfficeFormat[] {
+  return [...adapters.keys()];
+}
+
 export function formatForFilename(name: string): OfficeFormat | undefined {
   const lower = name.toLowerCase();
   for (const adapter of adapters.values()) {
@@ -42,6 +46,20 @@ export async function importOfficeFile(
   return { ...result, format };
 }
 
+export async function exportOffice(
+  doc: Doc,
+  format: OfficeFormat,
+): Promise<{ bytes: Uint8Array; warnings: FidelityWarning[] }> {
+  const adapter = getFormat(format);
+  if (!adapter) throw new Error(`No interchange adapter for "${format}"`);
+  if (!adapter.exportDoc) throw new Error(`No exporter for ${format}`);
+  if (adapter.kind !== doc.kind) {
+    throw new Error(`Format ${format} expects ${adapter.kind}, got ${doc.kind}`);
+  }
+  assertGardenCanonical({ docs: [doc], warnings: [] });
+  return adapter.exportDoc(doc);
+}
+
 export interface FixtureManifest {
   id: string;
   format: OfficeFormat;
@@ -50,6 +68,8 @@ export interface FixtureManifest {
   expectedKind: DocKind;
   expectedContains?: string[];
   warnings?: Pick<FidelityWarning, "code" | "construct" | "severity">[];
+  roundTrip?: boolean;
+  input?: string;
 }
 
 export interface FixtureRun {
@@ -67,6 +87,15 @@ export async function runInterchangeFixture(
   if (manifest.status === "skip") {
     return { id: manifest.id, status: "skip", reason: manifest.skipReason ?? "explicit skip", warnings: [] };
   }
+  const adapter = getFormat(manifest.format);
+  if (!adapter) {
+    return {
+      id: manifest.id,
+      status: "skip",
+      reason: `no importer registered for ${manifest.format}`,
+      warnings: [],
+    };
+  }
   try {
     const result = await importOfficeFile(bytes, filename);
     const docs = result.docs as { kind?: string; body?: unknown }[];
@@ -82,6 +111,30 @@ export async function runInterchangeFixture(
     for (const needle of manifest.expectedContains ?? []) {
       if (!blob.includes(needle)) {
         return { id: manifest.id, status: "fail", reason: `missing "${needle}"`, warnings: result.warnings };
+      }
+    }
+    if (manifest.roundTrip) {
+      const doc = result.docs[0] as Doc;
+      if (!adapter.exportDoc) {
+        return {
+          id: manifest.id,
+          status: "fail",
+          reason: "roundTrip requested but exporter is missing",
+          warnings: result.warnings,
+        };
+      }
+      const exported = await exportOffice(doc, manifest.format);
+      const again = await importOfficeFile(exported.bytes, filename);
+      const againBlob = JSON.stringify(again.docs);
+      for (const needle of manifest.expectedContains ?? []) {
+        if (!againBlob.includes(needle)) {
+          return {
+            id: manifest.id,
+            status: "fail",
+            reason: `round-trip missing "${needle}"`,
+            warnings: again.warnings,
+          };
+        }
       }
     }
     return { id: manifest.id, status: "pass", warnings: result.warnings };
