@@ -411,7 +411,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
         seedPacketVersion: result.snapshot.seedPacketVersion,
         flavorId: result.snapshot.flavorId,
         txUndo: state.txUndo.slice(0, -1),
-        txRedo: [...state.txRedo, inverse],
+        txRedo: [...state.txRedo, result.inverse],
         lastAction: state.txUndo.length > 1 ? { type: "tx" } : null,
       });
       void persistSnapshot(result.snapshot);
@@ -443,6 +443,29 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
   redo: (docId) => {
     const state = get();
+    if (state.txRedo.length > 0 && state.lastAction?.type !== "doc") {
+      const forward = state.txRedo[state.txRedo.length - 1];
+      const result = applyPlan(forward, snapshotOf(state));
+      if (!result.ok) {
+        get().toast("error", `Could not redo: ${result.error}`);
+        return;
+      }
+      set({
+        docs: result.snapshot.docs,
+        order: result.snapshot.order,
+        panes: result.snapshot.panes,
+        splitView: result.snapshot.splitView,
+        seedPacketId: result.snapshot.seedPacketId,
+        seedPacketVersion: result.snapshot.seedPacketVersion,
+        flavorId: result.snapshot.flavorId,
+        txUndo: [...state.txUndo, result.inverse],
+        txRedo: state.txRedo.slice(0, -1),
+        lastAction: { type: "tx" },
+      });
+      void persistSnapshot(result.snapshot);
+      return;
+    }
+
     const entries = state.history[docId];
     const entry = entries?.redo[entries.redo.length - 1];
     const doc = state.docs[docId];
