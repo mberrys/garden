@@ -10,10 +10,6 @@ export interface ResolvedGardenRef {
   label: string;
 }
 
-/**
- * Resolve a GardenRef against the current workspace. Broken refs stay visible
- * as broken — they must never silently retarget another document.
- */
 export function resolveGardenRef(
   ref: GardenRef,
   docs: Record<string, Doc>,

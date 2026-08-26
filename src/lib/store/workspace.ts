@@ -434,8 +434,6 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       });
       scheduleSave(next);
     } catch (err) {
-      // The stack is out of sync with the document; drop it rather than leave a
-      // broken entry that fails forever.
       set({
         history: { ...state.history, [docId]: { undo: entries.undo.slice(0, -1), redo: [] } },
       });

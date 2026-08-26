@@ -13,7 +13,6 @@ export function unzipEntries(bytes: Uint8Array): Record<string, Uint8Array> {
   }
 }
 
-/** Concatenate XML parts from an OOXML/ODF package, or decode raw XML fixtures. */
 export function officeXmlFromBytes(bytes: Uint8Array): string {
   if (!isZip(bytes)) return new TextDecoder().decode(bytes);
   try {
@@ -37,7 +36,6 @@ export function zipEntryBytes(bytes: Uint8Array, path: string): Uint8Array | nul
   return unzipEntries(bytes)[path] ?? null;
 }
 
-/** ODF package: uncompressed `mimetype` first, then the rest. */
 export function zipOdf(mime: string, files: Record<string, string | Uint8Array>): Uint8Array {
   const stored = { level: 0 as const };
   const body: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = {

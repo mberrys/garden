@@ -17,10 +17,6 @@ import {
 
 export type TextIntent = { type: "type"; markdown: string };
 
-/**
- * Writer adapter: a live ProseMirror `EditorState` in, Garden text ops out.
- * History stays on Garden's stack — this adapter never loads `prosemirror-history`.
- */
 export function createTextAdapter(): TestAdapter<TextDoc, TextOp, SurfaceSelection, TextIntent> {
   let meta = createTextDoc();
   let state: EditorState = createGardenEditorState(meta.body);

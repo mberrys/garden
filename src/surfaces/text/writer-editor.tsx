@@ -107,19 +107,19 @@ export default function WriterEditor({
           setSelected(sel.text.length);
         }
         if (!tr.docChanged || applyingRef.current || view.composing) return;
-        publish(next.doc, view);
+        publish(next.doc);
       },
       handleDOMEvents: {
         compositionend() {
-          const current = viewRef.current;
-          if (!current || applyingRef.current) return false;
-          publish(current.state.doc, current);
+          const view = viewRef.current;
+          if (!view || applyingRef.current) return false;
+          publish(view.state.doc);
           return false;
         },
       },
     });
 
-    function publish(pmDoc: EditorState["doc"], current: EditorView) {
+    function publish(pmDoc: EditorState["doc"]) {
       const ops = textOpsFromPmReplace(docRef.current, pmDoc);
       const result = commit(docRef.current.id, ops, {
         coalesceKey: `text-type:${docRef.current.id}`,
@@ -132,7 +132,6 @@ export default function WriterEditor({
           docRef.current = stored;
         }
       }
-      void current;
     }
 
     viewRef.current = view;
