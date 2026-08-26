@@ -1,0 +1,95 @@
+{
+  "format": "gardenspace",
+  "version": 1,
+  "exportedAt": 1,
+  "order": ["doc_v1_text", "doc_v1_canvas", "doc_v1_deck", "doc_v1_pdf"],
+  "docs": [
+    {
+      "id": "doc_v1_text",
+      "kind": "text",
+      "title": "Legacy note",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "legacy hello" }]
+          }
+        ]
+      }
+    },
+    {
+      "id": "doc_v1_canvas",
+      "kind": "canvas",
+      "title": "Legacy canvas",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": {
+        "nodes": [],
+        "viewport": { "x": 0, "y": 0, "zoom": 1 },
+        "background": "grid"
+      }
+    },
+    {
+      "id": "doc_v1_deck",
+      "kind": "deck",
+      "title": "Legacy deck",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": {
+        "slides": [
+          {
+            "id": "sl_v1",
+            "layout": "title",
+            "notes": "",
+            "elements": [
+              {
+                "id": "el_v1",
+                "type": "text",
+                "x": 88,
+                "y": 260,
+                "w": 1104,
+                "h": 110,
+                "rotation": 0,
+                "opacity": 1,
+                "text": "Legacy",
+                "fontSize": 68,
+                "weight": "bold",
+                "align": "center",
+                "valign": "top",
+                "color": "#16181d"
+              }
+            ]
+          }
+        ],
+        "theme": {
+          "background": "#ffffff",
+          "text": "#16181d",
+          "accent": "#4f46e5",
+          "muted": "#61666e"
+        }
+      }
+    },
+    {
+      "id": "doc_v1_pdf",
+      "kind": "pdf",
+      "title": "Legacy PDF",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "schemaVersion": 1,
+      "body": {
+        "blobId": null,
+        "fileName": "",
+        "pageCount": 0,
+        "annotations": [],
+        "pageText": {}
+      }
+    }
+  ],
+  "blobs": []
+}

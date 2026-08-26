@@ -8,6 +8,7 @@ import { getSurface } from "@/lib/surfaces";
 import { useWorkspace } from "@/lib/store/workspace";
 import { useThreads } from "@/lib/ai/thread";
 import { recipesFor, type Recipe } from "@/lib/ai/recipes";
+import { isPromptToSurfaceRequest, promptToSurfacePlan } from "@/lib/mini/prompt-to-surface";
 import { Button, EmptyState, IconButton, cx } from "../ui";
 import { DocIcon } from "../doc-icon";
 import { SuggestionCard } from "./suggestion-card";
@@ -21,6 +22,8 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
   const addDoc = useWorkspace((s) => s.addDoc);
   const openDoc = useWorkspace((s) => s.openDoc);
   const seedPacketId = useWorkspace((s) => s.seedPacketId);
+  const proposePlan = useWorkspace((s) => s.proposePlan);
+  const splitView = useWorkspace((s) => s.splitView);
 
   const status = useProvider((s) => s.status);
   const threads = useThreads((s) => s.threads);
@@ -74,6 +77,16 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
   const submit = useCallback(
     (request: string, recipe?: Recipe) => {
       if (!doc || !status || !request.trim()) return;
+      if (recipe?.id === "prompt-to-surface" || (!recipe && isPromptToSurfaceRequest(request))) {
+        const { plan } = promptToSurfacePlan({
+          request: recipe?.prompt ?? request,
+          panes,
+          splitView,
+        });
+        proposePlan(plan);
+        setDraft("");
+        return;
+      }
       const targetDocId = recipe ? resolveTarget(recipe.target, doc) : doc.id;
       void send({
         doc,
@@ -86,7 +99,7 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
       });
       setDraft("");
     },
-    [doc, status, send, resolveTarget, companionsFor],
+    [doc, status, send, resolveTarget, companionsFor, proposePlan, panes, splitView],
   );
 
   const recipes = useMemo(

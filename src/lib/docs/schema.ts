@@ -1,4 +1,21 @@
 import { z } from "zod";
+import {
+  EvidenceRefSchema,
+  ExternalRefSchema,
+  GardenRefSchema,
+} from "@/lib/refs/schema";
+
+export {
+  AnchorRefSchema,
+  EvidenceRefSchema,
+  ExternalRefSchema,
+  GardenRefSchema,
+  gardenRef,
+  type AnchorRef,
+  type EvidenceRef,
+  type ExternalRef,
+  type GardenRef,
+} from "@/lib/refs/schema";
 
 /**
  * The document model for every surface in the suite.
@@ -9,7 +26,7 @@ import { z } from "zod";
  * consumers — so a model can never emit a shape the app does not understand.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * Closed-union checklist when adding a kind. Registration alone is not enough:
@@ -25,7 +42,16 @@ export const SCHEMA_VERSION = 1;
  * 7. `ai.test.ts` fixture
  * 8. e2e `newDocument` labels
  */
-export const DOC_KINDS = ["text", "pdf", "deck", "canvas", "sheet", "database"] as const;
+export const DOC_KINDS = [
+  "text",
+  "pdf",
+  "deck",
+  "canvas",
+  "sheet",
+  "database",
+  "media",
+  "mini",
+] as const;
 export const DocKindSchema = z.enum(DOC_KINDS);
 export type DocKind = z.infer<typeof DocKindSchema>;
 
@@ -36,6 +62,8 @@ export const DOC_KIND_LABELS: Record<DocKind, string> = {
   canvas: "Canvas",
   sheet: "Sheet",
   database: "Database",
+  media: "Media",
+  mini: "Mini-tool",
 };
 
 /** Surfaces a packet may require; used for capability gating in the picker. */
@@ -78,7 +106,7 @@ export const PALETTE = [
 ] as const;
 
 /* ------------------------------------------------------------------ *
- * Text documents — ProseMirror-shaped JSON (edited as markdown)
+ * Text documents — ProseMirror JSON (edited with a ProseMirror view)
  * ------------------------------------------------------------------ */
 
 export interface PmMark {
@@ -424,6 +452,14 @@ export const AnnotationSchema = z.object({
 });
 export type Annotation = z.infer<typeof AnnotationSchema>;
 
+export const PageCitationSchema = z.object({
+  id: z.string(),
+  page: z.number().int().min(1),
+  quote: z.string().default(""),
+  annotationId: z.string().optional(),
+});
+export type PageCitation = z.infer<typeof PageCitationSchema>;
+
 export const PdfBodySchema = z.object({
   blobId: z.string().nullable().default(null),
   fileName: z.string().default(""),
@@ -431,6 +467,8 @@ export const PdfBodySchema = z.object({
   annotations: z.array(AnnotationSchema).default([]),
   /** Extracted per-page plain text, filled lazily as pages render. */
   pageText: z.record(z.string(), z.string()).default({}),
+  evidence: z.array(EvidenceRefSchema).default([]),
+  citations: z.array(PageCitationSchema).default([]),
 });
 export type PdfBody = z.infer<typeof PdfBodySchema>;
 
@@ -488,22 +526,6 @@ export type SheetBody = z.infer<typeof SheetBodySchema>;
  * Database — typed fields, rows, grid + kanban views
  * ------------------------------------------------------------------ */
 
-export const GardenRefSchema = z.object({
-  documentId: z.string(),
-  objectId: z.string().optional(),
-});
-export type GardenRef = z.infer<typeof GardenRefSchema>;
-
-export const ExternalRefSchema = z.object({
-  provider: z.string(),
-  externalId: z.string().optional(),
-  url: z.string().optional(),
-  importedAt: z.string().optional(),
-  sourceUpdatedAt: z.string().optional(),
-  snapshotHash: z.string().optional(),
-});
-export type ExternalRef = z.infer<typeof ExternalRefSchema>;
-
 export const DATABASE_FIELD_TYPES = [
   "text",
   "number",
@@ -523,6 +545,8 @@ export type DatabaseFieldType = z.infer<typeof DatabaseFieldTypeSchema>;
 const fieldCommon = {
   id: z.string(),
   name: z.string(),
+  /** Observed/imported facts stay distinct from derived interpretation. */
+  origin: z.enum(["observed", "derived", "imported"]).optional(),
 };
 
 export const TextFieldSchema = z.object({ ...fieldCommon, type: z.literal("text") });
@@ -567,9 +591,20 @@ export const DatabaseFieldSchema = z.discriminatedUnion("type", [
 ]);
 export type DatabaseField = z.infer<typeof DatabaseFieldSchema>;
 
-export const DATABASE_VIEW_TYPES = ["grid", "kanban"] as const;
+export const DATABASE_VIEW_TYPES = ["grid", "kanban", "calendar"] as const;
 export const DatabaseViewTypeSchema = z.enum(DATABASE_VIEW_TYPES);
 export type DatabaseViewType = z.infer<typeof DatabaseViewTypeSchema>;
+
+export const VIEW_FILTER_OPS = ["eq", "neq", "contains", "gt", "lt", "empty", "not_empty"] as const;
+export const ViewFilterOpSchema = z.enum(VIEW_FILTER_OPS);
+export type ViewFilterOp = z.infer<typeof ViewFilterOpSchema>;
+
+export const ViewFilterSchema = z.object({
+  fieldId: z.string(),
+  op: ViewFilterOpSchema,
+  value: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+});
+export type ViewFilter = z.infer<typeof ViewFilterSchema>;
 
 const viewCommon = {
   id: z.string(),
@@ -582,15 +617,28 @@ export const GridViewSchema = z.object({
   hiddenFieldIds: z.array(z.string()).default([]),
   sortFieldId: z.string().nullable().default(null),
   sortDirection: z.enum(["asc", "desc"]).default("asc"),
+  filters: z.array(ViewFilterSchema).default([]),
 });
 
 export const KanbanViewSchema = z.object({
   ...viewCommon,
   type: z.literal("kanban"),
   groupFieldId: z.string(),
+  filters: z.array(ViewFilterSchema).default([]),
 });
 
-export const DatabaseViewSchema = z.discriminatedUnion("type", [GridViewSchema, KanbanViewSchema]);
+export const CalendarViewSchema = z.object({
+  ...viewCommon,
+  type: z.literal("calendar"),
+  dateFieldId: z.string(),
+  filters: z.array(ViewFilterSchema).default([]),
+});
+
+export const DatabaseViewSchema = z.discriminatedUnion("type", [
+  GridViewSchema,
+  KanbanViewSchema,
+  CalendarViewSchema,
+]);
 export type DatabaseView = z.infer<typeof DatabaseViewSchema>;
 
 export const CellValueSchema = z.union([
@@ -666,6 +714,75 @@ export const DatabaseDocSchema = z.object({
   body: DatabaseBodySchema,
 });
 
+export const MediaAssetSchema = z.object({
+  id: z.string(),
+  blobId: z.string().nullable().default(null),
+  name: z.string().default(""),
+  mime: z.string().default("application/octet-stream"),
+  caption: z.string().default(""),
+  tags: z.array(z.string()).default([]),
+  groupId: z.string().nullable().default(null),
+  provenance: ExternalRefSchema.optional(),
+  links: z.array(GardenRefSchema).default([]),
+});
+export type MediaAsset = z.infer<typeof MediaAssetSchema>;
+
+export const MediaGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+export type MediaGroup = z.infer<typeof MediaGroupSchema>;
+
+export const MediaBodySchema = z.object({
+  layout: z.enum(["board", "list"]).default("board"),
+  assets: z.array(MediaAssetSchema).default([]),
+  groups: z.array(MediaGroupSchema).default([]),
+});
+export type MediaBody = z.infer<typeof MediaBodySchema>;
+
+export const MediaDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("media"),
+  body: MediaBodySchema,
+});
+
+export const MINI_TEMPLATES = ["card-grid", "table", "timeline"] as const;
+export const MiniTemplateSchema = z.enum(MINI_TEMPLATES);
+export type MiniTemplate = z.infer<typeof MiniTemplateSchema>;
+
+export const MiniFieldSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum(["text", "number", "date", "select"]),
+});
+export type MiniField = z.infer<typeof MiniFieldSchema>;
+
+export const MiniDescriptorSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  template: MiniTemplateSchema,
+  fields: z.array(MiniFieldSchema).min(1),
+});
+export type MiniDescriptor = z.infer<typeof MiniDescriptorSchema>;
+
+export const MiniRecordSchema = z.object({
+  id: z.string(),
+  values: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}),
+});
+export type MiniRecord = z.infer<typeof MiniRecordSchema>;
+
+export const MiniBodySchema = z.object({
+  descriptor: MiniDescriptorSchema,
+  records: z.array(MiniRecordSchema).default([]),
+});
+export type MiniBody = z.infer<typeof MiniBodySchema>;
+
+export const MiniDocSchema = z.object({
+  ...docCommon,
+  kind: z.literal("mini"),
+  body: MiniBodySchema,
+});
+
 export const DocSchema = z.discriminatedUnion("kind", [
   TextDocSchema,
   CanvasDocSchema,
@@ -673,6 +790,8 @@ export const DocSchema = z.discriminatedUnion("kind", [
   PdfDocSchema,
   SheetDocSchema,
   DatabaseDocSchema,
+  MediaDocSchema,
+  MiniDocSchema,
 ]);
 
 export type TextDoc = z.infer<typeof TextDocSchema>;
@@ -681,6 +800,8 @@ export type DeckDoc = z.infer<typeof DeckDocSchema>;
 export type PdfDoc = z.infer<typeof PdfDocSchema>;
 export type SheetDoc = z.infer<typeof SheetDocSchema>;
 export type DatabaseDoc = z.infer<typeof DatabaseDocSchema>;
+export type MediaDoc = z.infer<typeof MediaDocSchema>;
+export type MiniDoc = z.infer<typeof MiniDocSchema>;
 export type Doc = z.infer<typeof DocSchema>;
 
 /** `DocOf<'deck'>` -> `DeckDoc`. Used to keep the op layer generic but exact. */

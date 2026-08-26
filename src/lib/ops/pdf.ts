@@ -1,6 +1,13 @@
 import { z } from "zod";
-import { type PdfBody, AnnotationSchema, AnnotationTypeSchema, NormalizedRectSchema } from "@/lib/docs/schema";
-import { newAnnotationId } from "@/lib/docs/ids";
+import {
+  type PdfBody,
+  AnnotationSchema,
+  AnnotationTypeSchema,
+  EvidenceRefSchema,
+  NormalizedRectSchema,
+  PageCitationSchema,
+} from "@/lib/docs/schema";
+import { newAnnotationId, newCitationId, newEvidenceId } from "@/lib/docs/ids";
 import { OpError } from "./errors";
 
 /**
@@ -54,6 +61,28 @@ export const PdfOpSchema = z.discriminatedUnion("op", [
       pageCount: z.number().int().min(0),
     })
     .describe("Attach PDF bytes to this document"),
+  z
+    .object({
+      op: z.literal("addEvidence"),
+      evidence: EvidenceRefSchema.partial({ id: true }).required({
+        source: true,
+        relation: true,
+        capturedBy: true,
+      }),
+    })
+    .describe("Attach an evidence reference to a page span or annotation"),
+  z
+    .object({ op: z.literal("deleteEvidence"), id: z.string() })
+    .describe("Remove an evidence reference"),
+  z
+    .object({
+      op: z.literal("addCitation"),
+      citation: PageCitationSchema.partial({ id: true }).required({ page: true }),
+    })
+    .describe("Record a page citation other surfaces can reference"),
+  z
+    .object({ op: z.literal("deleteCitation"), id: z.string() })
+    .describe("Remove a page citation"),
 ]);
 
 export type PdfOp = z.infer<typeof PdfOpSchema>;
@@ -64,6 +93,8 @@ export function applyPdfOps(body: PdfBody, ops: PdfOp[]): { body: PdfBody; inver
   let blobId = body.blobId;
   let fileName = body.fileName;
   let pageCount = body.pageCount;
+  const evidence = body.evidence.slice();
+  const citations = body.citations.slice();
   const inverse: PdfOp[] = [];
 
   for (const op of ops) {
@@ -144,11 +175,61 @@ export function applyPdfOps(body: PdfBody, ops: PdfOp[]): { body: PdfBody; inver
         pageCount = op.pageCount;
         break;
       }
+
+      case "addEvidence": {
+        const parsed = EvidenceRefSchema.safeParse({
+          id: op.evidence.id ?? newEvidenceId(),
+          ...op.evidence,
+        });
+        if (!parsed.success) throw new OpError(`addEvidence: ${formatIssues(parsed.error)}`);
+        if (evidence.some((item) => item.id === parsed.data.id)) {
+          throw new OpError(`addEvidence: evidence "${parsed.data.id}" already exists`);
+        }
+        evidence.push(parsed.data);
+        inverse.push({ op: "deleteEvidence", id: parsed.data.id });
+        break;
+      }
+
+      case "deleteEvidence": {
+        const i = evidence.findIndex((item) => item.id === op.id);
+        if (i === -1) throw new OpError(`deleteEvidence: no evidence "${op.id}"`);
+        const [removed] = evidence.splice(i, 1);
+        inverse.push({ op: "addEvidence", evidence: removed });
+        break;
+      }
+
+      case "addCitation": {
+        const parsed = PageCitationSchema.safeParse({
+          id: op.citation.id ?? newCitationId(),
+          ...op.citation,
+          quote: op.citation.quote ?? "",
+        });
+        if (!parsed.success) throw new OpError(`addCitation: ${formatIssues(parsed.error)}`);
+        if (citations.some((item) => item.id === parsed.data.id)) {
+          throw new OpError(`addCitation: citation "${parsed.data.id}" already exists`);
+        }
+        citations.push(parsed.data);
+        inverse.push({ op: "deleteCitation", id: parsed.data.id });
+        break;
+      }
+
+      case "deleteCitation": {
+        const i = citations.findIndex((item) => item.id === op.id);
+        if (i === -1) throw new OpError(`deleteCitation: no citation "${op.id}"`);
+        const [removed] = citations.splice(i, 1);
+        inverse.push({ op: "addCitation", citation: removed });
+        break;
+      }
+
+      default: {
+        const _exhaustive: never = op;
+        throw new OpError(`unknown pdf op: ${JSON.stringify(_exhaustive)}`);
+      }
     }
   }
 
   return {
-    body: { blobId, fileName, pageCount, annotations, pageText },
+    body: { blobId, fileName, pageCount, annotations, pageText, evidence, citations },
     inverse: inverse.reverse(),
   };
 }

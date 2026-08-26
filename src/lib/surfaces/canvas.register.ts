@@ -5,6 +5,7 @@ import { createCanvasDoc } from "@/lib/docs/factories";
 import { OPS_FENCE } from "@/lib/ai/ops-block";
 import type { SurfaceSelection } from "@/lib/store/workspace";
 import type { MockRequest } from "@/lib/ai/mock";
+import { createCanvasAdapter } from "@/lib/canvas/drawing-adapter";
 import { registerSurface } from "./registry";
 
 function serializeCanvas(doc: CanvasDoc): string {
@@ -151,6 +152,7 @@ registerSurface({
     notes: "Garden-owned scene graph. Optional Konva later (#41) must mount as an adapter, not as the document model.",
     relatedIssue: 41,
   },
+  createAdapter: createCanvasAdapter,
   loadComponent: () => import("@/surfaces/canvas/canvas-surface"),
 });
 

@@ -18,6 +18,8 @@ import { Button, IconButton, Menu, MenuItem, MenuLabel, Textarea, cx } from "@/c
 import { SlideView } from "./slide-view";
 import { Presenter } from "./presenter";
 import { ElementInspector } from "./element-inspector";
+import { downloadBlob } from "@/lib/store/bundle";
+import { downloadablePptxName, exportDeckPptxBytes } from "@/lib/deck/export-pptx";
 
 const MIN_ELEMENT = 24;
 
@@ -294,6 +296,25 @@ export default function DeckSurface({
           <Button size="sm" variant="default" onClick={() => setPresenting(true)} disabled={!slide}>
             <Play size={13} />
             Present
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!slide}
+            onClick={() => {
+              void exportDeckPptxBytes(doc).then((bytes) => {
+                const copy = new Uint8Array(bytes.byteLength);
+                copy.set(bytes);
+                downloadBlob(
+                  new Blob([copy.buffer], {
+                    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                  }),
+                  downloadablePptxName(doc.title),
+                );
+              });
+            }}
+          >
+            Export PPTX
           </Button>
         </div>
 

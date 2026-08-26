@@ -1,6 +1,6 @@
 import type { SeedPacket } from "./types";
 import { textFromMarkdown } from "./build";
-import { createCanvasDoc, makeCanvasNode } from "@/lib/docs/factories";
+import { createCanvasDoc, createMediaDoc, makeCanvasNode } from "@/lib/docs/factories";
 
 const LOG = `# Field log
 
@@ -178,12 +178,18 @@ function siteSketchDoc() {
 
 export const fieldNotesPacket: SeedPacket = {
   id: "garden/field-notes",
-  version: 1,
+  version: 2,
   label: "Field notes",
   blurb: "A visit log that keeps observation apart from interpretation, a site sketch, and a debrief.",
   starterArtifacts: [
     { localId: "log", kind: "text", title: "Field log", build: () => textFromMarkdown("Field log", LOG) },
     { localId: "sketch", kind: "canvas", title: "Site sketch", build: siteSketchDoc },
+    {
+      localId: "board",
+      kind: "media",
+      title: "Field media",
+      build: () => createMediaDoc("Field media"),
+    },
     { localId: "debrief", kind: "text", title: "Debrief", build: () => textFromMarkdown("Debrief", DEBRIEF) },
   ],
   layout: {

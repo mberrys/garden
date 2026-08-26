@@ -14,6 +14,8 @@ import { ProviderBadge } from "./ai/provider-badge";
 import { Divider, IconButton } from "./ui";
 import { getSurface } from "@/lib/surfaces";
 import { WindowChromeStrip } from "./window-chrome";
+import { listFlavors } from "@/lib/flavors";
+import { PlanPreviewBanner } from "./plan-preview";
 
 export default function Workspace() {
   useThemeMode();
@@ -57,6 +59,7 @@ export default function Workspace() {
       </main>
       {aiPanelOpen && <AiPanel onClose={() => setAiPanelOpen(false)} />}
       <Toasts />
+      <PlanPreviewBanner />
     </div>
   );
 }
@@ -66,12 +69,12 @@ function TopBar() {
   const doc = useWorkspace((s) => (activeDocId ? s.docs[activeDocId] : null));
   const undo = useWorkspace((s) => s.undo);
   const redo = useWorkspace((s) => s.redo);
-  const history = useWorkspace((s) => (activeDocId ? s.history[activeDocId] : undefined));
+  const canUndo = useWorkspace((s) => (activeDocId ? s.canUndo(activeDocId) : s.txUndo.length > 0));
+  const canRedo = useWorkspace((s) => (activeDocId ? s.canRedo(activeDocId) : s.txRedo.length > 0));
   const aiPanelOpen = useWorkspace((s) => s.aiPanelOpen);
   const setAiPanelOpen = useWorkspace((s) => s.setAiPanelOpen);
-
-  const canUndo = (history?.undo.length ?? 0) > 0;
-  const canRedo = (history?.redo.length ?? 0) > 0;
+  const flavorId = useWorkspace((s) => s.flavorId);
+  const setFlavor = useWorkspace((s) => s.setFlavor);
 
   return (
     <WindowChromeStrip as="header" className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-raised px-3">
@@ -88,29 +91,37 @@ function TopBar() {
         )}
       </div>
 
-      {doc && (
-        <>
-          <IconButton
-            label="Undo"
-            size="sm"
-            disabled={!canUndo}
-            onClick={() => activeDocId && undo(activeDocId)}
-          >
-            <Undo2 size={15} />
-          </IconButton>
-          <IconButton
-            label="Redo"
-            size="sm"
-            disabled={!canRedo}
-            onClick={() => activeDocId && redo(activeDocId)}
-          >
-            <Redo2 size={15} />
-          </IconButton>
-          <Divider vertical />
-        </>
-      )}
+      <IconButton
+        label="Undo"
+        size="sm"
+        disabled={!canUndo}
+        onClick={() => undo(activeDocId ?? "")}
+      >
+        <Undo2 size={15} />
+      </IconButton>
+      <IconButton
+        label="Redo"
+        size="sm"
+        disabled={!canRedo}
+        onClick={() => redo(activeDocId ?? "")}
+      >
+        <Redo2 size={15} />
+      </IconButton>
+      <Divider vertical />
 
       <ProviderBadge />
+      <select
+        aria-label="Flavor"
+        className="h-7 rounded-md border border-line bg-raised px-1.5 text-[11px] text-muted"
+        value={flavorId ?? "default"}
+        onChange={(e) => setFlavor(e.target.value === "default" ? null : e.target.value)}
+      >
+        {listFlavors().map((flavor) => (
+          <option key={flavor.id} value={flavor.id}>
+            {flavor.label}
+          </option>
+        ))}
+      </select>
       <ThemeToggle />
       <IconButton
         label={aiPanelOpen ? "Hide AI panel" : "Show AI panel"}
@@ -165,7 +176,7 @@ function useGlobalShortcuts() {
       }
 
       if (!docId || !doc) return;
-      // Allow undo/redo while the markdown textarea is focused; other surfaces
+      // Allow undo/redo while the Writer is focused; other surfaces
       // still ignore shortcuts when a generic input has focus.
       if (doc.kind !== "text" && isTypingTarget(e.target)) return;
 

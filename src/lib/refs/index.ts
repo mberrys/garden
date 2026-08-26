@@ -1,0 +1,28 @@
+export {
+  ANCHOR_KINDS,
+  AnchorKindSchema,
+  AnchorRefSchema,
+  CAPTURE_SOURCES,
+  CaptureSourceSchema,
+  EVIDENCE_RELATIONS,
+  EvidenceRefSchema,
+  EvidenceRelationSchema,
+  ExternalRefSchema,
+  GardenRefSchema,
+  gardenRef,
+  isExternalRef,
+  isGardenRef,
+  type AnchorKind,
+  type AnchorRef,
+  type CaptureSource,
+  type EvidenceRef,
+  type EvidenceRelation,
+  type ExternalRef,
+  type GardenRef,
+} from "./schema";
+export {
+  resolveGardenRef,
+  upgradeLegacyGardenRef,
+  type RefStatus,
+  type ResolvedGardenRef,
+} from "./resolve";

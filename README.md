@@ -102,8 +102,10 @@ workspaces.
 | Welcome | `garden/welcome` | intro document, edit-flow canvas, starter deck |
 | History seminar | `garden/history-seminar` | syllabus, source notes, timeline, lecture deck |
 | Grant shop | `garden/grant-shop` | opportunity brief, proposal, workplan, pitch deck |
-| Field notes | `garden/field-notes` | visit log, site sketch, debrief |
-| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitches, coverage, results deck |
+| Field notes | `garden/field-notes` | visit log, site sketch, field media, debrief |
+| Experiment report | `data/experiment-report` | study notes, experiments, run refs, findings, metrics sheet, analysis |
+| Matter | `legal/matter` | matter notes, authorities (external reporters), issues, draft |
+| Campaign | `comms/campaign` | brief, message house, contacts, story pipeline, pitch calendar, coverage, results deck |
 
 You can also start blank and plant a packet later from the sidebar. Which packet
 sprouted the workspace (and its version) is stored in local metadata and
@@ -114,38 +116,69 @@ listing exact artifacts, bases, views, and links before planting.
 
 ## The surfaces
 
-**Document** — markdown source editor. The stored body remains ProseMirror JSON so
-AI ops and cross-surface recipes stay typed; typing commits coalesced edits onto
-the shared workspace undo stack (including accepted AI suggestions).
+**Document** — ProseMirror rich-text editor behind Garden's existing PM JSON
+body. Typing, IME, and clipboard go through ProseMirror transactions mapped to
+Garden ops; workspace undo is the only history. Markdown remains the import,
+export, and AI interchange path. Writer also imports and exports a heading /
+paragraph / list subset of DOCX and ODT. Writer is semantic editing. A PDF is
+not a Writer document; it stays a separate evidence surface.
 
 **Canvas** — a custom engine, not an embedded one, so the scene is plain JSON the
 model can read and write directly. Infinite pan/zoom with a snapping grid,
 rectangles/ellipses/diamonds/text/frames, freehand ink and a highlighter, and
 connectors that bind to shape anchors and re-route as shapes move. Marquee select,
-multi-select, nudge, align and restack.
+multi-select, nudge, align and restack. Excalidraw is a useful reference for
+whiteboard interaction. It is not a Garden dependency and must not be embedded
+as the canvas.
 
 **Deck** — slide rail, a 1280×720 stage with drag/resize elements, seven layouts,
-speaker notes, and a presenter mode that runs inside the pane, so you can present
-in one half while the source stays visible in the other.
+speaker notes, presenter mode, PPTX export via PptxGenJS, and PPTX/ODP import
+of text, basic shapes, images, notes, and positions (not Univer Slides).
 
-**PDF** — pdf.js rendering with a real selectable text layer and page
-virtualisation, an annotation overlay (highlight, underline, strikeout, box, note)
-stored in normalised page coordinates so it survives zooming, per-page text
-extraction that feeds the assistant, and export that flattens annotations into a
-copy of the original file.
+**PDF** — evidence and fixed layout, not semantic editing. pdf.js rendering with
+a real selectable text layer and page virtualisation, an annotation overlay
+(highlight, underline, strikeout, box, note) stored in normalised page
+coordinates so it survives zooming, per-page text extraction that feeds the
+assistant, page citations and evidence refs, an OCR provider hook (no bundled
+engine), and export that flattens annotations into a copy of the original file.
+Writer is where you rewrite prose. PDF is where you cite a page.
 
 **Sheet** — a grid of cells addressed by A1 references, with a formula bar and a
 small formula engine (`SUM`, `AVERAGE`, `MIN`, `MAX`, `COUNT`, `IF`, `ROUND`,
 `ABS`, `CONCAT`, arithmetic and ranges). Formulas are computed at render time,
 never stored, so every cell edit stays exactly invertible. Bold/italic/align/
-number-format styling, and grid resizing.
+number-format styling, and grid resizing. XLSX import/export uses ExcelJS; ODS
+uses a first-party ODF subset (not SheetJS commercial, not Univer Pro). The 1.0
+engine spike keeps this Garden-native grid rather than Univer/IronCalc. Sheets
+calculate. They are not the database.
 
-**Database** — typed fields, rows, grid and kanban views, relation links to
-other bases in the workspace, and `garden_ref` / `external_ref` cells for
-cross-surface provenance. AI row and schema batches go through the same
-review gate as other surfaces. This is the structured-work layer — lighter
-than Airtable or Notion, local-first, and composed by seed packets rather than
-blank grids. Sheets stay as the formula grid; they are not replaced.
+**Database** — records, views, and relations: a light local tracker, not Airtable
+or Notion, and not a spreadsheet. Typed fields, rows, grid, kanban, and calendar
+views, filters, relation links, and shared `GardenRef` / `ExternalRef` cells.
+The campaign packet seeds a pitch Schedule calendar. TanStack Table and
+Virtual draw the grid for 1–5k local rows. They are UI infrastructure. Garden
+JSON is the document. Bases are not Sheets.
+
+**Media** — a board of image/file assets with captions, tags, groups, and
+document links. Distinct from Drawing.
+
+**Mini-tool** — constrained prompt-to-surface templates (card-grid, table,
+timeline). Proposed as a reviewable workspace transaction; never generated React.
+
+### Office interchange (documented subsets)
+
+Drop or pick `.docx`, `.odt`, `.xlsx`, `.ods`, `.pptx`, or `.odp` to import into
+the matching Garden surface. Canonical state stays Garden JSON; fidelity
+warnings toast the first few `message`s. Details: [docs/interchange.md](docs/interchange.md).
+
+| Surface | Import | Export | Subset / known lossiness |
+| --- | --- | --- | --- |
+| Document | DOCX (Mammoth), ODT | DOCX, ODT | Headings, paragraphs, lists. No styles, tables, comments, tracked changes |
+| Sheet | XLSX (ExcelJS), ODS | XLSX, ODS | First sheet; values, formulas, bold/italic/align. No macros, pivots, charts, VBA |
+| Deck | PPTX, ODP | PPTX (PptxGenJS) | Text, basic shapes, images, notes, positions. No SmartArt, animations, video, charts, groups, macros |
+
+This is not Word / Excel / PowerPoint parity. Unsupported constructs emit
+warnings and are dropped.
 
 ### Cross-surface recipes
 
@@ -193,7 +226,8 @@ Because browser storage can be cleared, **Export** writes the whole workspace to
 `.gardenspace` file (documents plus embedded PDFs and images, and which seed packet
 sprouted it) that **Import** restores.
 Individual documents can be exported the same way from the sidebar menu. Drop a
-`.pdf`, `.md`, `.txt` or `.gardenspace` anywhere in the window to import it.
+`.pdf`, `.md`, `.txt`, `.docx`, `.odt`, `.xlsx`, `.ods`, `.pptx`, `.odp`, or
+`.gardenspace` anywhere in the window to import it.
 
 ---
 
@@ -211,6 +245,10 @@ npm run test:e2e   # playwright — all six surfaces, against the mock provider
 Run `npm run build` before `npm run test:e2e`; the suite starts the production
 server. It forces the scripted provider, so it never depends on a model being
 installed.
+
+GitHub Actions runs that same gate on pulls and on pushes to `main`
+(`.github/workflows/ci.yml`): typecheck, lint, vitest, production build, then
+Playwright against the mock provider.
 
 ### How it fits together
 

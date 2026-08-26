@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { newDocument, openEmptyWorkspace, openSeededWorkspace, samplePdfPath } from "./fixtures";
+import { newDocument, openEmptyWorkspace, openSeededWorkspace, sampleOfficePath, samplePdfPath } from "./fixtures";
 
 /**
  * End-to-end coverage of each surface's core interaction, run against the
@@ -14,7 +14,10 @@ test("empty workspace offers a seed packet picker", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Plant History seminar" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Grant shop" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Field notes" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Experiment report" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plant Matter" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Plant Campaign" })).toBeVisible();
+  await expect(page.getByLabel("Flavor")).toBeVisible();
 });
 
 test("seeds a starter workspace from the welcome packet", async ({ page }) => {
@@ -22,22 +25,24 @@ test("seeds a starter workspace from the welcome packet", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Welcome to garden");
   await expect(sidebar).toContainText("How an edit flows");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/seed packets/);
+  await expect(page.locator(".garden-markdown")).toContainText(/seed packets/);
   await expect(page.locator('canvas[aria-label="Drawing canvas"]')).toBeVisible();
 });
 
 test("text: typing persists across a reload", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".garden-markdown");
+  const editor = page.locator(".garden-markdown");
+  await expect(editor).toHaveAttribute("contenteditable", "true");
+  await editor.click();
   await page.keyboard.type("Persistence check.");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
+  await expect(editor).toContainText(/Persistence check\./);
 
   // Give the debounced write-behind time to reach IndexedDB.
   await page.waitForTimeout(1200);
   await page.reload();
-  await page.waitForSelector(".garden-markdown");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Persistence check\./);
+  await page.waitForSelector(".garden-markdown[contenteditable='true']");
+  await expect(page.locator(".garden-markdown")).toContainText(/Persistence check\./);
 });
 
 test("canvas: drawing a shape and a stroke, then undo", async ({ page }) => {
@@ -92,6 +97,16 @@ test("deck: adding a slide, then presenting and exiting", async ({ page }) => {
   await expect(page.locator('button:has-text("Present")')).toBeVisible();
 });
 
+test("deck: export pptx downloads a presentation package", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Deck");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export PPTX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.pptx$/);
+});
+
 test("sheet: entering a value and a formula, then undo", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Sheet");
@@ -137,8 +152,14 @@ test("campaign packet sprouts databases and a brief", async ({ page }) => {
   const sidebar = page.locator("aside").first();
   await expect(sidebar).toContainText("Campaign Brief");
   await expect(sidebar).toContainText("Story Angles");
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Campaign brief/);
+  await expect(sidebar).toContainText("Pitch Interactions");
+  await expect(page.locator(".garden-markdown")).toContainText(/Campaign brief/);
   await expect(page.getByText("Local-first workplace")).toBeVisible();
+
+  await sidebar.getByText("Pitch Interactions").click();
+  await expect(page.getByRole("button", { name: "Schedule" })).toBeVisible();
+  await expect(page.getByText("September 2026")).toBeVisible();
+  await expect(page.getByText(/Pitched local-first angle to Nina/)).toBeVisible();
 });
 
 test("pdf: rendering, annotating, and capturing the quoted text", async ({ page }) => {
@@ -170,4 +191,45 @@ test("pdf: rendering, annotating, and capturing the quoted text", async ({ page 
   await expect(
     page.getByRole("button", { name: /p1 · highlight/i }),
   ).toContainText("The migration completed");
+});
+
+test("media: empty board is a distinct surface", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Media");
+  await expect(page.getByText("0 assets")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add images" })).toBeVisible();
+});
+
+test("flavor lens is a view preference, not a content fork", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  await page.selectOption('select[aria-label="Flavor"]', "data");
+  await expect(page.locator('select[aria-label="Flavor"]')).toHaveValue("data");
+  await expect(page.locator(".garden-markdown[contenteditable='true']")).toBeVisible();
+});
+
+test("writer: dropping a DOCX fixture shows the heading", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await page.setInputFiles('input[type="file"]', sampleOfficePath("docx", "hello"));
+  await expect(page.locator(".garden-markdown")).toContainText(/Hello Garden/, { timeout: 30_000 });
+});
+
+test("writer: export docx downloads a package", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export DOCX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.docx$/);
+});
+
+test("sheet: export xlsx downloads a workbook", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Sheet");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Export XLSX" }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
 });

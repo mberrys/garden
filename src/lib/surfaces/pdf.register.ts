@@ -113,6 +113,14 @@ function describePdfOp(op: Record<string, unknown>): string | undefined {
       return `Record extracted text for page ${op.page}`;
     case "setSource":
       return `Attach ${op.fileName || "PDF"} (${op.pageCount} pages)`;
+    case "addEvidence":
+      return "Add evidence reference";
+    case "deleteEvidence":
+      return `Delete evidence ${op.id}`;
+    case "addCitation":
+      return `Cite page ${(op.citation as { page?: number } | undefined)?.page ?? ""}`;
+    case "deleteCitation":
+      return `Delete citation ${op.id}`;
     default:
       return undefined;
   }

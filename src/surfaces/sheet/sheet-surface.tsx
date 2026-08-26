@@ -8,6 +8,8 @@ import { evaluateSheet, type CellResult } from "@/lib/sheet/formula";
 import { indexToCol, parseRef, toRef } from "@/lib/sheet/refs";
 import { useWorkspace, type PaneIndex } from "@/lib/store/workspace";
 import { Divider, IconButton, Input, ToolbarGroup, cx } from "@/components/ui";
+import { downloadBytes, downloadableName } from "@/lib/store/bundle";
+import { exportOffice } from "@/lib/interchange";
 
 const ROW_HEADER_W = 44;
 const COL_W = 108;
@@ -174,6 +176,23 @@ export default function SheetSurface({
   const addRow = useCallback(() => apply([{ op: "resize", rows: rows + 1 }], "Add row"), [apply, rows]);
   const addCol = useCallback(() => apply([{ op: "resize", cols: cols + 1 }], "Add column"), [apply, cols]);
 
+  const exportFormat = useCallback(
+    (format: "xlsx" | "ods") => {
+      void exportOffice(doc, format)
+        .then(({ bytes }) => {
+          const mime =
+            format === "xlsx"
+              ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              : "application/vnd.oasis.opendocument.spreadsheet";
+          downloadBytes(bytes, downloadableName(doc.title, format), mime);
+        })
+        .catch((err: unknown) => {
+          toast("error", err instanceof Error ? err.message : `Could not export ${format.toUpperCase()}.`);
+        });
+    },
+    [doc, toast],
+  );
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line bg-raised px-3 py-1.5">
@@ -249,6 +268,22 @@ export default function SheetSurface({
         />
 
         <span className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Export XLSX"
+            className="h-6 rounded px-1.5 text-[11px] font-semibold text-muted hover:bg-hover hover:text-ink"
+            onClick={() => exportFormat("xlsx")}
+          >
+            Export XLSX
+          </button>
+          <button
+            type="button"
+            aria-label="Export ODS"
+            className="h-6 rounded px-1.5 text-[11px] font-semibold text-muted hover:bg-hover hover:text-ink"
+            onClick={() => exportFormat("ods")}
+          >
+            Export ODS
+          </button>
           <IconButton label="Add row" size="sm" onClick={addRow}>
             <Plus size={13} />
           </IconButton>

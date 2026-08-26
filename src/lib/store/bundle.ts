@@ -7,6 +7,7 @@ import { createPdfDoc, createTextDoc } from "@/lib/docs/factories";
 import { markdownToDoc } from "@/lib/text/markdown";
 import { applyOps } from "@/lib/ops";
 import { getSurface } from "@/lib/surfaces/registry";
+import { formatFidelityToast, formatForFilename, importOfficeFile } from "@/lib/interchange";
 import * as db from "./db";
 import { flushPendingSaves, storeBlob, useWorkspace } from "./workspace";
 
@@ -238,12 +239,47 @@ export async function importFile(file: File): Promise<string | null> {
     return store.addDoc({ ...doc, body: markdownToDoc(text) });
   }
 
-  throw new Error(`Cannot import "${file.name}" — supported: .pdf, .md, .txt, ${BUNDLE_EXTENSION}`);
+  if (formatForFilename(file.name)) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const result = await importOfficeFile(bytes, file.name);
+    const blobIdMap = new Map<string, string>();
+    for (const blob of result.blobs ?? []) {
+      const copy = new Uint8Array(blob.bytes.byteLength);
+      copy.set(blob.bytes);
+      const storedId = await storeBlob(new Blob([copy], { type: blob.mime }), blob.name, blob.mime);
+      blobIdMap.set(blob.id, storedId);
+    }
+    const docs = result.docs as Doc[];
+    let firstId: string | null = null;
+    for (const raw of docs) {
+      const id = store.addDoc(remapBlobIds(raw, blobIdMap));
+      firstId ??= id;
+    }
+    const lines = formatFidelityToast(result.warnings);
+    if (lines.length) store.toast("info", lines.join(" · "));
+    return firstId;
+  }
+
+  throw new Error(
+    `Cannot import "${file.name}" — supported: .pdf, .md, .txt, .docx, .odt, .pptx, .odp, .xlsx, .ods, ${BUNDLE_EXTENSION}`,
+  );
 }
 
 /* ------------------------------------------------------------------ *
  * Download helpers
  * ------------------------------------------------------------------ */
+
+export function downloadBytes(bytes: Uint8Array, filename: string, mime: string): void {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  downloadBlob(new Blob([copy], { type: mime }), filename);
+}
+
+export function downloadableName(title: string, extension: string): string {
+  const safe = title.replace(/[^\w\-. ]+/g, "").trim() || "document";
+  const ext = extension.startsWith(".") ? extension : `.${extension}`;
+  return `${safe}${ext}`;
+}
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

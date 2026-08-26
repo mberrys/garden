@@ -5,6 +5,10 @@ import type { Page } from "@playwright/test";
 
 export const FIXTURE_DIR = join(process.cwd(), "test-results", "fixtures");
 
+export function sampleOfficePath(format: "docx" | "xlsx", id: string): string {
+  return join(process.cwd(), "fixtures/interchange", format, id, `input.${format}`);
+}
+
 /**
  * Builds the sample PDF the suite reads and annotates. Generated rather than
  * committed so the repository carries no binary fixture, and so the text is
@@ -73,12 +77,12 @@ export async function openSeededWorkspace(page: Page): Promise<void> {
   await page.goto("/");
   await page.waitForSelector('button[aria-label="Plant Welcome"]', { timeout: 30_000 });
   await page.getByRole("button", { name: "Plant Welcome" }).click();
-  await page.locator(".garden-markdown").waitFor({ timeout: 30_000 });
+  await page.locator(".garden-markdown[contenteditable='true']").waitFor({ timeout: 30_000 });
 }
 
 export async function newDocument(
   page: Page,
-  kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet" | "Database",
+  kind: "Document" | "Canvas" | "Deck" | "PDF" | "Sheet" | "Database" | "Media" | "Mini-tool",
 ) {
   await page.click('button[aria-label="New document"]');
   await page.click(`[role="menuitem"]:has-text("${kind}")`);

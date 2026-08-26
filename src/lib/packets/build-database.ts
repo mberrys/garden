@@ -46,6 +46,16 @@ export function databaseFromSeed(
         hiddenFieldIds: view.hiddenFieldIds ?? [],
         sortFieldId: view.sortFieldId ?? null,
         sortDirection: view.sortDirection ?? "asc",
+        filters: [],
+      };
+    }
+    if (view.type === "calendar") {
+      return {
+        id: view.id,
+        name: view.name,
+        type: "calendar",
+        dateFieldId: view.dateFieldId,
+        filters: [],
       };
     }
     return {
@@ -53,6 +63,7 @@ export function databaseFromSeed(
       name: view.name,
       type: "kanban",
       groupFieldId: view.groupFieldId,
+      filters: [],
     };
   });
 
@@ -116,6 +127,7 @@ export function applyLinkSeeds(
       const documentId = localToId.get(link.targetLocalId);
       if (!documentId) continue;
       row.cells[link.fieldId] = {
+        version: 1,
         documentId,
         objectId: link.objectId,
       };

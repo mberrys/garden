@@ -4,6 +4,8 @@ import {
   createCanvasDoc,
   createDatabaseDoc,
   createDeckDoc,
+  createMediaDoc,
+  createMiniDoc,
   createPdfDoc,
   createSheetDoc,
   createTextDoc,
@@ -365,6 +367,56 @@ describe("database ops", () => {
   });
 });
 
+describe("media ops", () => {
+  it("round-trips add, caption, tag, group, and delete", () => {
+    let doc = createMediaDoc("Board");
+    const forward = expectRoundTrip<"media">(doc, [
+      { op: "addAsset", asset: { id: "asset_a", name: "site.jpg", caption: "", tags: [] } },
+    ]);
+    doc = forward.doc;
+    expectRoundTrip<"media">(doc, [{ op: "setCaption", id: "asset_a", caption: "East entrance" }]);
+    expectRoundTrip<"media">(doc, [{ op: "setTags", id: "asset_a", tags: ["site"] }]);
+    expectRoundTrip<"media">(doc, [{ op: "addGroup", group: { id: "grp_a", name: "Key" } }]);
+    expectRoundTrip<"media">(doc, [{ op: "deleteAsset", id: "asset_a" }]);
+  });
+});
+
+describe("mini ops", () => {
+  it("round-trips descriptor and records", () => {
+    const doc = createMiniDoc("Tool");
+    const fieldId = doc.body.descriptor.fields[0].id;
+    const forward = expectRoundTrip<"mini">(doc, [
+      { op: "addRecord", record: { id: "rec_a", values: { [fieldId]: "Ada" } } },
+    ]);
+    expectRoundTrip<"mini">(forward.doc, [
+      { op: "setField", recordId: "rec_a", fieldId, value: "Bea" },
+    ]);
+  });
+});
+
+describe("pdf evidence", () => {
+  it("round-trips citations and evidence refs", () => {
+    const doc = createPdfDoc("Paper");
+    expectRoundTrip<"pdf">(doc, [
+      {
+        op: "addCitation",
+        citation: { id: "cite_a", page: 1, quote: "latency fell" },
+      },
+    ]);
+    expectRoundTrip<"pdf">(doc, [
+      {
+        op: "addEvidence",
+        evidence: {
+          id: "ev_a",
+          source: { version: 1, documentId: doc.id, anchor: { kind: "pdf-text", page: 1, start: 0, end: 12 } },
+          relation: "supports",
+          capturedBy: "human",
+        },
+      },
+    ]);
+  });
+});
+
 describe("parseOps", () => {
   it("accepts a well-formed model batch", () => {
     const result = parseOps("canvas", [
@@ -413,6 +465,9 @@ describe("describeOperation", () => {
       { op: "addRow", row: { cells: { fld_a: "x" } } },
       { op: "setCell", rowId: "row_a", fieldId: "fld_a", value: "y" },
       { op: "setActiveView", id: "vw_a" },
+      { op: "addAsset", asset: { name: "figure.png" } },
+      { op: "addRecord", record: { values: { fld_a: "x" } } },
+      { op: "addEvidence", evidence: { source: { version: 1, documentId: "doc_a" }, relation: "supports", capturedBy: "human" } },
     ];
     for (const op of samples) {
       const text = describeOperation(op);

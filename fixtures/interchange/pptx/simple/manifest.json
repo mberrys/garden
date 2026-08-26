@@ -1,0 +1,12 @@
+{
+  "id": "simple",
+  "format": "pptx",
+  "status": "run",
+  "expectedKind": "deck",
+  "expectedContains": [
+    "Garden Title",
+    "Garden body copy",
+    "Speaker notes here"
+  ],
+  "roundTrip": true
+}

@@ -15,25 +15,29 @@ test("the header says plainly that replies are scripted", async ({ page }) => {
 test("a suggestion is previewed, and discarding leaves the document untouched", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".garden-markdown");
+  const editor = page.locator(".garden-markdown");
+  await expect(editor).toHaveAttribute("contenteditable", "true");
+  await editor.click();
   await page.keyboard.type("An original sentence.");
 
   await page.click('button:has-text("Add an outline")');
   await expect(page.getByText("proposed change", { exact: false })).toBeVisible({ timeout: 30_000 });
 
   // Nothing may have changed yet.
-  await expect(page.locator(".garden-markdown")).not.toHaveValue(/Outline/);
+  await expect(editor).not.toContainText("Outline");
 
   await page.click('button:has-text("Discard")');
   await expect(page.getByText("Discarded")).toBeVisible();
-  await expect(page.locator(".garden-markdown")).not.toHaveValue(/Outline/);
-  await expect(page.locator(".garden-markdown")).toHaveValue(/An original sentence\./);
+  await expect(editor).not.toContainText("Outline");
+  await expect(editor).toContainText("An original sentence.");
 });
 
 test("accepting applies the change, and ctrl+Z undoes it", async ({ page }) => {
   await openEmptyWorkspace(page);
   await newDocument(page, "Document");
-  await page.click(".garden-markdown");
+  const editor = page.locator(".garden-markdown");
+  await expect(editor).toHaveAttribute("contenteditable", "true");
+  await editor.click();
   await page.keyboard.type("An original sentence.");
 
   await page.click('button:has-text("Add an outline")');
@@ -41,13 +45,13 @@ test("accepting applies the change, and ctrl+Z undoes it", async ({ page }) => {
   await page.click('button:has-text("Apply")');
 
   await expect(page.getByText("Applied 1 change", { exact: true })).toBeVisible();
-  await expect(page.locator(".garden-markdown")).toHaveValue(/Outline/);
+  await expect(editor).toContainText("Outline");
 
   // An AI edit undoes like any other edit.
-  await page.click(".garden-markdown");
+  await editor.click();
   await page.keyboard.press("Control+z");
-  await expect(page.locator(".garden-markdown")).not.toHaveValue(/Outline/);
-  await expect(page.locator(".garden-markdown")).toHaveValue(/An original sentence\./);
+  await expect(editor).not.toContainText("Outline");
+  await expect(editor).toContainText("An original sentence.");
 });
 
 test("a canvas suggestion adds shapes and connectors", async ({ page }) => {
@@ -111,4 +115,29 @@ test("a PDF builds a deck into the second pane", async ({ page }) => {
 
   // The deck pane now holds the generated slides.
   await expect(page.getByText(/^1 \/ [2-9]\d*$/)).toBeVisible();
+});
+
+test("prompt-to-surface discard leaves no mini-tool; accept plants one", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  await page.getByRole("button", { name: "Propose a mini-tool" }).click();
+  await expect(page.getByText("Propose mini-tool:")).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await expect(page.locator("aside").first()).not.toContainText("Proposed mini-tool");
+
+  await page.getByRole("button", { name: "Propose a mini-tool" }).click();
+  await page.getByRole("button", { name: "Apply transaction" }).click();
+  await expect(page.locator("aside").first()).toContainText("Proposed mini-tool");
+});
+
+test("a typed mini-tool request is a reviewable plan, not a crash", async ({ page }) => {
+  await openEmptyWorkspace(page);
+  await newDocument(page, "Document");
+  await page.locator(".garden-markdown[contenteditable='true']").waitFor();
+  await page.getByPlaceholder(/Ask about this document/).fill("make a tool for outreach");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Propose mini-tool:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply transaction" })).toBeVisible();
+  await page.getByRole("button", { name: "Discard" }).click();
+  await expect(page.locator("aside").first()).not.toContainText("Proposed mini-tool");
 });

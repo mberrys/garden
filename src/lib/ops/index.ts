@@ -6,6 +6,8 @@ import { PdfOpSchema, type PdfOp } from "./pdf";
 import { DatabaseOpSchema, type DatabaseOp } from "./database";
 import { SheetOpSchema, type SheetOp } from "./sheet";
 import { TextOpSchema, type TextOp } from "./text";
+import { MediaOpSchema, type MediaOp } from "./media";
+import { MiniOpSchema, type MiniOp } from "./mini";
 import "@/lib/surfaces";
 import { getSurface, allSurfaces } from "@/lib/surfaces/registry";
 
@@ -16,6 +18,8 @@ export { PdfOpSchema, type PdfOp } from "./pdf";
 export { DatabaseOpSchema, type DatabaseOp } from "./database";
 export { SheetOpSchema, type SheetOp } from "./sheet";
 export { TextOpSchema, type TextOp } from "./text";
+export { MediaOpSchema, type MediaOp } from "./media";
+export { MiniOpSchema, type MiniOp } from "./mini";
 
 /** Maps a document kind to its operation type. */
 export interface OpMap {
@@ -25,9 +29,11 @@ export interface OpMap {
   pdf: PdfOp;
   sheet: SheetOp;
   database: DatabaseOp;
+  media: MediaOp;
+  mini: MiniOp;
 }
 export type OpOf<K extends DocKind> = OpMap[K];
-export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp | DatabaseOp;
+export type AnyOp = TextOp | CanvasOp | DeckOp | PdfOp | SheetOp | DatabaseOp | MediaOp | MiniOp;
 
 export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   text: TextOpSchema,
@@ -36,6 +42,8 @@ export const OP_SCHEMAS: { [K in DocKind]: z.ZodType<OpMap[K]> } = {
   pdf: PdfOpSchema,
   sheet: SheetOpSchema,
   database: DatabaseOpSchema,
+  media: MediaOpSchema,
+  mini: MiniOpSchema,
 };
 
 /**
@@ -84,7 +92,7 @@ export function parseOps<K extends DocKind>(
   raw.forEach((item, i) => {
     const parsed = schema.safeParse(item);
     if (parsed.success) {
-      ops.push(parsed.data);
+      (ops as unknown as unknown[]).push(parsed.data);
     } else {
       const detail = parsed.error.issues
         .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)

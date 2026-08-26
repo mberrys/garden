@@ -8,8 +8,8 @@ const WELCOME = `# Welcome to garden
 Text, PDFs, presentations and a drawing canvas live in one place, with a local
 AI that can read and edit across all of them under your review.
 
-Type markdown directly: headings, \`inline code\`, lists, quotes and fenced
-code blocks. The assistant reads and edits the same markdown.
+Type in the document editor: headings, **bold**, lists, quotes and code.
+Markdown is still how files and the assistant talk about this document.
 
 ## What makes it different
 

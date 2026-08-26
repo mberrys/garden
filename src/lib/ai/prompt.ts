@@ -8,7 +8,7 @@ import { getSurface } from "@/lib/surfaces/registry";
 
 export function systemPrompt(kind: DocKind, addenda?: string): string {
   const parts = [
-    `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, and a drawing canvas — more like OpenOffice meets an IDE than four separate apps. Seed packets sprout profession worktrees; you edit through reviewable operations.`,
+    `You are a collaborator inside "garden", a generative document workplace — text, PDF, presentations, drawings, sheets, databases, media, and constrained mini-tools — more like OpenOffice meets an IDE than separate apps. Seed packets sprout profession worktrees; flavors are reversible view lenses; you edit through reviewable operations.`,
     `You are currently working on a ${DOC_KIND_LABELS[kind].toLowerCase()}.`,
     "",
     "## How to answer",

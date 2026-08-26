@@ -5,6 +5,7 @@ import {
   Columns2,
   Copy,
   Download,
+  FolderOpen,
   MoreHorizontal,
   Plus,
   Search,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 import { DOC_KIND_LABELS, type Doc } from "@/lib/docs/schema";
 import { listPackets } from "@/lib/packets";
-import { useWorkspace } from "@/lib/store/workspace";
+import { snapshotOf, useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
   downloadBlob,
@@ -25,6 +26,7 @@ import {
 import { allSurfaces } from "@/lib/surfaces/registry";
 import { Button, IconButton, InlineEdit, Menu, MenuItem, MenuLabel, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
+import { folderPickerSupported, pickFolder, writeWorktree } from "@/lib/store/folder";
 import { WindowChromeStrip } from "./window-chrome";
 
 const NEW_DOC_OPTIONS = allSurfaces().map((s) => ({
@@ -84,6 +86,33 @@ export function Sidebar() {
       toast("success", "Workspace exported.");
     } catch (err) {
       toast("error", `Export failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleOpenFolder = async () => {
+    try {
+      await pickFolder();
+      toast("success", "Folder worktree is the primary store for this session.");
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleSaveFolder = async () => {
+    try {
+      const snap = snapshotOf(useWorkspace.getState());
+      await writeWorktree({
+        docs: snap.order.map((id) => snap.docs[id]).filter((doc): doc is Doc => Boolean(doc)),
+        order: snap.order,
+        panes: snap.panes,
+        splitView: snap.splitView,
+        seedPacketId: snap.seedPacketId,
+        seedPacketVersion: snap.seedPacketVersion,
+        flavorId: snap.flavorId,
+      });
+      toast("success", "Saved garden.json to the open folder.");
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -283,7 +312,7 @@ export function Sidebar() {
           ref={fileInput}
           type="file"
           multiple
-          accept={`.pdf,.md,.markdown,.txt,.json,${BUNDLE_EXTENSION}`}
+          accept={`.pdf,.md,.markdown,.txt,.json,.docx,.odt,.pptx,.odp,.xlsx,.ods,${BUNDLE_EXTENSION}`}
           className="hidden"
           onChange={(e) => {
             void handleFiles(e.target.files);
@@ -298,6 +327,17 @@ export function Sidebar() {
           <Download size={13} />
           Export
         </Button>
+        {folderPickerSupported() && (
+          <>
+            <Button size="sm" variant="ghost" onClick={() => void handleOpenFolder()}>
+              <FolderOpen size={13} />
+              Open folder
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void handleSaveFolder()}>
+              Save folder
+            </Button>
+          </>
+        )}
       </div>
     </aside>
   );

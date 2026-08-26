@@ -11,7 +11,7 @@ import type { EditorAdapter } from "./adapter";
  * that have not wrapped their React host yet. Status is `planned` when a later
  * suite issue will put a borrowed engine behind the contract.
  */
-export type AdapterStatus = "not-required" | "planned";
+export type AdapterStatus = "not-required" | "planned" | "active";
 
 export type EngineOwnership = "garden" | "borrowed";
 

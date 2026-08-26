@@ -89,17 +89,17 @@ These are the libraries named by the editor-platform issues. Status is
 
 | Library | Licence | Policy | Notes |
 | --- | --- | --- | --- |
-| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Not yet a runtime dependency; the text surface still edits markdown over ProseMirror-shaped Garden state |
+| ProseMirror / TipTap | MIT | Green | Writer engine ([#33](https://github.com/mberrys/garden/issues/33)). Runtime: `prosemirror-*`. Garden JSON stays canonical; no `prosemirror-history` |
 | Univer Sheets (OSS) | Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)). Engine only; not the document model |
 | Univer Pro / Univer import-export | commercial | **Red by default** | Native Office interchange is Pro/server, not OSS |
 | IronCalc | MIT / Apache-2.0 | Green | Sheets spike candidate ([#35](https://github.com/mberrys/garden/issues/35)) |
 | PDF.js | Apache-2.0 | Green | Already used for PDF rendering |
 | pdf-lib | MIT | Green | Already used for annotation export |
-| PptxGenJS | MIT | Green | PPTX **export** from Garden deck state ([#38](https://github.com/mberrys/garden/issues/38)) |
-| Mammoth | BSD-2-Clause | Green | DOCX import → Garden text model ([#34](https://github.com/mberrys/garden/issues/34)) |
+| PptxGenJS | MIT | Green | PPTX **export** from Garden deck state ([#38](https://github.com/mberrys/garden/issues/38)). Runtime dependency |
+| Mammoth | BSD-2-Clause | Green | DOCX import → Garden text model ([#34](https://github.com/mberrys/garden/issues/34)). Runtime ZIP DOCX path |
 | `docx` | MIT | Green | DOCX export from Garden text model ([#34](https://github.com/mberrys/garden/issues/34)) |
-| SheetJS Community Edition | Apache-2.0 | Green | Evaluate against fixtures ([#37](https://github.com/mberrys/garden/issues/37)). Commercial SheetJS features stay red |
-| ExcelJS | MIT | Green | Evaluate against the same fixtures ([#37](https://github.com/mberrys/garden/issues/37)) |
+| SheetJS Community Edition | Apache-2.0 | Green | Evaluated for [#37](https://github.com/mberrys/garden/issues/37). Not used: commercial SheetJS features stay red. Garden uses ExcelJS + first-party ODS instead ([docs/interchange.md](interchange.md)) |
+| ExcelJS | MIT | Green | Runtime XLSX import/export from Garden sheet state ([#37](https://github.com/mberrys/garden/issues/37)) |
 | Konva | MIT | Green | Optional render/interact layer under Garden scene/deck JSON ([#41](https://github.com/mberrys/garden/issues/41), [#38](https://github.com/mberrys/garden/issues/38)) |
 | Fabric.js | MIT | Green | Reference; same rule as Konva |
 | Excalidraw | MIT | Green as **reference only** | Do not embed the Excalidraw app as Garden’s canvas ([#41](https://github.com/mberrys/garden/issues/41)) |
@@ -110,8 +110,8 @@ These are the libraries named by the editor-platform issues. Status is
 
 Current direct runtime dependencies that already match this policy include
 Zod, Zustand, Dexie (Apache-2.0), Lucide (ISC), Next.js, React,
-pdf-lib, and PDF.js. Adding a new editor or interchange library is a policy
-review, not just a `package.json` edit.
+pdf-lib, PDF.js, Mammoth, `docx`, ExcelJS, and PptxGenJS. Adding a new editor
+or interchange library is a policy review, not just a `package.json` edit.
 
 ## Review checklist
 

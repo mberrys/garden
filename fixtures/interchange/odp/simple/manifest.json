@@ -1,0 +1,10 @@
+{
+  "id": "simple",
+  "format": "odp",
+  "status": "run",
+  "expectedKind": "deck",
+  "expectedContains": [
+    "Garden Title",
+    "Garden body copy"
+  ]
+}

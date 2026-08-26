@@ -15,7 +15,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import type { Annotation, AnnotationType, PdfDoc, Rect } from "@/lib/docs/schema";
+import type { Annotation, AnnotationType, EvidenceRef, PageCitation, PdfDoc, Rect } from "@/lib/docs/schema";
 import { defaultColor } from "@/lib/ops/pdf";
 import type { PdfOp } from "@/lib/ops";
 import { loadBlob, storeBlob, useWorkspace, type PaneIndex } from "@/lib/store/workspace";
@@ -66,7 +66,7 @@ export default function PdfSurface({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const { blobId, pageCount, annotations } = doc.body;
+  const { blobId, pageCount, annotations, evidence, citations } = doc.body;
 
   const apply = useCallback(
     (ops: PdfOp[], options?: { skipHistory?: boolean; label?: string }) => {
@@ -403,6 +403,33 @@ export default function PdfSurface({
           narrow={narrow}
           onClose={() => setShowAnnotations(false)}
           annotations={annotations}
+          evidence={evidence}
+          citations={citations}
+          onCite={(annotation) =>
+            apply(
+              [
+                {
+                  op: "addCitation",
+                  citation: { page: annotation.page, quote: annotation.quote, annotationId: annotation.id },
+                },
+                {
+                  op: "addEvidence",
+                  evidence: {
+                    source: {
+                      version: 1,
+                      documentId: doc.id,
+                      objectId: annotation.id,
+                      anchor: { kind: "pdf-text", page: annotation.page, start: 0, end: annotation.quote.length },
+                    },
+                    relation: "supports",
+                    capturedBy: "human",
+                    note: annotation.note || annotation.quote,
+                  },
+                },
+              ],
+              { label: "Cite passage" },
+            )
+          }
           activeId={activeAnnotationId}
           onSelect={(id) => {
             setActiveAnnotationId(id);
@@ -434,6 +461,8 @@ export default function PdfSurface({
 
 function AnnotationSidebar({
   annotations,
+  evidence,
+  citations,
   activeId,
   activeAnnotation,
   narrow,
@@ -441,8 +470,11 @@ function AnnotationSidebar({
   onSelect,
   onNoteChange,
   onDelete,
+  onCite,
 }: {
   annotations: Annotation[];
+  evidence: EvidenceRef[];
+  citations: PageCitation[];
   activeId: string | null;
   activeAnnotation: Annotation | null;
   narrow: boolean;
@@ -450,6 +482,7 @@ function AnnotationSidebar({
   onSelect: (id: string) => void;
   onNoteChange: (id: string, note: string) => void;
   onDelete: (id: string) => void;
+  onCite: (annotation: Annotation) => void;
 }) {
   const value = activeAnnotation?.note ?? "";
   const [noteDraft, setNoteDraft] = useState(value);
@@ -534,10 +567,23 @@ function AnnotationSidebar({
             size="sm"
             variant="ghost"
             className="w-full"
+            onClick={() => onCite(activeAnnotation)}
+          >
+            Cite as evidence
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-full"
             onClick={() => onDelete(activeAnnotation.id)}
           >
             Delete annotation
           </Button>
+          {(citations.length > 0 || evidence.length > 0) && (
+            <p className="text-[10px] text-faint">
+              {citations.length} citation{citations.length === 1 ? "" : "s"} · {evidence.length} evidence
+            </p>
+          )}
         </div>
       )}
     </aside>

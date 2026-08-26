@@ -139,14 +139,24 @@ textarea:focus-visible,
   outline-offset: 1px;
 }
 
-/* ---- Markdown text editor ---- */
+/* ---- ProseMirror writer ---- */
 .garden-markdown {
   color: var(--text);
-  font-family: var(--font-mono);
-  tab-size: 2;
 }
-.garden-markdown:focus {
+.garden-markdown:focus,
+.ProseMirror-focused {
   outline: none;
+}
+.ProseMirror {
+  position: relative;
+  min-height: 100%;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-variant-ligatures: none;
+  outline: none;
+}
+.garden-markdown.garden-prose {
+  font-family: inherit;
 }
 .garden-prose > * + * {
   margin-top: 0.75em;

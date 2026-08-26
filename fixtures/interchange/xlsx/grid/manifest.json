@@ -1,0 +1,10 @@
+{
+  "id": "grid",
+  "format": "xlsx",
+  "status": "run",
+  "expectedKind": "sheet",
+  "expectedContains": [
+    "=SUM(B1:B2)"
+  ],
+  "roundTrip": true
+}
