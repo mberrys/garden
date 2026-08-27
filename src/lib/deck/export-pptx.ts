@@ -1,17 +1,6 @@
 import type { DeckDoc } from "@/lib/docs/schema";
 import { SLIDE_H, SLIDE_W } from "@/lib/docs/schema";
-
-/**
- * PPTX export from Garden deck state via PptxGenJS. Canonical slide JSON stays
- * Garden-owned; the library is serialization infrastructure only.
- */
-function xmlEscape(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
+import { xmlEscape } from "@/lib/interchange/xml";
 
 function slideXml(index: number, title: string, body: string): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

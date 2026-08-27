@@ -1,8 +1,3 @@
-/**
- * OCR is an interface in 1.0, not a bundled engine. Callers extract page images
- * and hand them to a registered provider; Garden stores the resulting text
- * through the existing `setPageText` operation.
- */
 export interface OcrPageResult {
   page: number;
   text: string;

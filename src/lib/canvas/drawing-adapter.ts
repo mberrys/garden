@@ -7,10 +7,6 @@ import type { SurfaceSelection } from "@/lib/store/workspace";
 
 export type CanvasIntent = { type: "addRect"; x: number; y: number };
 
-/**
- * Drawing adapter: Garden canvas JSON in, canvas ops out. History stays on
- * Garden's stack — this adapter never owns undo.
- */
 export function createCanvasAdapter(): TestAdapter<
   CanvasDoc,
   CanvasOp,

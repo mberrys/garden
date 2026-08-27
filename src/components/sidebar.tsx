@@ -92,7 +92,7 @@ export function Sidebar() {
   const handleOpenFolder = async () => {
     try {
       await pickFolder();
-      toast("success", "Folder worktree is the primary store for this session.");
+      toast("success", "Opened folder.");
     } catch (err) {
       toast("error", err instanceof Error ? err.message : String(err));
     }

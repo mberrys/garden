@@ -1,11 +1,6 @@
 import type { Doc } from "@/lib/docs/schema";
 import type { Pane } from "./workspace";
 
-/**
- * Persistence backends. Dexie remains the default in-browser store. Folder
- * storage writes the same Garden workspace structures and never races as a
- * second writer while it is primary.
- */
 export type StorageKind = "dexie" | "folder";
 
 export interface WorkspacePayload {

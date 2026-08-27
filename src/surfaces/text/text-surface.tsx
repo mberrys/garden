@@ -4,10 +4,7 @@ import dynamic from "next/dynamic";
 import type { TextDoc } from "@/lib/docs/schema";
 import type { PaneIndex } from "@/lib/store/workspace";
 
-/**
- * Live Writer surface. The ProseMirror view is client-only so `prosemirror-view`
- * never evaluates `document` during SSR. Canonical state remains Garden JSON.
- */
+/** Client-only: `prosemirror-view` touches `document` at import time. */
 const WriterEditor = dynamic(() => import("./writer-editor"), {
   ssr: false,
   loading: () => (
