@@ -332,16 +332,27 @@ function KanbanView({
 }) {
   const groupField = fields.find((f) => f.id === view.groupFieldId);
   const options =
-    groupField?.type === "select" ? groupField.options : groupField?.type === "multi_select" ? groupField.options : [];
+    groupField?.type === "select" || groupField?.type === "multi_select"
+      ? groupField.options ?? []
+      : [];
 
-  const columns = options.length > 0 ? options : ["Unassigned"];
+  // Always include an Unassigned column: a newly added row (or one whose value
+  // was cleared) has no group value and must stay visible and selectable.
+  const columns = [...options, "Unassigned"];
 
   return (
     <div className="flex h-full gap-3 p-3 overflow-x-auto">
       {columns.map((option) => {
         const columnRows = rows.filter((row) => {
           const val = row.cells[view.groupFieldId];
-          return val === option || (option === "Unassigned" && !val);
+          if (option === "Unassigned") {
+            // A row lands in Unassigned when it matches no option. For a
+            // multi_select the cell is an array, so membership is array-aware.
+            const values = Array.isArray(val) ? val : val === undefined || val === null ? [] : [val];
+            return values.length === 0 || !values.some((v) => options.includes(v as string));
+          }
+          const values = Array.isArray(val) ? (val as unknown[]) : [val];
+          return values.includes(option);
         });
         return (
           <div key={option} className="flex w-52 shrink-0 flex-col rounded-lg border border-line bg-raised">
@@ -488,6 +499,39 @@ function CellEditor({
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
+    );
+  }
+
+  if (field.type === "multi_select") {
+    // A multi_select cell holds an array of option strings. Render the options
+    // as toggles so the value stays an array (not a corrupt single string).
+    const current = Array.isArray(value) ? value : [];
+    return (
+      <div className="flex min-w-[140px] flex-col gap-0.5 py-0.5">
+        {field.options.length === 0 && (
+          <span className="text-[10px] text-faint">No options</span>
+        )}
+        {field.options.map((opt) => {
+          const checked = current.includes(opt);
+          return (
+            <label key={opt} className="flex cursor-pointer items-center gap-1.5 text-[11px] text-ink">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) =>
+                  onChange(
+                    e.target.checked
+                      ? [...current, opt]
+                      : current.filter((o) => o !== opt),
+                  )
+                }
+                className="accent-accent"
+              />
+              {opt}
+            </label>
+          );
+        })}
+      </div>
     );
   }
 

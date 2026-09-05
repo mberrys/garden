@@ -1,4 +1,5 @@
 import { DocSchema, type DatabaseDoc, type Doc } from "@/lib/docs/schema";
+import { createDatabaseDoc } from "@/lib/docs/factories";
 import { applyLinkSeeds, databaseFromSeed } from "./build-database";
 import type { SeedPacket, SproutPane, SproutResult } from "./types";
 
@@ -38,16 +39,26 @@ export function sproutPacket(packet: SeedPacket): SproutResult {
     docs.push(doc);
   }
 
-  for (const baseSeed of packet.starterBases ?? []) {
-    const dbDoc = databaseFromSeed(baseSeed, localToId);
-    localToId.set(baseSeed.localId, dbDoc.id);
-    (baseSeed.rows ?? []).forEach((rowSeed, i) => {
-      const row = dbDoc.body.rows[i];
+  // Pre-allocate an id for every base before building any of them. A relation
+  // field may target any starter base (including a later one or the base's own
+  // id); resolving against the complete map avoids an unresolved-target error.
+  const starterBases = packet.starterBases ?? [];
+  const baseEnvelopes: DatabaseDoc[] = starterBases.map((seed) =>
+    createDatabaseDoc(seed.title),
+  );
+  starterBases.forEach((seed, i) => {
+    localToId.set(seed.localId, baseEnvelopes[i].id);
+  });
+
+  starterBases.forEach((baseSeed, i) => {
+    const dbDoc = databaseFromSeed(baseSeed, localToId, baseEnvelopes[i]);
+    (baseSeed.rows ?? []).forEach((rowSeed, j) => {
+      const row = dbDoc.body.rows[j];
       if (row) rowLocalToId.set(rowSeed.localId, row.id);
     });
     databaseDocs.push(dbDoc);
     docs.push(dbDoc);
-  }
+  });
 
   if (packet.links?.length) {
     const linked = applyLinkSeeds(databaseDocs, localToId, rowLocalToId, packet.links);

@@ -116,11 +116,17 @@ interface WorkspaceState {
   seedSuppressed: boolean;
   /** User asked to see the picker (empty blank workspace, or New menu). */
   packetPickerRequested: boolean;
+  /** A complex seed packet awaiting explicit preview/confirmation before planting. */
+  previewPacketId: string | null;
+  /** True while a plant is in flight, so a double-click can't plant twice. */
+  planting: boolean;
 
   init: () => Promise<void>;
   plantPacket: (id: string) => Promise<void>;
   startBlankWorkspace: () => Promise<void>;
   requestPacketPicker: () => void;
+  requestPacketPreview: (id: string) => void;
+  dismissPacketPreview: () => void;
   applyTransaction: (plan: WorkspacePlan) => { ok: boolean; error?: string };
   previewTransaction: (plan: WorkspacePlan) => ReturnType<typeof previewPlan>;
   setFlavor: (flavorId: string | null) => void;
@@ -181,6 +187,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   blankWorkspace: false,
   seedSuppressed: false,
   packetPickerRequested: false,
+  previewPacketId: null,
+  planting: false,
 
   init: async () => {
     if (get().ready) return;
@@ -230,34 +238,43 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   },
 
   plantPacket: async (id) => {
-    const packet = getPacket(id);
-    if (!packet) {
-      get().toast("error", `Unknown seed packet "${id}".`);
-      return;
-    }
+    // A double-click fires two async calls that would otherwise capture the
+    // same pre-plant workspace and each persist its own sprouted documents.
+    // Serialize: ignore a second plant while one is still in flight.
+    if (get().planting) return;
+    set({ planting: true });
+    try {
+      const packet = getPacket(id);
+      if (!packet) {
+        get().toast("error", `Unknown seed packet "${id}".`);
+        return;
+      }
 
-    const sprouted = sproutPacket(packet);
-    const plan: WorkspacePlan = {
-      id: newPlanId(),
-      label: `Plant ${packet.label}`,
-      changes: [
-        ...sprouted.docs.map((doc) => ({ type: "createDoc" as const, doc })),
-        {
-          type: "setLayout",
-          panes: sprouted.panes,
-          splitView: sprouted.splitView,
-        },
-        { type: "setPacketBinding", packetId: id, version: packet.version },
-      ],
-    };
-    const result = get().applyTransaction(plan);
-    if (!result.ok) {
-      get().toast("error", result.error ?? "Could not plant packet.");
-      return;
+      const sprouted = sproutPacket(packet);
+      const plan: WorkspacePlan = {
+        id: newPlanId(),
+        label: `Plant ${packet.label}`,
+        changes: [
+          ...sprouted.docs.map((doc) => ({ type: "createDoc" as const, doc })),
+          {
+            type: "setLayout",
+            panes: sprouted.panes,
+            splitView: sprouted.splitView,
+          },
+          { type: "setPacketBinding", packetId: id, version: packet.version },
+        ],
+      };
+      const result = get().applyTransaction(plan);
+      if (!result.ok) {
+        get().toast("error", result.error ?? "Could not plant packet.");
+        return;
+      }
+      await store.writeMeta("blankWorkspace", false);
+      await store.writeMeta("seeded", true);
+      set({ blankWorkspace: false, packetPickerRequested: false, activePane: 0 });
+    } finally {
+      set({ planting: false });
     }
-    await store.writeMeta("blankWorkspace", false);
-    await store.writeMeta("seeded", true);
-    set({ blankWorkspace: false, packetPickerRequested: false, activePane: 0 });
   },
 
   startBlankWorkspace: async () => {
@@ -274,6 +291,16 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   },
 
   requestPacketPicker: () => set({ packetPickerRequested: true }),
+
+  requestPacketPreview: (id) => {
+    if (!getPacket(id)) {
+      get().toast("error", `Unknown seed packet "${id}".`);
+      return;
+    }
+    set({ previewPacketId: id });
+  },
+
+  dismissPacketPreview: () => set({ previewPacketId: null }),
 
   previewTransaction: (plan) => previewPlan(plan, snapshotOf(get())),
 

@@ -365,6 +365,26 @@ describe("database ops", () => {
       },
     ]);
   });
+
+  it("undoing a deleteField restores the deleted cell values, not an empty column", () => {
+    let doc = createDatabaseDoc("Contacts");
+    const fieldId = doc.body.fields[0].id; // the default "Name" text field
+    doc = applyOps<"database">(doc, [
+      { op: "addRow", row: { id: "row_1", cells: { [fieldId]: "Alice" } } },
+      { op: "addRow", row: { id: "row_2", cells: { [fieldId]: "Bob" } } },
+    ]).doc;
+
+    // Deleting a populated field and then applying its inverse must bring the
+    // cell values back — otherwise undo silently loses data.
+    const forward = applyOps<"database">(doc, [{ op: "deleteField", id: fieldId }]);
+    expect(forward.doc.body.rows.every((r) => !(fieldId in r.cells))).toBe(true);
+
+    const back = applyOps<"database">(forward.doc, forward.inverse);
+    const restored = back.doc.body.rows.find((r) => r.id === "row_1");
+    expect(restored?.cells[fieldId]).toBe("Alice");
+    expect(back.doc.body.fields.some((f) => f.id === fieldId)).toBe(true);
+    expectRoundTrip<"database">(doc, [{ op: "deleteField", id: fieldId }]);
+  });
 });
 
 describe("media ops", () => {
@@ -378,6 +398,31 @@ describe("media ops", () => {
     expectRoundTrip<"media">(doc, [{ op: "setTags", id: "asset_a", tags: ["site"] }]);
     expectRoundTrip<"media">(doc, [{ op: "addGroup", group: { id: "grp_a", name: "Key" } }]);
     expectRoundTrip<"media">(doc, [{ op: "deleteAsset", id: "asset_a" }]);
+  });
+
+  it("undoing a deleteGroup restores the assets' memberships", () => {
+    // asset_a and asset_b are grouped; deleteGroup clears their groupId. Its
+    // inverse must bring the memberships back rather than an empty group.
+    let doc = createMediaDoc("Board");
+    doc = applyOps<"media">(doc, [
+      { op: "addGroup", group: { id: "grp_a", name: "Key" } },
+      {
+        op: "addAsset",
+        asset: { id: "asset_a", name: "a.jpg", caption: "", tags: [], groupId: "grp_a" },
+      },
+      {
+        op: "addAsset",
+        asset: { id: "asset_b", name: "b.jpg", caption: "", tags: [], groupId: "grp_a" },
+      },
+    ]).doc;
+
+    const forward = applyOps<"media">(doc, [{ op: "deleteGroup", id: "grp_a" }]);
+    expect(forward.doc.body.assets.every((a) => a.groupId === null)).toBe(true);
+
+    const back = applyOps<"media">(forward.doc, forward.inverse);
+    expect(back.doc.body.assets.find((a) => a.id === "asset_a")?.groupId).toBe("grp_a");
+    expect(back.doc.body.assets.find((a) => a.id === "asset_b")?.groupId).toBe("grp_a");
+    expectRoundTrip<"media">(doc, [{ op: "deleteGroup", id: "grp_a" }]);
   });
 });
 

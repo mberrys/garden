@@ -16,8 +16,9 @@ import type { DatabaseSeed, LinkSeed } from "./types";
 export function databaseFromSeed(
   seed: DatabaseSeed,
   targetDocIds: Map<string, string>,
+  doc?: DatabaseDoc,
 ): DatabaseDoc {
-  const doc = createDatabaseDoc(seed.title);
+  const envelope = doc ?? createDatabaseDoc(seed.title);
 
   const fields: DatabaseField[] = seed.fields.map((field) => {
     if (field.type === "relation") {
@@ -84,7 +85,7 @@ export function databaseFromSeed(
     activeViewId,
   };
 
-  return { ...doc, body };
+  return { ...envelope, body };
 }
 
 export function applyLinkSeeds(
