@@ -105,7 +105,7 @@ export function SeedPacketPicker() {
   );
 }
 
-function PacketPreview({
+export function PacketPreview({
   packet,
   onCancel,
   onPlant,

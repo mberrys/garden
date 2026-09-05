@@ -14,7 +14,7 @@ import {
   Upload,
 } from "lucide-react";
 import { DOC_KIND_LABELS, type Doc } from "@/lib/docs/schema";
-import { listPackets } from "@/lib/packets";
+import { listPackets, packetNeedsPreview } from "@/lib/packets";
 import { snapshotOf, useWorkspace } from "@/lib/store/workspace";
 import {
   BUNDLE_EXTENSION,
@@ -41,6 +41,7 @@ export function Sidebar() {
   const activePane = useWorkspace((s) => s.activePane);
   const newDoc = useWorkspace((s) => s.newDoc);
   const plantPacket = useWorkspace((s) => s.plantPacket);
+  const requestPacketPreview = useWorkspace((s) => s.requestPacketPreview);
   const requestPacketPicker = useWorkspace((s) => s.requestPacketPicker);
   const seedSuppressed = useWorkspace((s) => s.seedSuppressed);
   const openDoc = useWorkspace((s) => s.openDoc);
@@ -146,7 +147,13 @@ export function Sidebar() {
             <MenuItem
               key={packet.id}
               icon={<Sprout size={14} />}
-              onClick={() => void plantPacket(packet.id)}
+              onClick={() => {
+                // Complex packets (database bases, links, many artifacts) must be
+                // previewed/confirmed before applying — matching the picker flow —
+                // so planting from the sidebar can't silently append them.
+                if (packetNeedsPreview(packet)) requestPacketPreview(packet.id);
+                else void plantPacket(packet.id);
+              }}
             >
               {packet.label}
             </MenuItem>

@@ -54,6 +54,7 @@ export const MediaOpSchema = z.discriminatedUnion("op", [
     .object({
       op: z.literal("addGroup"),
       group: z.object({ name: z.string(), id: z.string().optional() }),
+      assetIds: z.array(z.string()).optional(),
     })
     .describe("Add a grouping folder on the board"),
   z
@@ -188,6 +189,14 @@ export function applyMediaOps(
           throw new OpError(`addGroup: group "${parsed.data.id}" already exists`);
         }
         groups.push(parsed.data);
+        // When this op is an inverse of deleteGroup, restore which assets were
+        // members — otherwise the group would come back empty.
+        if (op.assetIds?.length) {
+          const memberSet = new Set(op.assetIds);
+          assets = assets.map((asset) =>
+            memberSet.has(asset.id) ? { ...asset, groupId: parsed.data.id } : asset,
+          );
+        }
         inverse.push({ op: "deleteGroup", id: parsed.data.id });
         break;
       }
@@ -204,10 +213,17 @@ export function applyMediaOps(
         const index = groups.findIndex((g) => g.id === op.id);
         if (index === -1) throw new OpError(`deleteGroup: no group "${op.id}"`);
         const [removed] = groups.splice(index, 1);
+        // Remember which assets belonged to the group so the inverse can restore
+        // their memberships — otherwise undoing recreates an empty group.
+        const memberIds = assets.filter((a) => a.groupId === op.id).map((a) => a.id);
         assets = assets.map((asset) =>
           asset.groupId === op.id ? { ...asset, groupId: null } : asset,
         );
-        inverse.push({ op: "addGroup", group: { id: removed.id, name: removed.name } });
+        inverse.push({
+          op: "addGroup",
+          group: { id: removed.id, name: removed.name },
+          assetIds: memberIds,
+        });
         break;
       }
       case "linkAsset": {

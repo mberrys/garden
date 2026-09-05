@@ -1,8 +1,8 @@
 "use client";
 
 import { z } from "zod";
-import { DocSchema, type Doc } from "@/lib/docs/schema";
-import { migrateDoc } from "@/lib/docs/migrations";
+import { DocSchema, type CellValue, type Doc } from "@/lib/docs/schema";
+import { migrateDoc, type MigrationResult } from "@/lib/docs/migrations";
 import { createPdfDoc, createTextDoc } from "@/lib/docs/factories";
 import { markdownToDoc } from "@/lib/text/markdown";
 import { applyOps } from "@/lib/ops";
@@ -148,21 +148,36 @@ export async function importBundle(text: string): Promise<ImportResult> {
     blobIdMap.set(entry.id, await storeBlob(blob, entry.name, entry.mime));
   }
 
-  let imported = 0;
+  // Migrate and validate every document first, and decide its final id before
+  // adding anything. A document already open under its bundle id must not be
+  // silently overwritten, so we give it a fresh suffix — and record that in an
+  // old->new map so references (relation target docs, garden refs) can be
+  // rewritten to point at the imported copies instead of the pre-existing ones.
+  const prepared: { migrated: MigrationResult; finalDoc: Doc | null; oldId: string }[] = [];
+  const docIdMap = new Map<string, string>();
   for (const rawDoc of parsed.data.docs) {
+    const oldId = (rawDoc as { id?: string })?.id ?? "";
     const result = migrateDoc(rawDoc);
     if (!result.ok || !result.doc) {
-      const title =
-        (rawDoc as { title?: string })?.title ?? (rawDoc as { id?: string })?.id ?? "(untitled)";
-      skipped.push({ title, error: result.error ?? "failed validation" });
+      prepared.push({ migrated: result, finalDoc: null, oldId });
       continue;
     }
-
     let doc = remapBlobIds(result.doc, blobIdMap);
-    // A document already open under this id must not be silently overwritten.
     if (store.docs[doc.id]) {
       doc = { ...doc, id: `${doc.id}_i${Math.random().toString(36).slice(2, 6)}` } as Doc;
     }
+    docIdMap.set(oldId || doc.id, doc.id);
+    prepared.push({ migrated: result, finalDoc: doc, oldId });
+  }
+
+  let imported = 0;
+  for (const entry of prepared) {
+    if (!entry.migrated.ok || !entry.finalDoc) {
+      const title = entry.oldId || "(untitled)";
+      skipped.push({ title, error: entry.migrated.error ?? "failed validation" });
+      continue;
+    }
+    const doc = remapDocIds(entry.finalDoc, docIdMap);
     useWorkspace.getState().addDoc(doc, { open: false });
     imported++;
   }
@@ -184,6 +199,65 @@ export async function importBundle(text: string): Promise<ImportResult> {
 function remapBlobIds(doc: Doc, map: Map<string, string>): Doc {
   if (map.size === 0) return doc;
   return getSurface(doc.kind).remapBlobIds(doc, map);
+}
+
+/**
+ * Rewrites cross-document references after import when a bundle document's id
+ * collided with one already in the workspace and was given a fresh suffix.
+ *
+ * Without this, an imported database's relation fields and garden refs would
+ * silently point at the pre-existing documents (or break) instead of the
+ * imported copies, corrupting the bundle's topology on restore.
+ */
+function remapDocIds(doc: Doc, map: Map<string, string>): Doc {
+  if (map.size === 0) return doc;
+  // Remap a single garden-ref-like object; returns the same value (identity)
+  // when it does not need rewriting so callers can compare by reference.
+  const remapRef = <T>(ref: T): T => {
+    if (!ref || typeof ref !== "object" || Array.isArray(ref)) return ref;
+    const r = ref as Record<string, unknown>;
+    if (typeof r.documentId !== "string" || !map.has(r.documentId)) return ref;
+    return { ...r, documentId: map.get(r.documentId)! } as T;
+  };
+
+  if (doc.kind === "database") {
+    return {
+      ...doc,
+      body: {
+        ...doc.body,
+        fields: doc.body.fields.map((f) =>
+          f.type === "relation" && map.has(f.targetDocId)
+            ? { ...f, targetDocId: map.get(f.targetDocId)! }
+            : f,
+        ),
+        rows: doc.body.rows.map((row) => {
+          let cells = row.cells;
+          for (const [key, value] of Object.entries(cells)) {
+            const next = remapRef<CellValue>(value);
+            if (next !== value) {
+              cells = { ...cells, [key]: next };
+            }
+          }
+          return cells === row.cells ? row : { ...row, cells };
+        }),
+      },
+    } as Doc;
+  }
+
+  if (doc.kind === "media") {
+    return {
+      ...doc,
+      body: {
+        ...doc.body,
+        assets: doc.body.assets.map((asset) => {
+          const links = asset.links.map((link) => remapRef(link));
+          return links === asset.links ? asset : { ...asset, links };
+        }),
+      },
+    } as Doc;
+  }
+
+  return doc;
 }
 
 /* ------------------------------------------------------------------ *

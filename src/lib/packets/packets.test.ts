@@ -3,6 +3,7 @@ import "@/lib/surfaces";
 import { RECIPES, recipesFor } from "@/lib/ai/recipes";
 import { systemPrompt } from "@/lib/ai/prompt";
 import { DocSchema } from "@/lib/docs/schema";
+import { createTextDoc } from "@/lib/docs/factories";
 import { workspaceShowsPacketPicker } from "@/lib/store/workspace";
 import { getPacket, listPackets, PACKETS } from "./registry";
 import { sproutPacket } from "./sprout";
@@ -98,6 +99,55 @@ describe("seed packets", () => {
     const contactLinks = pitchRow?.cells.fld_pitch_contact as string[] | undefined;
     expect(storyLinks?.length).toBeGreaterThan(0);
     expect(contactLinks?.length).toBeGreaterThan(0);
+  });
+
+  it("allows a relation between any two bases regardless of declaration order", () => {
+    // Base B is declared after base A, and A's relation targets B. Sprouting
+    // must allocate every base id up front so the forward reference resolves
+    // instead of throwing an unresolved-target error.
+    const packet = {
+      id: "test/forward-ref",
+      version: 1,
+      label: "Forward ref",
+      blurb: "Relation targets a later base.",
+      starterArtifacts: [
+        {
+          localId: "note",
+          kind: "text" as const,
+          title: "Note",
+          build: () => createTextDoc("Note"),
+        },
+      ],
+      starterBases: [
+        {
+          localId: "base_a",
+          title: "Base A",
+          fields: [
+            { id: "fld_name", name: "Name", type: "text" },
+            { id: "fld_b", name: "Ties to B", type: "relation", targetLocalId: "base_b" },
+          ],
+          views: [{ id: "vw", name: "Grid", type: "grid" }],
+        },
+        {
+          localId: "base_b",
+          title: "Base B",
+          fields: [{ id: "fld_name", name: "Name", type: "text" }],
+          views: [{ id: "vw", name: "Grid", type: "grid" }],
+        },
+      ],
+      layout: { open: [{ localId: "note", pane: 0 }], splitView: false },
+    };
+
+    const result = sproutPacket(packet as unknown as Parameters<typeof sproutPacket>[0]);
+    const baseA = result.docs.find((d) => d.title === "Base A");
+    expect(baseA?.kind).toBe("database");
+    if (baseA?.kind !== "database") return;
+    const targetField = baseA.body.fields.find((f) => f.id === "fld_b");
+    expect(targetField?.type).toBe("relation");
+    const baseB = result.docs.find((d) => d.title === "Base B");
+    if (targetField?.type === "relation" && baseB) {
+      expect(targetField.targetDocId).toBe(baseB.id);
+    }
   });
 
   it("requires packet version", () => {

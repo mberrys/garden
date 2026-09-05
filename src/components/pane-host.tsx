@@ -4,18 +4,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Columns2, X } from "lucide-react";
 import { useWorkspace, workspaceShowsPacketPicker, type PaneIndex } from "@/lib/store/workspace";
 import { importFile } from "@/lib/store/bundle";
+import { getPacket } from "@/lib/packets/registry";
 import { EmptyState, IconButton, Button, cx } from "./ui";
 import { DocIcon } from "./doc-icon";
 import { SurfaceHost } from "./surface-host";
-import { SeedPacketPicker } from "./seed-packet-picker";
+import { PacketPreview, SeedPacketPicker } from "./seed-packet-picker";
 
 const MIN_PANE_FRACTION = 0.2;
 
 export function PaneHost() {
   const splitView = useWorkspace((s) => s.splitView);
+  const previewPacketId = useWorkspace((s) => s.previewPacketId);
+  const plantPacket = useWorkspace((s) => s.plantPacket);
+  const dismissPacketPreview = useWorkspace((s) => s.dismissPacketPreview);
   const [split, setSplit] = useState(0.5);
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+
+  const previewPacket = previewPacketId ? getPacket(previewPacketId) : null;
 
   const onPointerMove = useCallback((e: PointerEvent) => {
     if (!draggingRef.current || !containerRef.current) return;
@@ -38,7 +44,7 @@ export function PaneHost() {
   }, [onPointerMove]);
 
   return (
-    <div ref={containerRef} className="flex min-h-0 min-w-0 flex-1">
+    <div ref={containerRef} className="relative flex min-h-0 min-w-0 flex-1">
       <Pane index={0} style={{ width: splitView ? `${split * 100}%` : "100%" }} />
       {splitView && (
         <>
@@ -56,6 +62,18 @@ export function PaneHost() {
           </div>
           <Pane index={1} style={{ width: `${(1 - split) * 100}%` }} />
         </>
+      )}
+      {previewPacket && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
+          <PacketPreview
+            packet={previewPacket}
+            onCancel={dismissPacketPreview}
+            onPlant={() => {
+              dismissPacketPreview();
+              void plantPacket(previewPacket.id);
+            }}
+          />
+        </div>
       )}
     </div>
   );

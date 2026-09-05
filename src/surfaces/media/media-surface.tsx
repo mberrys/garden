@@ -3,9 +3,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaDoc } from "@/lib/docs/schema";
 import { newAssetId } from "@/lib/docs/ids";
-import { storeBlob, useWorkspace, type PaneIndex } from "@/lib/store/workspace";
+import { loadBlob, storeBlob, useWorkspace, type PaneIndex } from "@/lib/store/workspace";
 import { resolveGardenRef } from "@/lib/refs";
 import { Button, cx } from "@/components/ui";
+
+/** Loads a stored blob once its id is known and renders an object URL. */
+function StoredImage({ blobId, name }: { blobId: string; name: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    void loadBlob(blobId).then((blob) => {
+      if (!active || !blob) return;
+      objectUrl = URL.createObjectURL(blob);
+      setUrl(objectUrl);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [blobId]);
+
+  if (!url) {
+    return (
+      <div className="flex h-full items-center justify-center bg-sunken text-[11px] text-muted">
+        Loading…
+      </div>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt={name} className="h-full w-full object-cover" />;
+}
 
 export default function MediaSurface({
   doc,
@@ -110,7 +138,11 @@ export default function MediaSurface({
                   )}
                 >
                   <div className="flex h-28 items-center justify-center bg-sunken text-[11px] text-faint">
-                    {asset.blobId ? asset.name : "No file"}
+                    {asset.blobId ? (
+                      <StoredImage blobId={asset.blobId} name={asset.name} />
+                    ) : (
+                      asset.name || "No file"
+                    )}
                   </div>
                   <div className="px-2 py-1.5">
                     <div className="truncate text-[12px] text-ink">{asset.caption || asset.name || "Untitled"}</div>

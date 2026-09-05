@@ -32,6 +32,7 @@ export const DatabaseOpSchema = z.discriminatedUnion("op", [
       op: z.literal("addField"),
       field: z.object({ type: FieldTypeSchema }).catchall(z.unknown()),
       index: z.number().int().min(0).optional(),
+      cells: z.record(z.string(), CellValueSchema).optional(),
     })
     .describe("Add a typed field to the database schema"),
   z
@@ -167,6 +168,16 @@ export function applyDatabaseOps(
         const at = op.index === undefined ? fields.length : Math.min(op.index, fields.length);
         fields.splice(at, 0, field);
         inverse.push({ op: "deleteField", id: field.id });
+        // Undoing a deleteField restores the field AND the cell values that were
+        // removed with it. Re-apply any captured cells so the inverse is exact.
+        if (op.cells) {
+          rows = rows.map((row) => {
+            const value = op.cells?.[row.id];
+            const present = field.id in row.cells;
+            if (value === undefined || present) return row;
+            return { ...row, cells: { ...row.cells, [field.id]: value } };
+          });
+        }
         break;
       }
 
@@ -194,10 +205,18 @@ export function applyDatabaseOps(
         const index = fields.findIndex((f) => f.id === op.id);
         if (index === -1) throw new OpError(`deleteField: no field "${op.id}"`);
         const [removed] = fields.splice(index, 1);
+        // Capture the cell values that are about to be deleted so the inverse is
+        // exact: undoing must restore the field AND its data, not an empty column.
+        const removedCells: Record<string, CellValue> = {};
+        for (const row of rows) {
+          const value = row.cells[op.id];
+          if (value !== undefined) removedCells[row.id] = value;
+        }
         inverse.push({
           op: "addField",
           field: removed as unknown as { type: DatabaseField["type"] } & Record<string, unknown>,
           index,
+          cells: removedCells,
         });
         rows = rows.map((row) => {
           const cells = { ...row.cells };
