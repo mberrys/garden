@@ -51,6 +51,6 @@
     "eslint-config-next": "^16.2.11",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.11"
   }
 }
